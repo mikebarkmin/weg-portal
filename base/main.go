@@ -9,6 +9,7 @@ import (
 	"ganigeorgiev.com/pocketbase/pocketbase/tools/osutils"
 
 	"weg-portal"
+	"weg-portal/hooks"
 )
 
 // Version is set at build time (-ldflags "-X main.Version=v1.2.3") by the
@@ -18,6 +19,7 @@ var Version = "dev"
 func main() {
 	app := portal.New()
 	app.RootCmd.Version = Version
+	hooks.Version = Version // shown in the SPA footer (GET /api/portal/config)
 
 	// ---------------------------------------------------------------
 	// Optional flags:

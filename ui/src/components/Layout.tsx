@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { canShow, logout, useAuth, useOwnerAccount } from "../lib/auth";
 import { changeLanguage, supportedLanguages, type Language } from "../lib/i18n";
 import { setColorScheme, useColorScheme } from "../lib/theme";
+import { portalVersion } from "../lib/portalConfig";
 
 interface NavItem {
     to: string;
@@ -342,6 +343,11 @@ function AppFooter() {
                 <Link className="list-item" to="/datenschutz">
                     {t("legal.footer.datenschutz")}
                 </Link>
+                {portalVersion() && (
+                    <span className="list-item txt-hint" title={t("footer.version")}>
+                        {portalVersion()}
+                    </span>
+                )}
             </nav>
         </footer>
     );

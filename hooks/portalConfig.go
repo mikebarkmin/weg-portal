@@ -6,6 +6,10 @@ import (
 	"ganigeorgiev.com/pocketbase/pocketbase/core"
 )
 
+// Version is the running build's version (set by base/main.go from its
+// ldflags value), returned by GET /api/portal/config for the SPA footer.
+var Version = "dev"
+
 // PortalConfig registers GET /api/portal/config: the public, per-deployment
 // settings the SPA needs at runtime. Today that is the reportable bounding
 // box (the same PORTAL_MIN_LAT/... env values that POST /api/portal/issues
@@ -13,7 +17,8 @@ import (
 // server (M8 review, open question 1).
 //
 // It also returns the portal time zone (PORTAL_TIMEZONE), in which the
-// SPA expands recurring events - the same zone the iCal export uses.
+// SPA expands recurring events - the same zone the iCal export uses -
+// and the app version shown in the footer.
 //
 // Only non-sensitive values belong here: the route is public.
 func PortalConfig(app core.App) {
@@ -34,6 +39,7 @@ func PortalConfig(app core.App) {
 
 			return e.JSON(http.StatusOK, map[string]any{
 				"timezone": tzName,
+				"version":  Version,
 				"bounds": map[string]float64{
 					"minLat": bounds.minLat,
 					"maxLat": bounds.maxLat,

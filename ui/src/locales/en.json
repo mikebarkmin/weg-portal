@@ -554,6 +554,7 @@
     },
     "footer": {
         "theme": "Theme",
+        "version": "Version",
         "scheme": {
             "light": "Light",
             "dark": "Dark"

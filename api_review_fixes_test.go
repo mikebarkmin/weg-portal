@@ -34,10 +34,15 @@ func TestPortalConfigBounds(t *testing.T) {
 	}
 
 	var body struct {
-		Bounds map[string]float64 `json:"bounds"`
+		Bounds  map[string]float64 `json:"bounds"`
+		Version string             `json:"version"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
+	}
+	// the app version for the SPA footer ("dev" outside release builds)
+	if body.Version != "dev" {
+		t.Fatalf("expected version %q, got %q", "dev", body.Version)
 	}
 
 	want := map[string]float64{"minLat": 52.1, "maxLat": 52.2, "minLng": 13.3, "maxLng": 13.4}

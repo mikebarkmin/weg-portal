@@ -5,6 +5,14 @@ import { setPortalTimeZone } from "./timezone";
 interface PortalConfig {
     bounds?: Partial<IssueBounds>;
     timezone?: string;
+    version?: string;
+}
+
+let appVersion = "";
+
+// The running server build's version ("" until/unless the config loaded).
+export function portalVersion(): string {
+    return appVersion;
 }
 
 // Loads the deployment config once at startup. Never throws and never
@@ -19,6 +27,9 @@ export async function loadPortalConfig(timeoutMs = 3000): Promise<void> {
         const config = (await res.json()) as PortalConfig;
         applyIssueBounds(config.bounds);
         setPortalTimeZone(config.timezone);
+        if (typeof config.version === "string") {
+            appVersion = config.version.trim().slice(0, 64);
+        }
     } catch {
         // keep the fallback values
     } finally {
