@@ -1,10 +1,18 @@
 package main
 
 import (
+	"bufio"
+	"errors"
+	"fmt"
 	"log"
+	"net/mail"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/spf13/cobra"
+
+	"ganigeorgiev.com/pocketbase/pocketbase/core"
 	"ganigeorgiev.com/pocketbase/pocketbase/plugins/migratecmd"
 	"ganigeorgiev.com/pocketbase/pocketbase/tools/osutils"
 
@@ -54,7 +62,55 @@ func main() {
 	}
 	migratecmd.MustRegister(app, app.RootCmd, migrateConfig)
 
+	app.RootCmd.AddCommand(superuserStdinCommand(app))
+
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+// superuserStdinCommand is "superuser upsert" with the password read from
+// stdin (first line) instead of the argument list, which every local user
+// can read in the process table (used by deploy/weg-portal-ctl superuser).
+func superuserStdinCommand(app core.App) *cobra.Command {
+	return &cobra.Command{
+		Use:          "superuser-stdin <email>",
+		Short:        "Creates, or updates if email exists, a superuser; the password is read from stdin",
+		Args:         cobra.ExactArgs(1),
+		SilenceUsage: true,
+		RunE: func(command *cobra.Command, args []string) error {
+			email := strings.TrimSpace(args[0])
+			if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email {
+				return errors.New("missing or invalid email address")
+			}
+
+			line, err := bufio.NewReader(os.Stdin).ReadString('\n')
+			if err != nil && line == "" {
+				return errors.New("missing password on stdin")
+			}
+			password := strings.TrimRight(line, "\r\n")
+			if password == "" {
+				return errors.New("missing password on stdin")
+			}
+
+			superusers, err := app.FindCachedCollectionByNameOrId(core.CollectionNameSuperusers)
+			if err != nil {
+				return fmt.Errorf("failed to fetch %q collection: %w", core.CollectionNameSuperusers, err)
+			}
+
+			superuser, err := app.FindAuthRecordByEmail(superusers, email)
+			if err != nil {
+				superuser = core.NewRecord(superusers)
+			}
+			superuser.SetEmail(email)
+			superuser.SetPassword(password)
+
+			if err := app.Save(superuser); err != nil {
+				return fmt.Errorf("failed to upsert superuser account: %w", err)
+			}
+
+			fmt.Printf("Saved superuser %q.\n", superuser.Email())
+			return nil
+		},
 	}
 }

@@ -28,6 +28,17 @@ func OwnerPortal(app core.App) {
 		return e.Next()
 	})
 
+	// the rrule is written into the iCal feed as its own content line: a
+	// line break would let the author inject arbitrary iCal lines
+	rejectRRuleLineBreaks := func(e *core.RecordRequestEvent) error {
+		if strings.ContainsAny(e.Record.GetString("rrule"), "\r\n") {
+			return e.BadRequestError("The recurrence rule must not contain line breaks.", nil)
+		}
+		return e.Next()
+	}
+	app.OnRecordCreateRequest("events").BindFunc(rejectRRuleLineBreaks)
+	app.OnRecordUpdateRequest("events").BindFunc(rejectRRuleLineBreaks)
+
 	// ---------------------------------------------------------------
 	// server-owned author fields stay as created
 	// ---------------------------------------------------------------

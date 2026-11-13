@@ -3,7 +3,9 @@
 #
 # Installed as /usr/local/sbin/weg-portal-ctl (root:root 0755) by
 # deploy/server-setup.sh. The deploy user may run it via sudo, nothing else,
-# so a leaked deploy key cannot touch the rest of the server.
+# and an uploaded binary only ever runs as an unprivileged user (the version
+# check as "nobody", the service as weg-portal), so a leaked deploy key
+# reaches the portal and its data but not root or the rest of the server.
 #
 #   weg-portal-ctl status                 version, service state, health
 #   weg-portal-ctl deploy <vX.Y.Z>        install incoming/weg-portal-<v>, back
@@ -128,12 +130,21 @@ cmd_deploy() {
     new="$incoming/weg-portal-$version"
     [ -f "$new" ] || die "upload the binary to $new first"
 
-    # the binary must run here and report the expected version
-    chmod 0755 "$new"
-    "$new" --version | grep -q " $version\$" || die "$new does not report version $version"
+    # the upload comes from the deploy user and is untrusted: it is never
+    # executed as root. A root-owned copy is checked as "nobody" (the binary
+    # must run here and report the expected version) and only then installed.
+    local staged
+    staged=$(mktemp -d "$releases/.staged.XXXXXX")
+    chmod 0755 "$staged"
+    install -m 0755 -o root -g root "$new" "$staged/weg-portal"
+    if ! (cd / && runuser -u nobody -- "$staged/weg-portal" --version) | grep -q " $version\$"; then
+        rm -rf -- "$staged"
+        die "$new does not report version $version"
+    fi
 
     install -d -m 0755 "$releases/$version"
-    install -m 0755 -o root -g root "$new" "$releases/$version/weg-portal"
+    mv -f "$staged/weg-portal" "$releases/$version/weg-portal"
+    rm -rf -- "$staged"
     rm -f "$new"
 
     previous=$(current_version)
@@ -227,7 +238,12 @@ cmd_superuser() {
         IFS= read -r password || true
     fi
     [ ${#password} -ge 10 ] || die "the password must have at least 10 characters"
-    sudo -u "$SERVICE_USER" "$BASE/current/weg-portal" superuser upsert "$email" "$password" --dir "$data"
+    # the password goes through stdin, never through the argument list
+    # (which every local user can read in the process table)
+    # (releases before the superuser-stdin command fail here with "unknown
+    # command" - deploy a current release first)
+    printf '%s\n' "$password" |
+        runuser -u "$SERVICE_USER" -- "$BASE/current/weg-portal" superuser-stdin "$email" --dir "$data"
 }
 
 [ "$(id -u)" = 0 ] || die "run as root (sudo weg-portal-ctl ...)"

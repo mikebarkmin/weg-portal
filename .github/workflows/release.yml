@@ -140,6 +140,15 @@ jobs:
       CTL: sudo -n /usr/local/sbin/weg-portal-ctl
 
     steps:
+      # the tag ends up in a remote shell command; "deploy only" skips the
+      # check job, so the format is verified here as well
+      - name: Check the version tag
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?'; then
+            echo "::error::Not a version tag like v1.2.3"
+            exit 1
+          fi
+
       - name: Check configuration
         run: |
           missing=""
@@ -153,6 +162,8 @@ jobs:
           fi
 
       - name: Add deploy key
+        env:
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
 
@@ -177,7 +188,16 @@ jobs:
             exit 1
           fi
 
-          ssh-keyscan -H "${{ secrets.DEPLOY_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # the pinned host key (secret DEPLOY_SSH_KNOWN_HOSTS, the output of
+          # "ssh-keyscan <host>" checked once against the server) makes a
+          # man-in-the-middle impossible; without it the key is read from
+          # the network on every run and trusted blindly
+          if [ -n "$KNOWN_HOSTS" ]; then
+            printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::DEPLOY_SSH_KNOWN_HOSTS is not set - the server's host key is not pinned (docs/deploy.md, 4.1)."
+            ssh-keyscan -H "${{ secrets.DEPLOY_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
           if [ ! -s ~/.ssh/known_hosts ]; then
             echo "::error::Could not reach ${{ secrets.DEPLOY_SSH_HOST }} to read its host key."
             exit 1

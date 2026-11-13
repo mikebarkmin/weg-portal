@@ -224,7 +224,14 @@ Settings → Environments → `production`:
 | Secret | `DEPLOY_SSH_KEY` | privater Schlüssel `weg_deploy` (ganze Datei) |
 | Secret | `DEPLOY_SSH_HOST` | IP oder Hostname des Servers |
 | Secret | `DEPLOY_SSH_USER` | `deploy` |
+| Secret | `DEPLOY_SSH_KNOWN_HOSTS` | Host-Key des Servers: Ausgabe von `ssh-keyscan <DEPLOY_SSH_HOST>` (empfohlen) |
 | Variable | `DEPLOY_HOST` | `weg7026.de` (für die Prüfung von außen) |
+
+`DEPLOY_SSH_KNOWN_HOSTS` pinnt den Host-Key: ohne das Secret liest der
+Workflow den Schlüssel bei jedem Lauf ungeprüft aus dem Netz (Warnung im
+Log). Die Ausgabe von `ssh-keyscan` einmal mit dem Server vergleichen
+(`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` dort) und nach einer
+Neuinstallation des Servers erneuern.
 
 Optional: „Required reviewers" setzen, dann wartet das Ausrollen auf eine
 Freigabe.

@@ -170,9 +170,11 @@ func ICal(app core.App) {
 					writeICalLine(&b, "CLASS:PRIVATE")
 				}
 
-				// passed through exactly as stored (UNTIL values stay in
-				// their stored Z form)
-				if rrule := strings.TrimSpace(event.GetString("rrule")); rrule != "" {
+				// passed through as stored (UNTIL values stay in their
+				// stored Z form); a rule with a line break is never emitted
+				// (it would inject content lines - the events hooks reject
+				// it, this covers records written past them)
+				if rrule := strings.TrimSpace(event.GetString("rrule")); rrule != "" && !strings.ContainsAny(rrule, "\r\n") {
 					writeICalLine(&b, "RRULE:"+rrule)
 				}
 
