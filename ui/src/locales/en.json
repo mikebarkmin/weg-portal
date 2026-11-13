@@ -8,7 +8,8 @@
         "moderation": "Moderation",
         "users": "Users",
         "login": "Log in",
-        "logout": "Log out"
+        "logout": "Log out",
+        "newIssue": "Report issue"
     },
     "calendar": {
         "heading": "Community calendar",
@@ -67,7 +68,11 @@
         "invalidDate": "Please enter a valid date.",
         "invalidEmail": "Please enter a valid email address.",
         "dateEndBeforeStart": "The end is before the start.",
-        "submitFailed": "The data could not be submitted."
+        "submitFailed": "The data could not be submitted.",
+        "locationRequired": "Please mark the location on the map.",
+        "locationOutside": "The marked location is outside the community area.",
+        "maxPhotos": "At most 5 photos can be attached.",
+        "consentRequired": "Please confirm the photo upload consent."
     },
     "suggestion": {
         "heading": "Suggest an event",
@@ -175,5 +180,50 @@
         },
         "approve": "Approve",
         "revoke": "Revoke approval"
+    },
+    "issue": {
+        "heading": "Report an issue",
+        "intro": "Report a problem in the community property – for example a broken light or a damaged fence. The advisory board reviews your report and notifies you by email.",
+        "title": "Title",
+        "description": "Description",
+        "category": "Category",
+        "location": {
+            "label": "Location",
+            "hint": "Tap the map, drag the marker or use “Use my location” to mark where the problem is.",
+            "useMyLocation": "Use my location",
+            "searching": "Detecting location …",
+            "denied": "Location access was denied. Please tap the location on the map instead.",
+            "unsupported": "Your browser does not support geolocation. Please tap the location on the map instead.",
+            "outside": "Your location is outside the community area. Please tap the location on the map instead.",
+            "generic": "Your location could not be determined. Please tap the location on the map instead."
+        },
+        "photos": {
+            "label": "Photos (optional)",
+            "hint": "Up to {{count}} photos (JPEG, PNG or WebP). Photo metadata (including location/EXIF) is automatically removed before upload and large photos are downscaled.",
+            "add": "Add photo",
+            "processing": "Processing photos …",
+            "remove": "Remove",
+            "preview": "Photo {{index}}",
+            "tooMany": "At most {{count}} photos can be added.",
+            "processingFailed": "{{count}} photo(s) could not be processed and will not be uploaded."
+        },
+        "photoConsent": "I agree that the attached photos are stored together with the report and – once the advisory board approves it – shown in the portal.",
+        "email": "Email address",
+        "emailHint": "The decision will be sent to this address. It is only visible to the advisory board.",
+        "name": "Name (optional)",
+        "hpLabel": "Do not fill in",
+        "submit": "Send report",
+        "submitting": "Sending …",
+        "error": {
+            "rateLimited": "Too many submissions. Please wait a few minutes and try again.",
+            "rejected": "The report was rejected by the server. Please check your entries.",
+            "generic": "The report could not be sent. Please try again later."
+        },
+        "success": {
+            "title": "Thank you!",
+            "text": "Your report has been received by the advisory board moderation. You will get an email as soon as a decision has been made.",
+            "another": "Report another issue",
+            "back": "Back to the calendar"
+        }
     }
 }

@@ -150,3 +150,124 @@ export function buildIssueReject() {
 export function buildUserApprovalPatch(approved: boolean) {
     return { approved };
 }
+
+// ---------------------------------------------------------------------------
+// Public issue report (M8) - the form for POST /api/portal/issues.
+//
+// The upload itself is multipart/form-data (custom PocketBase route,
+// hooks/submitIssue.go). Both lat and lng travel as plain strings - the
+// server parses and validates them (NaN/Inf + bounding box) itself.
+
+// Bounding box the location picker and the zod schema enforce. These are
+// the same defaults as the backend (hooks/submitIssue.go issueBounds),
+// which a deployment can override with PORTAL_MIN/MAX_LAT/LNG env vars.
+// TODO(M11): deployment config must match on both sides - a single
+// source (e.g. a /api/portal/config endpoint or build-time injection)
+// is proposed in reviews/M8-handoff.md for the reviewer to decide.
+export const ISSUE_BOUNDS = {
+    minLat: 51.0,
+    maxLat: 51.5,
+    minLng: 7.0,
+    maxLng: 7.5,
+} as const;
+
+export function isWithinIssueBounds(lat: number, lng: number): boolean {
+    return (
+        Number.isFinite(lat) &&
+        Number.isFinite(lng) &&
+        lat >= ISSUE_BOUNDS.minLat &&
+        lat <= ISSUE_BOUNDS.maxLat &&
+        lng >= ISSUE_BOUNDS.minLng &&
+        lng <= ISSUE_BOUNDS.maxLng
+    );
+}
+
+// The maximum number of photos the server accepts (submitIssue.go).
+export const MAX_PHOTOS = 5;
+
+// parseable coordinate string within the bounding box
+function coordinateSchema(axis: "lat" | "lng") {
+    return z.string().min(1, "validation.locationRequired").superRefine((value, ctx) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.locationRequired" });
+                return;
+            }
+            const inBounds = isWithinIssueBounds(
+                axis === "lat" ? parsed : ISSUE_BOUNDS.minLat,
+                axis === "lng" ? parsed : ISSUE_BOUNDS.minLng,
+            );
+            if (!inBounds) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.locationOutside" });
+            }
+        });
+}
+
+export const issueSchema = z
+    .object({
+        title: z
+            .string()
+            .trim()
+            .min(1, "validation.required")
+            .max(FIELD_LIMITS.title, "validation.tooLong"),
+        description: z.string().trim().max(FIELD_LIMITS.description, "validation.tooLong"),
+        category: z.string().trim().max(FIELD_LIMITS.category, "validation.tooLong"),
+        lat: coordinateSchema("lat"),
+        lng: coordinateSchema("lng"),
+        // required: the decision is reported back by mail
+        email: z
+            .string()
+            .trim()
+            .min(1, "validation.required")
+            .email("validation.invalidEmail"),
+        // optional, matched to the issue_metas.name schema limit
+        name: z.string().trim().max(200, "validation.tooLong"),
+        // blobs produced by lib/exifStrip (re-encoded, EXIF-free)
+        photos: z.array(z.instanceof(Blob)).max(MAX_PHOTOS, "validation.maxPhotos"),
+        photo_consent: z.boolean(),
+        // honeypot: hidden anti-spam field, must stay empty
+        honeypot: z.string().refine((v) => v.trim() === "", "validation.submitFailed"),
+    })
+    .superRefine((values, ctx) => {
+        if (values.photos.length > 0 && !values.photo_consent) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["photo_consent"],
+                message: "validation.consentRequired",
+            });
+        }
+    });
+
+export type IssueFormValues = z.infer<typeof issueSchema>;
+
+// Payload for POST /api/portal/issues: multipart/form-data with exactly
+// the fields of the custom route contract (hooks/submitIssue.go). No
+// status/visibility/coords-beyond-the-form are ever sent - the server
+// owns them. photos[] is appended from the re-encoded blobs only
+// (lib/exifStrip: the original files never leave the browser).
+export function buildIssueFormData(
+    values: IssueFormValues,
+    photoBlobs: Blob[],
+    formStartedAt: number,
+): FormData {
+    const data = new FormData();
+    data.set("title", values.title);
+    data.set("description", values.description);
+    data.set("category", values.category);
+    data.set("lat", values.lat);
+    data.set("lng", values.lng);
+    data.set("email", values.email);
+    if (values.name) {
+        data.set("name", values.name);
+    }
+    if (photoBlobs.length > 0) {
+        // the server requires the consent flag when photos are attached
+        data.set("photo_consent", values.photo_consent ? "true" : "false");
+    }
+    photoBlobs.forEach((blob, index) => {
+        data.append("photos", blob, `photo-${index + 1}.jpg`);
+    });
+    data.set("honeypot", values.honeypot);
+    data.set("form_started_at", String(formStartedAt));
+    return data;
+}

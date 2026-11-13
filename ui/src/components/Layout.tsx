@@ -26,6 +26,7 @@ export default function Layout() {
                 <nav className="app-nav">
                     <NavLink to="/">{t("nav.calendar")}</NavLink>
                     <NavLink to="/suggestions/new">{t("nav.newSuggestion")}</NavLink>
+                    <NavLink to="/issues/new">{t("nav.newIssue")}</NavLink>
                     {canShow(auth.role) && (
                         <>
                             <NavLink to="/moderation">

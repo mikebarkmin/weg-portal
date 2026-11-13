@@ -569,3 +569,93 @@ input[type="radio"] {
     overflow-wrap: anywhere;
     margin: 0;
 }
+
+/* --- issue report: map picker + photos (M8) --- */
+
+.field-label {
+    font-size: var(--smFontSize);
+    color: var(--surfaceTxtColor);
+    font-weight: 600;
+}
+
+.map-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.map-canvas {
+    /* mobile-first: compact but usable for tap targeting */
+    height: 280px;
+    width: 100%;
+    border-radius: var(--smBorderRadius);
+    border: var(--borderWidth) solid var(--borderColor);
+    z-index: 0;
+}
+
+@media (min-width: 900px) {
+    .map-canvas {
+        height: 400px;
+    }
+}
+
+.map-toolbar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* the orb of the SVG pin sits above the map canvas */
+.map-pin {
+    display: block;
+}
+
+.map-pin svg {
+    display: block;
+}
+
+/* keep leaflet's required attribution readable but unobtrusive */
+.map-canvas .leaflet-control-attribution {
+    font-size: 10px;
+    max-width: 75%;
+}
+
+.photo-input {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.photo-thumbs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    /* 3 per row fits the 375px mobile width; more columns when there is room */
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 6px;
+}
+
+.photo-thumb {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.photo-thumb img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--smBorderRadius);
+    border: var(--borderWidth) solid var(--borderColor);
+}
+
+.photo-remove {
+    padding: 2px;
+    min-height: 26px;
+    font-size: var(--xsFontSize);
+}

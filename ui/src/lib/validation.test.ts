@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import {
     buildIssueAccept,
+    buildIssueFormData,
     buildIssueReject,
     buildSuggestionDecision,
     buildSuggestionPayload,
     buildUserApprovalPatch,
     toPBDateTime,
     suggestionSchema,
+    issueSchema,
+    isWithinIssueBounds,
+    MAX_PHOTOS,
+    type IssueFormValues,
     type SuggestionFormValues,
 } from "./validation";
 
@@ -177,5 +182,147 @@ describe("moderation payload builders", () => {
         expect(buildUserApprovalPatch(true)).toEqual({ approved: true });
         expect(buildUserApprovalPatch(false)).toEqual({ approved: false });
         expect(buildUserApprovalPatch(true)).not.toHaveProperty("role");
+    });
+});
+
+// --- issue report form (M8) -------------------------------------------------
+
+function validIssueValues(overrides: Partial<IssueFormValues> = {}): IssueFormValues {
+    return {
+        title: "Kaputte Laterne",
+        description: "Die Laterne am Hintereingang leuchtet nicht.",
+        category: "Beleuchtung",
+        lat: "51.24812",
+        lng: "7.21222",
+        email: "bewohner@example.com",
+        name: "Anna",
+        photos: [],
+        photo_consent: false,
+        honeypot: "",
+        ...overrides,
+    };
+}
+
+describe("issueSchema", () => {
+    it("accepts a minimal valid report without photos or name", () => {
+        const result = issueSchema.safeParse(
+            validIssueValues({ name: "", category: "", description: "" }),
+        );
+        expect(result.success).toBe(true);
+    });
+
+    it("requires title and email", () => {
+        expect(issueSchema.safeParse(validIssueValues({ title: "" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ email: "" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ email: "keine-mail" })).success).toBe(false);
+    });
+
+    it("enforces the field length limits like the server", () => {
+        expect(
+            issueSchema.safeParse(validIssueValues({ title: "x".repeat(201) })).success,
+        ).toBe(false);
+        expect(
+            issueSchema.safeParse(validIssueValues({ description: "x".repeat(5001) })).success,
+        ).toBe(false);
+        expect(
+            issueSchema.safeParse(validIssueValues({ category: "x".repeat(101) })).success,
+        ).toBe(false);
+        expect(
+            issueSchema.safeParse(validIssueValues({ name: "x".repeat(201) })).success,
+        ).toBe(false);
+    });
+
+    it("requires the coordinates to be present and within the bounding box", () => {
+        expect(issueSchema.safeParse(validIssueValues({ lat: "" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ lat: "abc" })).success).toBe(false);
+        // outside the box on each axis
+        expect(issueSchema.safeParse(validIssueValues({ lat: "50.9" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ lat: "51.6" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ lng: "6.9" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ lng: "7.6" })).success).toBe(false);
+        // boundary values themselves are valid
+        expect(issueSchema.safeParse(validIssueValues({ lat: "51.0", lng: "7.0" })).success).toBe(true);
+        expect(issueSchema.safeParse(validIssueValues({ lat: "51.5", lng: "7.5" })).success).toBe(true);
+    });
+
+    it("allows at most the server's photo count", () => {
+        const blobs = Array.from({ length: MAX_PHOTOS }, () => new Blob(["x"]));
+        const withSix = Array.from({ length: MAX_PHOTOS + 1 }, () => new Blob(["x"]));
+        expect(
+            issueSchema.safeParse(validIssueValues({ photos: blobs, photo_consent: true })).success,
+        ).toBe(true);
+        expect(
+            issueSchema.safeParse(
+                validIssueValues({ photos: withSix, photo_consent: true }),
+            ).success,
+        ).toBe(false);
+    });
+
+    it("requires photo consent only when photos are attached", () => {
+        const values = validIssueValues({ photos: [new Blob(["x"])] });
+        const withoutConsent = issueSchema.safeParse(values);
+        expect(withoutConsent.success).toBe(false);
+        if (!withoutConsent.success) {
+            expect(withoutConsent.error.issues[0].path).toContain("photo_consent");
+        }
+        expect(issueSchema.safeParse(validIssueValues({ ...values, photo_consent: true })).success).toBe(true);
+        expect(issueSchema.safeParse(validIssueValues({ photo_consent: false })).success).toBe(true);
+    });
+
+    it("keeps the honeypot trap", () => {
+        expect(issueSchema.safeParse(validIssueValues({ honeypot: "spam" })).success).toBe(false);
+    });
+});
+
+describe("isWithinIssueBounds", () => {
+    it("matches the backend defaults", () => {
+        expect(isWithinIssueBounds(51.25, 7.25)).toBe(true);
+        expect(isWithinIssueBounds(51.0, 7.0)).toBe(true);
+        expect(isWithinIssueBounds(51.5, 7.5)).toBe(true);
+        expect(isWithinIssueBounds(50.9999, 7.25)).toBe(false);
+        expect(isWithinIssueBounds(51.25, 7.5001)).toBe(false);
+        expect(isWithinIssueBounds(NaN, 7.25)).toBe(false);
+        expect(isWithinIssueBounds(51.25, Infinity)).toBe(false);
+    });
+});
+
+describe("buildIssueFormData", () => {
+    it("sends exactly the multipart contract of hooks/submitIssue.go", () => {
+        const blob = new Blob(["reencoded"], { type: "image/jpeg" });
+        const data = buildIssueFormData(validIssueValues({ photo_consent: true }), [blob], 1730000000000);
+
+        expect(data.get("title")).toBe("Kaputte Laterne");
+        expect(data.get("description")).toBe("Die Laterne am Hintereingang leuchtet nicht.");
+        expect(data.get("category")).toBe("Beleuchtung");
+        expect(data.get("lat")).toBe("51.24812");
+        expect(data.get("lng")).toBe("7.21222");
+        expect(data.get("email")).toBe("bewohner@example.com");
+        expect(data.get("name")).toBe("Anna");
+        expect(data.get("photo_consent")).toBe("true");
+        expect(data.get("honeypot")).toBe("");
+        expect(data.get("form_started_at")).toBe("1730000000000");
+        expect(data.getAll("photos")).toHaveLength(1);
+
+        const photo = data.get("photos") as File;
+        expect(photo.name).toBe("photo-1.jpg");
+        expect(photo.type).toBe("image/jpeg");
+    });
+
+    it("omits the optional name and skips consent/flag fields when there are no photos", () => {
+        const data = buildIssueFormData(validIssueValues({ name: "" }), [], 1730000000000);
+        expect(data.get("name")).toBeNull();
+        expect(data.get("photo_consent")).toBeNull();
+        expect(data.getAll("photos")).toHaveLength(0);
+    });
+
+    it("names multiple photos in order and never sends decision fields", () => {
+        const blobs = Array.from({ length: 3 }, () => new Blob(["x"], { type: "image/jpeg" }));
+        const data = buildIssueFormData(validIssueValues({ photo_consent: true }), blobs, 1);
+        const photos = data.getAll("photos") as File[];
+        expect(photos.map((p) => p.name)).toEqual(["photo-1.jpg", "photo-2.jpg", "photo-3.jpg"]);
+        expect(data.get("status")).toBeNull();
+        expect(data.get("visibility")).toBeNull();
+        expect(data.get("lat_exact")).toBeNull();
+        expect(data.get("lng_exact")).toBeNull();
     });
 });

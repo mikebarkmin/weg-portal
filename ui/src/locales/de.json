@@ -8,7 +8,8 @@
         "moderation": "Moderation",
         "users": "Benutzer",
         "login": "Anmelden",
-        "logout": "Abmelden"
+        "logout": "Abmelden",
+        "newIssue": "Meldung"
     },
     "calendar": {
         "heading": "Terminkalender",
@@ -67,7 +68,11 @@
         "invalidDate": "Bitte ein gültiges Datum eingeben.",
         "invalidEmail": "Bitte eine gültige E-Mail-Adresse eingeben.",
         "dateEndBeforeStart": "Das Ende liegt vor dem Anfang.",
-        "submitFailed": "Die Eingaben konnten nicht gesendet werden."
+        "submitFailed": "Die Eingaben konnten nicht gesendet werden.",
+        "locationRequired": "Bitte markieren Sie den Ort auf der Karte.",
+        "locationOutside": "Der markierte Ort liegt außerhalb des Gemeinschaftsbereichs.",
+        "maxPhotos": "Es können maximal 5 Fotos angehängt werden.",
+        "consentRequired": "Bitte bestätigen Sie die Einwilligung zum Hochladen der Fotos."
     },
     "suggestion": {
         "heading": "Termin vorschlagen",
@@ -175,5 +180,50 @@
         },
         "approve": "Freigeben",
         "revoke": "Freigabe zurückziehen"
+    },
+    "issue": {
+        "heading": "Problem melden",
+        "intro": "Melden Sie ein Problem in der Gemeinschaftsanlage – zum Beispiel eine kaputte Laterne oder einen defekten Zaun. Der Beirat prüft Ihre Meldung und benachrichtigt Sie per E-Mail.",
+        "title": "Titel",
+        "description": "Beschreibung",
+        "category": "Kategorie",
+        "location": {
+            "label": "Ort",
+            "hint": "Auf die Karte tippen, den Marker verschieben oder „Meinen Standort verwenden“, um den Ort des Problems zu markieren.",
+            "useMyLocation": "Meinen Standort verwenden",
+            "searching": "Standort wird ermittelt …",
+            "denied": "Der Standortzugriff wurde abgelehnt. Bitte tippen Sie den Ort auf der Karte an.",
+            "unsupported": "Ihr Browser unterstützt keine Standortermittlung. Bitte tippen Sie den Ort auf der Karte an.",
+            "outside": "Ihr Standort liegt außerhalb des Gemeinschaftsbereichs. Bitte tippen Sie den Ort auf der Karte an.",
+            "generic": "Der Standort konnte nicht ermittelt werden. Bitte tippen Sie den Ort auf der Karte an."
+        },
+        "photos": {
+            "label": "Fotos (optional)",
+            "hint": "Bis zu {{count}} Fotos (JPEG, PNG oder WebP). Vor dem Hochladen werden Foto-Metadaten (inkl. Standort/EXIF) automatisch entfernt und große Fotos verkleinert.",
+            "add": "Foto hinzufügen",
+            "processing": "Fotos werden verarbeitet …",
+            "remove": "Entfernen",
+            "preview": "Foto {{index}}",
+            "tooMany": "Es können maximal {{count}} Fotos hinzugefügt werden.",
+            "processingFailed": "{{count}} Foto(s) konnten nicht verarbeitet werden und werden nicht hochgeladen."
+        },
+        "photoConsent": "Ich bin damit einverstanden, dass die angehängten Fotos zusammen mit der Meldung gespeichert und – nach Freigabe durch den Beirat – im Portal angezeigt werden.",
+        "email": "E-Mail-Adresse",
+        "emailHint": "An diese Adresse wird die Entscheidung des Beirats geschickt. Die Adresse ist nur für den Beirat sichtbar.",
+        "name": "Name (optional)",
+        "hpLabel": "Nicht ausfüllen",
+        "submit": "Meldung abschicken",
+        "submitting": "Wird gesendet …",
+        "error": {
+            "rateLimited": "Zu viele Einsendungen. Bitte warten Sie einige Minuten und versuchen es dann erneut.",
+            "rejected": "Die Meldung wurde vom Server abgelehnt. Bitte prüfen Sie Ihre Eingaben.",
+            "generic": "Die Meldung konnte nicht gesendet werden. Bitte später erneut versuchen."
+        },
+        "success": {
+            "title": "Vielen Dank!",
+            "text": "Ihre Meldung ist bei der Beiratsmoderation eingegangen. Sie erhalten eine E-Mail, sobald darüber entschieden wurde.",
+            "another": "Weitere Meldung",
+            "back": "Zum Kalender"
+        }
     }
 }
