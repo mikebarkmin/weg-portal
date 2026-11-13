@@ -45,7 +45,7 @@ services:
     ports:
       # production defaults: 80/443. Rootless podman cannot bind ports
       # < 1024 — for local verification use a .env file with
-      # HTTP_PORT/HTTPS_PORT >= 1024 (see docs/deploy.md, section 7).
+      # HTTP_PORT/HTTPS_PORT >= 1024 (see docs/deploy.md, section 8).
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
     volumes:

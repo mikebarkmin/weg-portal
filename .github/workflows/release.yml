@@ -1,0 +1,287 @@
+name: Release
+
+# Pushing a version tag (git tag v0.2.0 && git push origin v0.2.0):
+#   1. runs every check (Go vet + tests, UI lint + tests + build),
+#   2. builds the Docker image and static binaries and publishes a GitHub
+#      release with the binaries,
+#   3. copies the image to the server, takes a consistent backup of pb_data
+#      and restarts the compose stack (see docs/deploy.md, "Releases").
+#
+# The small VPS never builds anything itself. Running the workflow by hand
+# with an existing tag redeploys that version (e.g. to roll back).
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to release/deploy, e.g. v0.1.0
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  VERSION: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  check:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.VERSION }}
+
+      - name: Check the version tag
+        run: |
+          case "$VERSION" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::'$VERSION' is not a version tag like v1.2.3"; exit 1 ;;
+          esac
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: UI lint, tests and build
+        working-directory: ui
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+
+      # the Go tests embed the freshly built UI (ui/dist)
+      - name: Go vet and tests
+        run: |
+          go vet ./...
+          go test ./... -count=1
+
+  release:
+    name: Build and publish
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      # Hetzner CX/CPX servers are linux/amd64, CAX servers linux/arm64
+      PLATFORM: ${{ vars.DEPLOY_PLATFORM || 'linux/amd64' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.VERSION }}
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      # static binaries for running without Docker (attached to the release)
+      - name: Build binaries
+        run: |
+          (cd ui && npm ci && npm run build)
+          mkdir -p out
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath \
+              -ldflags "-s -w -X main.Version=$VERSION" \
+              -o "out/weg-portal-$VERSION-linux-$arch" ./base
+          done
+          "./out/weg-portal-$VERSION-linux-amd64" --version
+          (cd out && sha256sum weg-portal-* > SHA256SUMS)
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      # the same multi-stage Dockerfile as a manual "docker compose build";
+      # the image is tagged with the version and as latest
+      - name: Build the Docker image
+        run: |
+          docker buildx build \
+            --platform "$PLATFORM" \
+            --build-arg VERSION="$VERSION" \
+            --tag "weg-portal:$VERSION" \
+            --tag weg-portal:latest \
+            --output "type=docker,dest=weg-portal-image.tar" \
+            .
+          gzip -9 weg-portal-image.tar
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: image
+          path: weg-portal-image.tar.gz
+          retention-days: 7
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$VERSION" > /dev/null 2>&1; then
+            gh release upload "$VERSION" out/* --clobber
+          else
+            gh release create "$VERSION" out/* --verify-tag --generate-notes --title "$VERSION"
+          fi
+
+  deploy:
+    name: Deploy to the server
+    needs: release
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ vars.DEPLOY_HOST }}
+    env:
+      # BatchMode stops ssh dropping to an interactive password prompt, which
+      # turns a rejected key into a clear failure instead of "please try again".
+      SSH_OPTS: -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes
+      TARGET: ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SSH_HOST }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      COMPOSE: ${{ vars.DEPLOY_COMPOSE || 'docker compose' }}
+
+    steps:
+      # rsync against an empty path would write to the wrong directory, so
+      # refuse to start without one.
+      - name: Check configuration
+        run: |
+          missing=""
+          [ -n "$DEPLOY_PATH" ] || missing="$missing DEPLOY_PATH(variable)"
+          [ -n "${{ secrets.DEPLOY_SSH_HOST }}" ] || missing="$missing DEPLOY_SSH_HOST(secret)"
+          [ -n "${{ secrets.DEPLOY_SSH_USER }}" ] || missing="$missing DEPLOY_SSH_USER(secret)"
+          [ -n "${{ secrets.DEPLOY_SSH_KEY }}" ] || missing="$missing DEPLOY_SSH_KEY(secret)"
+          [ -n "${{ vars.DEPLOY_HOST }}" ] || missing="$missing DEPLOY_HOST(variable)"
+          if [ -n "$missing" ]; then
+            echo "::error::Not configured. Missing:$missing"
+            exit 1
+          fi
+          case "$DEPLOY_PATH" in
+            /*/?*) ;;
+            *) echo "::error::DEPLOY_PATH must be an absolute path, got '$DEPLOY_PATH'"; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.VERSION }}
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: image
+
+      - name: Add deploy key
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+
+          # printf, not echo: OpenSSH rejects a key whose final line has no
+          # newline, which is the usual way this secret goes wrong.
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          if ! why=$(ssh-keygen -y -P "" -f ~/.ssh/deploy_key 2>&1 >/dev/null); then
+            case "$why" in
+              *passphrase*)
+                echo "::error::DEPLOY_SSH_KEY has a passphrase, so it cannot be used"
+                echo "::error::unattended. Generate a deploy key with an empty one:"
+                echo "::error::  ssh-keygen -t ed25519 -N '' -C 'weg-portal deploy' -f weg_deploy"
+                echo "::error::then put weg_deploy in this secret and weg_deploy.pub in"
+                echo "::error::the server's ~/.ssh/authorized_keys." ;;
+              *)
+                echo "::error::DEPLOY_SSH_KEY is not a readable private key ($why)."
+                echo "::error::It must be the whole PRIVATE key, BEGIN and END lines"
+                echo "::error::included — not the .pub half." ;;
+            esac
+            exit 1
+          fi
+
+          ssh-keyscan -H "${{ secrets.DEPLOY_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::Could not reach ${{ secrets.DEPLOY_SSH_HOST }} to read its host key."
+            exit 1
+          fi
+
+      - name: Check the server accepts the key and has Docker
+        run: |
+          if ! ssh $SSH_OPTS "$TARGET" true; then
+            echo "::error::The key is valid but the server rejected it. Add its public"
+            echo "::error::half to ~/.ssh/authorized_keys of ${{ secrets.DEPLOY_SSH_USER }}"
+            echo "::error::on ${{ secrets.DEPLOY_SSH_HOST }}:"
+            ssh-keygen -y -P "" -f ~/.ssh/deploy_key
+            exit 1
+          fi
+          if ! ssh $SSH_OPTS "$TARGET" "$COMPOSE version" > /dev/null; then
+            echo "::error::'$COMPOSE' does not work for ${{ secrets.DEPLOY_SSH_USER }} on the server."
+            echo "::error::Install Docker with the compose plugin and add the user to the docker group."
+            exit 1
+          fi
+
+      # only the stack definition and the image are copied; the env files,
+      # the pb_data volume and the backups are never touched
+      - name: Upload
+        run: |
+          rsync -az --mkpath -e "ssh $SSH_OPTS" \
+            compose.yaml Caddyfile portal.env.example caddy.env.example \
+            "$TARGET:$DEPLOY_PATH/"
+          rsync -az --mkpath -e "ssh $SSH_OPTS" \
+            weg-portal-image.tar.gz "$TARGET:$DEPLOY_PATH/release/"
+
+      # The env files hold the secrets and are created once by hand from the
+      # templates uploaded above (docs/deploy.md, 4.1); without them compose
+      # cannot start, so the first run stops here until they exist.
+      - name: Check the env files
+        run: |
+          if ! ssh $SSH_OPTS "$TARGET" "test -f '$DEPLOY_PATH/portal.env' && test -f '$DEPLOY_PATH/caddy.env'"; then
+            echo "::error::$DEPLOY_PATH/portal.env and caddy.env are missing on the server."
+            echo "::error::Create them from the uploaded templates, then re-run this job:"
+            echo "::error::  cd $DEPLOY_PATH && cp portal.env.example portal.env && cp caddy.env.example caddy.env"
+            exit 1
+          fi
+
+      # 1. keep the running image as weg-portal:previous (rollback)
+      # 2. consistent backup: the portal is stopped while pb_data is archived
+      #    (never copy a live SQLite file), the last 10 archives are kept
+      # 3. load the new image and restart; migrations run on start
+      - name: Back up, load and restart
+        run: |
+          ssh $SSH_OPTS "$TARGET" "set -eu
+            cd '$DEPLOY_PATH'
+            if docker image inspect weg-portal:latest > /dev/null 2>&1; then
+              docker tag weg-portal:latest weg-portal:previous
+            fi
+            gunzip -c release/weg-portal-image.tar.gz | docker load
+            mkdir -p backups
+            if $COMPOSE ps --services --status running | grep -qx portal; then
+              $COMPOSE stop portal
+              $COMPOSE run --rm --no-deps --user root --entrypoint sh \
+                -v \"\$PWD/backups:/backup\" portal \
+                -c 'tar czf /backup/pre-$VERSION-\$(date +%Y%m%d-%H%M%S).tar.gz -C /app pb_data'
+            fi
+            ls -1t backups/pre-*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm --
+            $COMPOSE up -d --no-build --remove-orphans
+            docker image prune -f > /dev/null
+            echo \"deployed: \$(docker run --rm --entrypoint /app/weg-portal weg-portal:latest --version)\""
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 45); do
+            if curl -fsS "https://${{ vars.DEPLOY_HOST }}/api/health" > /dev/null; then
+              echo "healthy"; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::The portal did not come back healthy. Last log lines:"
+          ssh $SSH_OPTS "$TARGET" "cd '$DEPLOY_PATH' && $COMPOSE logs --tail 60 portal" || true
+          echo "::error::Rollback: docs/deploy.md, section 'Releases' (weg-portal:previous + backups/pre-$VERSION-*.tar.gz)."
+          exit 1

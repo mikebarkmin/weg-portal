@@ -11,8 +11,13 @@ import (
 	"weg-portal"
 )
 
+// Version is set at build time (-ldflags "-X main.Version=v1.2.3") by the
+// Dockerfile and the release workflow; "dev" for local builds.
+var Version = "dev"
+
 func main() {
 	app := portal.New()
+	app.RootCmd.Version = Version
 
 	// ---------------------------------------------------------------
 	// Optional flags:
@@ -20,7 +25,9 @@ func main() {
 
 	var migrationsDir string
 	if osutils.IsProbablyGoRun() {
-		migrationsDir = filepath.Join(app.DataDir(), "../../migrations")
+		// pb_data lives in the repository root for "go run ./base",
+		// so the Go migrations are its sibling directory
+		migrationsDir = filepath.Join(app.DataDir(), "../migrations")
 	}
 	app.RootCmd.PersistentFlags().StringVar(
 		&migrationsDir,

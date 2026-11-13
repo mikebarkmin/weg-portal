@@ -5,8 +5,14 @@
 #                modernc.org/sqlite is pure Go)
 # 3) runtime   – minimal Alpine image, non-root user, binary + healthcheck only
 
+# The UI and Go stages run on the build machine's platform and cross-compile
+# for the target (docker buildx --platform linux/amd64|linux/arm64), so an
+# ARM image does not need a slow emulated Node/Go build.
+
+ARG VERSION=dev
+
 # ---------------------------------------------------------------- stage 1: UI
-FROM docker.io/library/node:22-alpine AS ui
+FROM --platform=$BUILDPLATFORM docker.io/library/node:22-alpine AS ui
 
 WORKDIR /src/ui
 COPY ui/package.json ui/package-lock.json ./
@@ -15,7 +21,11 @@ COPY ui/ ./
 RUN npm run build
 
 # --------------------------------------------------------------- stage 2: Go
-FROM docker.io/library/golang:1.27-alpine AS build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27-alpine AS build
+
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+ARG VERSION
 
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -24,10 +34,15 @@ COPY . .
 # the freshly built SPA replaces the checked-in placeholder ui/dist
 COPY --from=ui /src/ui/dist ./ui/dist
 
-RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /weg-portal ./base
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags "-s -w -X main.Version=${VERSION}" -o /weg-portal ./base
 
 # ------------------------------------------------------------ stage 3: runtime
 FROM docker.io/library/alpine:3.21
+
+ARG VERSION
+LABEL org.opencontainers.image.title="weg-portal" \
+      org.opencontainers.image.version="${VERSION}"
 
 RUN apk add --no-cache ca-certificates tzdata \
     && adduser -D -H -u 10001 nonroot
