@@ -22,7 +22,11 @@ func init() {
 			{Label: "/api/batch", MaxRequests: 3, Duration: 1},
 			{Label: "/api/", MaxRequests: 300, Duration: 10},
 			{Label: "POST /api/portal/issues", MaxRequests: 5, Duration: 600},
-			{Label: "POST /api/collections/suggestions/records", MaxRequests: 5, Duration: 600},
+			// plain path labels do not match for the builtin collection record
+			// routes (their global rate limit middleware is unbound in
+			// apis/record_crud.go and only the "<collection>:<action>" tags are
+			// scanned), hence the "suggestions:create" tag instead
+			{Label: "suggestions:create", MaxRequests: 5, Duration: 600},
 		}
 
 		if err := app.Save(settings); err != nil {
