@@ -1,0 +1,357 @@
+/* Global element styles and layout primitives (mobile-first). */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: var(--baseFontFamily);
+    font-size: var(--fontSize);
+    line-height: var(--lineHeight);
+    background: var(--surfaceAlt1Color);
+    color: var(--surfaceTxtColor);
+    /* prevent horizontal scroll from anything that slips through */
+    overflow-x: clip;
+}
+
+::selection {
+    background: var(--selectionColor);
+}
+
+a {
+    color: inherit;
+}
+
+h1,
+h2,
+h3 {
+    line-height: var(--lgLineHeight);
+    margin: 0 0 var(--xsSpacing);
+}
+
+/* --- app layout --- */
+
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--surfaceColor);
+    box-shadow: var(--boxShadow);
+}
+
+.app-header-inner {
+    max-width: var(--appWidth);
+    margin: 0 auto;
+    padding: var(--xsSpacing) var(--smSpacing);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--smSpacing);
+    min-width: 0;
+}
+
+.app-title {
+    font-size: var(--lgFontSize);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.app-main {
+    max-width: var(--appWidth);
+    margin: 0 auto;
+    padding: var(--xsSpacing) var(--smSpacing) var(--spacing);
+    min-width: 0;
+}
+
+/* --- primitives --- */
+
+.card {
+    background: var(--surfaceColor);
+    border-radius: var(--borderRadius);
+    padding: var(--smSpacing);
+    box-shadow: var(--boxShadow);
+    min-width: 0;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: var(--smBtnHeight);
+    padding: 6px var(--smSpacing);
+    border-radius: var(--smBorderRadius);
+    border: var(--borderWidth) solid transparent;
+    background: var(--primaryColor);
+    color: var(--primaryTxtColor);
+    font: inherit;
+    font-size: var(--smFontSize);
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn:hover {
+    background: var(--primaryAlt1Color);
+}
+
+.btn-outline {
+    background: transparent;
+    border-color: var(--borderColor);
+    color: var(--surfaceTxtColor);
+}
+
+.btn-outline:hover {
+    background: var(--surfaceAlt2Color);
+}
+
+.btn-outline[aria-pressed="true"] {
+    background: var(--primaryColor);
+    border-color: var(--primaryColor);
+    color: var(--primaryTxtColor);
+}
+
+.hint {
+    color: var(--surfaceTxtHintColor);
+    font-size: var(--smFontSize);
+}
+
+.state {
+    padding: var(--spacing);
+    text-align: center;
+    color: var(--surfaceTxtHintColor);
+}
+
+.state-error {
+    color: var(--dangerColor);
+}
+
+/* --- language switch --- */
+
+.lang-switch {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.lang-switch .btn {
+    padding: 4px 10px;
+    min-height: 30px;
+    font-size: var(--xsFontSize);
+}
+
+/* --- calendar --- */
+
+.cal-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--xsSpacing);
+    flex-wrap: wrap;
+    margin-bottom: var(--xsSpacing);
+    min-width: 0;
+}
+
+.cal-title {
+    font-size: var(--lgFontSize);
+    margin: 0;
+}
+
+.cal-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border: 1px solid var(--borderLightColor);
+    border-radius: var(--smBorderRadius);
+    overflow: hidden;
+    background: var(--surfaceColor);
+}
+
+.cal-weekday {
+    padding: 6px 4px;
+    text-align: center;
+    font-size: var(--xsFontSize);
+    color: var(--surfaceTxtHintColor);
+    background: var(--surfaceAlt2Color);
+    border-top: 1px solid var(--borderLightColor);
+}
+
+.cal-cell {
+    min-width: 0;
+    min-height: 84px;
+    padding: 4px;
+    border-top: 1px solid var(--borderLightColor);
+    border-left: 1px solid var(--borderLightColor);
+    background: var(--surfaceColor);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow: hidden;
+}
+
+.cal-cell.other {
+    background: var(--surfaceAlt1Color);
+}
+
+.cal-cell.today .cal-cell-num {
+    background: var(--primaryColor);
+    color: var(--primaryTxtColor);
+    border-radius: 999px;
+}
+
+.cal-cell-num {
+    font-size: var(--xsFontSize);
+    line-height: 1;
+    align-self: flex-start;
+    padding: 4px 5px;
+    color: var(--surfaceTxtColor);
+}
+
+.cal-cell.other .cal-cell-num {
+    color: var(--surfaceTxtHintColor);
+}
+
+.cal-chip {
+    display: block;
+    font-size: 11px;
+    line-height: 1.3;
+    padding: 2px 5px;
+    border-radius: 5px;
+    background: var(--accentColor);
+    color: var(--accentTxtColor);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.cal-chip:visited {
+    color: inherit;
+}
+
+.cal-chip-more {
+    font-size: 11px;
+    color: var(--surfaceTxtHintColor);
+}
+
+@media (max-width: 600px) {
+    .cal-cell {
+        min-height: 48px;
+        padding: 2px;
+    }
+
+    .cal-cell-num {
+        padding: 3px 4px;
+    }
+}
+
+/* --- calendar month list + event detail --- */
+
+.month-events {
+    margin-top: var(--smSpacing);
+}
+
+.event-day {
+    margin: 0 0 var(--xsSpacing);
+    padding-top: var(--xsSpacing);
+    border-top: 1px solid var(--borderLightColor);
+}
+
+.event-day-title {
+    font-size: var(--smFontSize);
+    font-weight: 600;
+    margin: 0 0 6px;
+}
+
+.event-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    padding: 6px 0;
+    min-width: 0;
+}
+
+.event-time {
+    color: var(--surfaceTxtHintColor);
+    font-size: var(--smFontSize);
+    white-space: nowrap;
+}
+
+.event-title {
+    font-weight: 600;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.event-title:hover {
+    text-decoration: underline;
+}
+
+.event-category {
+    font-size: var(--xsFontSize);
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--surfaceAlt3Color);
+    white-space: nowrap;
+}
+
+.event-detail dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.event-detail dt {
+    font-size: var(--smFontSize);
+    color: var(--surfaceTxtHintColor);
+}
+
+.event-detail dl {
+    display: grid;
+    grid-template-columns: minmax(110px, 160px) 1fr;
+    gap: 8px var(--xsSpacing);
+}
+
+@media (max-width: 600px) {
+    .event-detail dl {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .event-detail dt {
+        margin-top: 8px;
+    }
+}
+
+.event-description {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: var(--xsSpacing);
+    font-size: var(--smFontSize);
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}

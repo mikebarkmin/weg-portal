@@ -1,0 +1,59 @@
+{
+    "app": {
+        "title": "WEG Portal"
+    },
+    "nav": {
+        "calendar": "Calendar"
+    },
+    "calendar": {
+        "heading": "Community calendar",
+        "subscribe": "Subscribe via iCal",
+        "subscribeHint": "Subscribe to all events as an iCal feed in your calendar app.",
+        "previousMonth": "Previous month",
+        "nextMonth": "Next month",
+        "currentMonth": "Current month",
+        "loading": "Loading events …",
+        "error": "Events could not be loaded. Please try again later.",
+        "retry": "Try again",
+        "noEvents": "No events this month.",
+        "monthEvents": "Events this month",
+        "more": "+{{count}} more"
+    },
+    "event": {
+        "back": "Back to the calendar",
+        "notFound": "Event not found.",
+        "loadError": "The event could not be loaded.",
+        "date": "Date",
+        "time": "Time",
+        "allDay": "All day",
+        "location": "Location",
+        "category": "Category",
+        "description": "Description",
+        "recurrence": "Recurrence",
+        "firstOccurrence": "First occurrence",
+        "seriesHint": "This event is part of a series."
+    },
+    "recurrence": {
+        "none": "One-time",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "intervalDays": "Every {{count}} days",
+        "intervalWeeks": "Every {{count}} weeks",
+        "intervalMonths": "Every {{count}} months",
+        "intervalYears": "Every {{count}} years",
+        "byWeekdays": "on {{weekdays}}",
+        "until": "until {{date}}",
+        "count": "{{count}} occurrences"
+    },
+    "lang": {
+        "switch": "Language",
+        "de": "Deutsch",
+        "en": "English"
+    },
+    "notFound": {
+        "title": "Page not found",
+        "home": "Go to the start page"
+    }
+}

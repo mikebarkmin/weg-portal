@@ -1,0 +1,59 @@
+{
+    "app": {
+        "title": "WEG-Portal"
+    },
+    "nav": {
+        "calendar": "Terminkalender"
+    },
+    "calendar": {
+        "heading": "Terminkalender",
+        "subscribe": "iCal abonnieren",
+        "subscribeHint": "Alle Termine als iCal-Feed in Ihrer Kalender-App abonnieren.",
+        "previousMonth": "Vorheriger Monat",
+        "nextMonth": "Nächster Monat",
+        "currentMonth": "Aktueller Monat",
+        "loading": "Termine werden geladen …",
+        "error": "Termine konnten nicht geladen werden. Bitte später erneut versuchen.",
+        "retry": "Erneut versuchen",
+        "noEvents": "Keine Termine in diesem Monat.",
+        "monthEvents": "Termine im Monat",
+        "more": "+{{count}} weitere"
+    },
+    "event": {
+        "back": "Zurück zum Kalender",
+        "notFound": "Termin nicht gefunden.",
+        "loadError": "Termin konnte nicht geladen werden.",
+        "date": "Datum",
+        "time": "Uhrzeit",
+        "allDay": "Ganztägig",
+        "location": "Ort",
+        "category": "Kategorie",
+        "description": "Beschreibung",
+        "recurrence": "Wiederholung",
+        "firstOccurrence": "Erster Termin",
+        "seriesHint": "Dieser Termin ist Teil einer Serie."
+    },
+    "recurrence": {
+        "none": "Einmalig",
+        "daily": "Täglich",
+        "weekly": "Wöchentlich",
+        "monthly": "Monatlich",
+        "yearly": "Jährlich",
+        "intervalDays": "Alle {{count}} Tage",
+        "intervalWeeks": "Alle {{count}} Wochen",
+        "intervalMonths": "Alle {{count}} Monate",
+        "intervalYears": "Alle {{count}} Jahre",
+        "byWeekdays": "jeden {{weekdays}}",
+        "until": "bis {{date}}",
+        "count": "{{count}} Wiederholungen"
+    },
+    "lang": {
+        "switch": "Sprache",
+        "de": "Deutsch",
+        "en": "English"
+    },
+    "notFound": {
+        "title": "Seite nicht gefunden",
+        "home": "Zur Startseite"
+    }
+}
