@@ -12,7 +12,7 @@ import (
 )
 
 // Version is set at build time (-ldflags "-X main.Version=v1.2.3") by the
-// Dockerfile and the release workflow; "dev" for local builds.
+// release workflow and "make build"; "dev" for other local builds.
 var Version = "dev"
 
 func main() {

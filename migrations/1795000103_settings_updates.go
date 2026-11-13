@@ -10,7 +10,7 @@ import (
 // S3-compatible offsite storage").
 //
 // S3 offsite upload stays DISABLED here and is configured at deployment
-// time (M11 compose env file / the /_/ dashboard by a superuser) - no
+// time (the /_/ dashboard, by a superuser) - no
 // credentials or other secrets belong in the repository. Until it is
 // enabled there, the cron backups only accumulate locally in pb_data/
 // (keeping at most CronMaxKeep = 5).

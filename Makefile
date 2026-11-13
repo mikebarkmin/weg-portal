@@ -1,8 +1,10 @@
 .PHONY: build run test ui-build ui-test
 
 # build the portal binary
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+
 build:
-	go build -o weg-portal ./base
+	go build -ldflags "-X main.Version=$(VERSION)" -o weg-portal ./base
 
 # run the app in dev mode
 run:

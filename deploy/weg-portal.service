@@ -1,0 +1,57 @@
+# systemd unit for the WEG portal (installed by deploy/server-setup.sh as
+# /etc/systemd/system/weg-portal.service).
+#
+# The binary is the GitHub release asset, /srv/weg-portal/current points at
+# the active version (weg-portal-ctl deploy/rollback switch it). The service
+# runs as the unprivileged user weg-portal; everything but pb_data is
+# read-only for it. Caddy (TLS) proxies to 127.0.0.1:8090.
+
+[Unit]
+Description=WEG-Portal (PocketBase)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/srv/weg-portal/current/weg-portal
+
+[Service]
+Type=simple
+User=weg-portal
+Group=weg-portal
+WorkingDirectory=/srv/weg-portal
+EnvironmentFile=/srv/weg-portal/portal.env
+ExecStart=/srv/weg-portal/current/weg-portal serve --http=127.0.0.1:8090 --dir=/srv/weg-portal/pb_data
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+# files the portal creates are private to it (backups run as root)
+UMask=0077
+LimitNOFILE=65536
+
+# --- hardening ---------------------------------------------------------
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/weg-portal/pb_data
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+# deny with an error instead of killing the process
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

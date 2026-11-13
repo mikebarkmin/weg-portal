@@ -1,0 +1,51 @@
+# Caddy for the WEG portal on the host (installed by deploy/server-setup.sh
+# as /etc/caddy/Caddyfile; __DOMAIN__, __ADMIN_USER__ and __ADMIN_HASH__ are
+# filled in there). Caddy fetches and renews the Let's Encrypt certificate
+# itself; the DNS A/AAAA records must point at this server.
+
+{
+	# no local admin API (no other local user can reconfigure Caddy);
+	# apply changes with "systemctl restart caddy", not "reload"
+	admin off
+}
+
+__DOMAIN__ {
+	header {
+		# HSTS: browsers must use HTTPS for a year (all subroutes)
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		X-Frame-Options "DENY"
+	}
+
+	# PocketBase admin UI /_/: HTTP basic auth in front (defense in depth;
+	# the admin API itself also requires a superuser login with MFA)
+	handle /_* {
+		# "basicauth": works with Caddy 2.6 (Debian 12, Ubuntu 24.04) and newer
+		basicauth {
+			__ADMIN_USER__ __ADMIN_HASH__
+		}
+		reverse_proxy 127.0.0.1:8090 {
+			# the basic-auth header must not reach PocketBase (it would be
+			# parsed as an invalid superuser token and /_/ would answer 401)
+			header_up -Authorization
+			flush_interval -1
+		}
+	}
+
+	# SPA + API; flush_interval -1 keeps realtime (SSE) unbuffered
+	reverse_proxy 127.0.0.1:8090 {
+		flush_interval -1
+	}
+}
+
+# Alternative protection for /_/: an IP allowlist instead of (or in
+# addition to) basicauth - replace the basicauth block with:
+#
+#	@internal remote_ip 203.0.113.10 203.0.113.0/24
+#	handle @internal {
+#		reverse_proxy 127.0.0.1:8090 {
+#			flush_interval -1
+#		}
+#	}
+#	respond 404

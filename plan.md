@@ -3,7 +3,7 @@
 Status: planned, implementation not started. Execution is split into milestones in
 [`milestones.md`](milestones.md).
 Stack: PocketBase **used as a Go library** (SQLite backend), React SPA embedded
-into the binary. Deployment: own VPS, Docker. Structural template: `../bugstage`.
+into the binary. Deployment: own VPS, single binary under systemd behind Caddy. Structural template: `../bugstage`.
 
 ## Requirements
 
@@ -35,7 +35,7 @@ Caddy (TLS termination, HSTS, optional IP allowlist for /_/)
         ├── hooks/      – Go hooks + custom routes (one file per concern)
         ├── migrations/ – Go migrations (collections, rules, indexes)
         ├── ui/dist     – built React SPA, embedded via go:embed
-        └── pb_data/    – SQLite + uploads (single Docker volume)
+        └── pb_data/    – SQLite + uploads (/srv/weg-portal/pb_data)
 ```
 
 Layout copied from BugStage:
@@ -52,7 +52,7 @@ weg-portal/
 └── test_pb_data/      fixture DB with one user per role
 ```
 
-- Docker: multi-stage build (node → `ui/dist`, golang → static binary, distroless/alpine runtime).
+- Deployment (post-M12): static binary from the GitHub release, run by a hardened systemd unit, Caddy from the distribution for TLS; `deploy/weg-portal-ctl` handles deploy, backup, restore and rollback (see docs/deploy.md). The M11 Docker setup was replaced.
 - PocketBase version pinned in `go.mod`; updates are tested against a copy of
   `pb_data` before rollout. No auto-update plugin. (Module path:
   `ganigeorgiev.com/pocketbase/pocketbase`, same as BugStage.)
@@ -367,4 +367,4 @@ See [`milestones.md`](milestones.md) for the detailed, reviewable milestones.
 3. React scaffold, i18n, tokens; public calendar, suggestion form, moderation queue.
 4. Issue reporting (map picker, photos, EXIF strip), issue board + realtime, accounts + approval.
 5. Beirat notes.
-6. Hardening and ops: rate limits, backups, Docker/Caddy, legal pages, operations manual.
+6. Hardening and ops: rate limits, backups, systemd/Caddy, legal pages, operations manual.

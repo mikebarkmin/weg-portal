@@ -33,3 +33,6 @@
 
 test_pb_data/data.db-wal
 test_pb_data/data.db-shm
+
+# local backup downloads (personal data)
+/backups/

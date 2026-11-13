@@ -1,387 +1,315 @@
-# Deployment & Betrieb (M11)
+# Deployment & Betrieb
 
-Dieses Dokument beschreibt den Betrieb des WEG-Portals mit Docker Compose
-(`compose.yaml`: `caddy` + `portal`). Es richtet sich an die betreuende Person
-(Superuser/Server-Administration), nicht an den Beirat — für den Beirat gibt es
-das Betriebshandbuch (M12).
+Dieses Dokument beschreibt den Betrieb des WEG-Portals auf einem eigenen
+Server (z. B. Hetzner-VPS, Debian 12 oder Ubuntu 24.04). Es richtet sich an
+die betreuende Person (Superuser/Server-Administration), nicht an den
+Beirat — für den Beirat gibt es das Betriebshandbuch.
 
-Stack-Übersicht:
+Aufbau:
 
 ```
-Caddy (TLS-Terminierung, HSTS, Basic-Auth für /_/)
-  └── portal (Container: ein statisches Go-Binary "/app/weg-portal")
-        ├── API, Auth, Dateien, Realtime (PocketBase-Kern)
-        ├── eingebettete SPA (React, ui/dist)
-        └── /app/pb_data  (benanntes Docker-Volume pb_data: SQLite + Uploads)
+Caddy (Systempaket: TLS mit Let's Encrypt, HSTS, Basic-Auth für /_/)
+  └── weg-portal.service (systemd, Benutzer weg-portal, 127.0.0.1:8090)
+        └── /srv/weg-portal/current/weg-portal   ein statisches Go-Binary:
+              API, Auth, Dateien, Realtime (PocketBase) + eingebettete Web-App
 ```
+
+```
+/srv/weg-portal/
+├── current -> releases/v0.2.0    aktive Version (Symlink)
+├── releases/v0.1.0/weg-portal    installierte Versionen (die letzten 5)
+├── pb_data/                      SQLite-Datenbank + Uploads (nur weg-portal)
+├── backups/                      Sicherungen vor Updates und manuelle
+├── incoming/                     Upload-Ablage für neue Binaries (deploy)
+├── portal.env                    Einstellungen (Bounding-Box, Zeitzone)
+└── history                       wann welche Version aktiv wurde
+```
+
+Alle Betriebsaufgaben laufen über **`weg-portal-ctl`** (Datei
+`deploy/weg-portal-ctl`, auf dem Server `/usr/local/sbin/weg-portal-ctl`):
+
+| Befehl | Wirkung |
+|---|---|
+| `weg-portal-ctl status` | aktive Version, Dienststatus, Health, installierte Versionen |
+| `weg-portal-ctl deploy vX.Y.Z` | Binary aus `incoming/` installieren, Daten sichern, umschalten, prüfen; ist die neue Version nicht gesund, **automatisch zurück** (Binary und Daten) |
+| `weg-portal-ctl rollback [vX.Y.Z]` | auf die vorige (oder angegebene) Version umschalten, Daten unverändert |
+| `weg-portal-ctl backup [label]` | konsistente Sicherung von `pb_data` (Portal wenige Sekunden gestoppt) |
+| `weg-portal-ctl nightly` | neueste nächtliche PocketBase-Sicherung nach `backups/` kopieren |
+| `weg-portal-ctl restore <datei>` | `pb_data` aus einer `.tar.gz`-Sicherung wiederherstellen (vorher wird der aktuelle Stand gesichert) |
+| `weg-portal-ctl superuser <email>` | Superuser anlegen/Passwort setzen (nur als root, Passwort über stdin) |
+
+Der Benutzer `deploy` (GitHub Actions und Ihr eigener SSH-Schlüssel) darf
+per `sudo` **nur** `weg-portal-ctl` ausführen, sonst nichts.
 
 ## 1. Voraussetzungen
 
-- Docker (oder Podman + podman-compose) auf dem VPS; Ports 80/443 frei.
-- DNS-A-Record der Domain auf den Server (Produktion).
-- Die Images: `caddy:2-alpine` (folgt `compose.yaml`), das Portal-Image wird
-  aus diesem Repository gebaut (`docker compose build`).
+- Server mit Debian 12 oder Ubuntu 24.04 (amd64 oder arm64), Root-Zugang.
+- DNS: `A`- (und ggf. `AAAA`-)Eintrag der Domain (z. B. `weg7026.de`) auf
+  die Server-IP — sonst bekommt Caddy kein Zertifikat.
+- Hetzner-Cloud-Firewall: eingehend 22, 80 und 443 erlauben.
+- Ausgehende Mails: Hetzner sperrt die Ports 25 und 465; den
+  SMTP-Anbieter daher über **Port 587** (STARTTLS) anbinden.
 
 ## 2. Ersteinrichtung
 
-### 2.1 Env-Dateien anlegen
+### 2.1 Deploy-Schlüssel erzeugen (lokal)
 
 ```bash
-cp portal.env.example portal.env
-cp caddy.env.example caddy.env
+ssh-keygen -t ed25519 -N '' -C 'weg-portal deploy' -f weg_deploy
 ```
 
-- `portal.env`: Bounding-Box der WEG (`PORTAL_MIN_LAT` … `PORTAL_MAX_LNG`)
-  setzen — sie begrenzt, wo Mängelmeldungen gesetzt werden dürfen, und ist
-  zugleich der Kartenausschnitt, mit dem die Melde-Karte öffnet. Die Box
-  daher **eng um die Anlage** legen (wenige hundert Meter). Die Web-App
-  liest die Werte beim Start über `GET /api/portal/config`; Server und
-  Formular prüfen damit immer dieselbe Fläche.
-- `caddy.env`:
-  - `WEG_SITE_ADDRESS` — lokal zum Testen `localhost`, Produktion die echte Domain;
-  - `WEG_ADMIN_BASIC_HASH` — bcrypt-Hash des Passworts für `/_/`, erzeugen mit:
+- `weg_deploy` (privat) → GitHub-Secret `DEPLOY_SSH_KEY` (Abschnitt 4.1)
+- `weg_deploy.pub` → beim Setup mit `--deploy-key` übergeben
 
-    ```bash
-    docker run --rm docker.io/library/caddy:2-alpine \
-        caddy hash-password --plaintext 'GEHEIM'
-    ```
+### 2.2 Server einrichten
 
-Die env-Dateien stehen in `.gitignore` und werden **niemals committet**
-(dort stehen keine Klartext-Passwörter, aber der Hash der Admin-Auth und
-die Deployment-Konfiguration bleiben privat).
-
-### 2.2 Bauen und Starten
+Den Ordner `deploy/` und `portal.env.example` auf den Server kopieren und
+das Setup als root ausführen:
 
 ```bash
-docker compose build
-docker compose up -d
+scp -r deploy portal.env.example root@<server>:/root/weg-portal-setup/
+ssh root@<server>
+bash /root/weg-portal-setup/deploy/server-setup.sh --domain weg7026.de \
+    --deploy-key "ssh-ed25519 AAAA... weg-portal deploy" \
+    --deploy-key "ssh-ed25519 AAAA... ihr-laptop"   # für scripts/backup.sh
 ```
 
-- Der Build ist mehrstufig: Node baut die SPA (ui/dist), Go baut das
-  statische Binary (`CGO_ENABLED=0`), die Laufzeitstufe ist Alpine mit
-  unprivilegiertem User `nonroot`.
-- Das Volume `pb_data` wird beim ersten Start angelegt; Migrationen
-  (Collections, Rules, Rate-Limits, Backup-Cron `0 2 * * *`) laufen
-  automatisch.
-- Caddy terminiert TLS. Lokal ohne DNS nutzt Caddy seine interne CA
-  (`tls internal`) — `curl -k https://localhost/` funktioniert; Browser
-  brauchen einmalig das Importieren der CA oder eine Ausnahme.
-- Für die Produktion: in `caddy.env` die Domain setzen und im `Caddyfile`
-  die Zeile `tls internal` durch den unter "PRODUCTION VARIANT" dort
-  dokumentierten Block ersetzen (Let's Encrypt, `tls1.2 tls1.3`).
+Das Setup installiert Caddy und curl, legt die Benutzer `weg-portal`
+(Dienst) und `deploy` (Deployment) an, die Verzeichnisse, den
+systemd-Dienst, `weg-portal-ctl` und die sudo-Regel, und schreibt die
+Caddy-Konfiguration (`deploy/Caddyfile`). Am Ende zeigt es **einmalig**
+das Passwort der Basic-Auth vor `/_/` an — im Passwortmanager ablegen.
 
-### 2.3 Die zwei Superuser anlegen
+Erneut ausführen ist gefahrlos: Dienst, `weg-portal-ctl` und Caddyfile
+werden aktualisiert; Daten, `portal.env` und das `/_/`-Passwort bleiben
+(neues Passwort: `--new-admin-password`).
 
-Der Beirat arbeitet **nie** in `/_/` (plan.md); Superuser sind nur für
-Setup und Rollenverwaltung. Mindestens zwei Personen mit Superuser-Zugang,
-damit kein Single Point of Failure entsteht.
+### 2.3 Einstellungen in `portal.env`
 
-Superuser werden **nicht** über Umgebungsvariablen konfiguriert, sondern per
-CLI im laufenden Container (das Binary unterstützt `superuser upsert`; es
-liegt im Image unter `/app/weg-portal`):
+`/srv/weg-portal/portal.env` (vom Setup aus `portal.env.example` angelegt)
+anpassen, danach `systemctl restart weg-portal`:
+
+- **Bounding-Box** (`PORTAL_MIN_LAT` … `PORTAL_MAX_LNG`) **eng um die
+  Anlage** legen (wenige hundert Meter): sie begrenzt, wo Meldungen gesetzt
+  werden dürfen, und ist der Kartenausschnitt der Melde-Karte.
+- `PORTAL_TIMEZONE` (Standard `Europe/Berlin`).
+
+### 2.4 Erste Version ausrollen
+
+Per GitHub Actions (Abschnitt 4): Versions-Tag pushen. Oder von Hand: das
+Binary aus dem GitHub-Release nach `/srv/weg-portal/incoming/weg-portal-vX.Y.Z`
+kopieren und `sudo weg-portal-ctl deploy vX.Y.Z` ausführen.
+
+### 2.5 Die zwei Superuser anlegen
+
+Der Beirat arbeitet **nie** in `/_/`; Superuser sind nur für Setup und
+Rollenverwaltung. Mindestens zwei Personen mit Superuser-Zugang, damit kein
+Single Point of Failure entsteht. Als root auf dem Server:
 
 ```bash
-docker compose exec portal /app/weg-portal superuser upsert admin1@example.com 'STARKES-PASSWORT-1'
-docker compose exec portal /app/weg-portal superuser upsert admin2@example.com 'STARKES-PASSWORT-2'
+weg-portal-ctl superuser admin1@example.com    # fragt das Passwort ab
+weg-portal-ctl superuser admin2@example.com
 ```
 
-(Entwicklung/ohne Container: `go run ./base superuser upsert …`.)
+### 2.6 Superuser-MFA aktivieren (Passwort + E-Mail-OTP)
 
-### 2.4 Superuser-MFA aktivieren (Passwort + E-Mail-OTP)
+Voraussetzung: SMTP ist konfiguriert (2.7), sonst kann kein OTP per Mail
+zugestellt werden.
 
-Voraussetzung: SMTP ist konfiguriert (nächster Abschnitt), sonst kann kein
-OTP per Mail zugestellt werden.
+1. `https://<domain>/_/` öffnen — Caddy fragt zuerst die Basic-Auth ab.
+2. Als Superuser anmelden, unter **Superusers → [Account] → MFA** die
+   Zwei-Faktor-Authentifizierung aktivieren (Passwort + OTP per E-Mail).
+3. Für **beide** Superuser wiederholen; Backup-Codes sicher ablegen.
 
-1. `https://<domain>/_/` öffnen — Caddy fragt zuerst die Basic-Auth ab
-   (der Username/Hash aus `caddy.env`).
-2. Als Superuser-Passwort anmelden, dann in der Admin-UI unter
-   **Superusers → [Account] → MFA** die Zwei-Faktor-Authentifizierung
-   aktivieren: bei PocketBase bedeutet MFA Passwort + OTP; das OTP wird
-   an die hinterlegte Superuser-E-Mail versendet.
-3. Für **beide** Superuser wiederholen.
+### 2.7 Application URL, SMTP und S3-Backups
 
-Ab dem nächsten Login wird nach dem Passwort zusätzlich der E-Mail-OTP
-verlangt. Backup-Codes erzeugt PocketBase bei Aktivierung ("recovery")
-— sicher ablegen.
-
-### 2.5 Application URL, SMTP und S3-Backups konfigurieren
-
-Application URL, SMTP- und S3-Einstellungen werden **nicht** aus der
-Umgebung gelesen, sondern von einem Superuser in der Admin-UI gepflegt
-(Details/Platzhalter siehe `portal.env.example`):
+Diese Einstellungen pflegt ein Superuser in der Admin-UI:
 
 - **Application URL — zuerst setzen:** `/_/` → Settings → Application →
-  „Application URL" auf die öffentliche Adresse (z. B.
-  `https://portal.example.org`). Daraus werden die Links in allen
-  Benachrichtigungs-Mails, die Bestätigungslinks der Registrierung und die
-  UIDs des iCal-Feeds gebildet. **Vor** der Bekanntgabe des iCal-Abos
-  setzen und danach nicht mehr ändern: ein späterer Wechsel des Hostnamens
+  „Application URL" auf die öffentliche Adresse (`https://weg7026.de`).
+  Daraus entstehen die Links in allen Mails, die Bestätigungslinks der
+  Registrierung und die UIDs des iCal-Feeds. **Vor** der Bekanntgabe des
+  iCal-Abos setzen und danach nicht mehr ändern: ein späterer Wechsel
   ändert alle UIDs, abonnierte Kalender zeigen dann jeden Termin doppelt.
-- SMTP: `/_/` → Settings → Mail settings (Host, Port, Benutzer, Passwort,
-  Absender). Danach Test-Mail senden. Grundlage der Zustellbarkeit sind
-  SPF/DKIM/DMARC der Absender-Domain.
-- S3-Backups: `/_/` → Settings → Backups → S3 storage aktivieren und
-  Zugangsdaten hinterlegen. Bis dahin legt der Backup-Cron nur lokale
-  Zip-Dateien in `pb_data/backups/` ab (täglich 02:00, behält 5 Versionen).
+- **SMTP:** `/_/` → Settings → Mail settings (Host, **Port 587**, Benutzer,
+  Passwort, Absender), danach Test-Mail senden. Für die Zustellbarkeit
+  SPF/DKIM/DMARC der Absender-Domain einrichten. Mit rund 70 Eigentümern
+  reichen Freemail-Limits (z. B. 50 Mails/Tag) nicht.
+- **S3-Backups (offsite):** `/_/` → Settings → Backups → S3 storage
+  aktivieren (z. B. Hetzner Object Storage). Ohne S3 liegen alle
+  Sicherungen nur auf dem Server selbst.
 
-## 3. Backups & Restore-Durchführung
+## 3. Backups & Wiederherstellung
 
-Täglich um 02:00 erzeugt PocketBase automatisch eine konsistente
-SQLite-Sicherung als Zip im Volume (`pb_data/backups/`). Diese Zip-Dateien
-sollen zusätzlich an S3 (offsite) hochgeladen werden. Manuell anstoßen oder
-herunterladen kann ein Superuser das Backup über `/_/` → Settings → Backups.
+Es gibt drei Arten von Sicherungen:
 
-**Restore (Disaster Recovery):** Ziel ist, aus einer Backup-Zip die
-Anwendung wiederherzustellen — Stop → Volume ersetzen → Start → prüfen.
+- **Nächtlich** (02:00, PocketBase, die letzten 5): Zip-Dateien in
+  `pb_data/backups/`, bei aktiviertem S3 zusätzlich offsite.
+- **Vor jedem Update** (`weg-portal-ctl deploy`): `backups/pre-<version>-<zeit>.tar.gz`.
+- **Manuell** (`weg-portal-ctl backup`, `scripts/backup.sh`):
+  `backups/manual-<zeit>.tar.gz`.
+
+Von den Sicherungen in `/srv/weg-portal/backups/` bleiben je Art die
+neuesten 10.
+
+**Nie** die live `data.db` per Dateikopie sichern, während der Dienst
+läuft: entweder die PocketBase-Sicherung oder `weg-portal-ctl backup`
+(stoppt den Dienst für die Kopie).
+
+### 3.1 Backup erstellen und herunterladen
+
+Auf einem Rechner, dessen Schlüssel beim Setup mit `--deploy-key`
+hinterlegt wurde:
 
 ```bash
-# 0) Backup-Zip besorgen (entweder aus einem S3-Download oder aus dem
-#    laufenden Container):
-docker cp portal:/app/pb_data/backups/<name>.zip /srv/weg-portal/restore.zip
+# frische, konsistente Sicherung (Portal ist dafür wenige Sekunden offline)
+WEG_SSH=deploy@weg7026.de scripts/backup.sh
 
-# 1) Stack stoppen
-docker compose down          # KEIN -v! Das würde das Volume löschen
-
-# 2) Volume-Inhalt durch das Backup ersetzen (WICHTIG: inkl. der
-#    dotfiles ausleeren und die Dateien auf den Runtime-User des
-#    Images chownen (UID/GID 10001), sonst kann die App die
-#    wiederhergestellte SQLite-DB nicht öffnen/schreiben):
-docker run --rm -v <projekt>_pb_data:/data \
-    -v /srv/weg-portal/restore.zip:/restore.zip alpine:3.21 \
-    sh -c 'cd /data && rm -rf .[!.]* * && unzip -q /restore.zip && chown -R 10001:10001 /data'
-
-# 3) Stack starten und prüfen (z. B. einen bekannten Kalendereintrag, die
-#    Superuser und /api/health):
-docker compose up -d
-curl -fsS https://localhost/api/health
+# oder ohne Unterbrechung: die neueste nächtliche PocketBase-Sicherung
+WEG_SSH=deploy@weg7026.de scripts/backup.sh --latest-nightly
 ```
 
-Der obige Ablauf wurde während M11 einmal komplett durchgespielt
-(Protokoll in `reviews/M11-handoff.md`): Datensatz angelegt → Backup
-erstellt → Volume geleert und aus der Zip wiederhergestellt → Datensatz
-wieder abrufbar.
+Die Datei landet in `~/weg-portal-backups/` (`-o` für ein anderes Ziel);
+Prüfsumme und Archiv werden kontrolliert. Die Archive enthalten
+personenbezogene Daten (Konten, E-Mail-Adressen, Fotos): nur auf
+verschlüsselten Datenträgern ablegen und alte Kopien löschen.
 
-**Nie** die live `data.db` per Dateikopie sichern, während der Server läuft
-(plan.md): entweder die PocketBase-Backup-Funktion (konsistenter Snapshot)
-oder ein SQLite-Level-Backup.
+### 3.2 Wiederherstellen
 
-## 4. Releases per GitHub Actions (empfohlen)
+**Aus einer `.tar.gz`-Sicherung** (vor Updates, manuell):
 
-Der Workflow `.github/workflows/release.yml` baut und installiert eine
-neue Version, sobald ein Versions-Tag gepusht wird. Der VPS baut dabei
-nichts selbst.
+```bash
+sudo weg-portal-ctl restore backups/manual-20261113-190935.tar.gz
+```
+
+Eine heruntergeladene Datei vorher nach `/srv/weg-portal/backups/`
+kopieren (als root). `restore` sichert den aktuellen Stand zuerst als
+`before-restore-…` und startet den Dienst danach wieder.
+
+**Aus einer nächtlichen Zip-Sicherung** (auch aus S3), als root:
+
+```bash
+systemctl stop weg-portal
+weg-portal-ctl backup before-zip-restore      # Sicherheitskopie des Ist-Stands
+cd /srv/weg-portal/pb_data
+find . -mindepth 1 -delete
+unzip -q /pfad/zur/sicherung.zip              # apt install unzip, falls nötig
+chown -R weg-portal:weg-portal /srv/weg-portal/pb_data
+systemctl start weg-portal && weg-portal-ctl status
+```
+
+Danach prüfen: einen bekannten Termin, das Login, `/_/`.
+
+## 4. Releases per GitHub Actions
+
+Der Workflow `.github/workflows/release.yml` baut und installiert eine neue
+Version, sobald ein Versions-Tag gepusht wird:
 
 ```bash
 git tag v0.2.0          # Semver: vMAJOR.MINOR.PATCH
 git push origin v0.2.0
 ```
 
-Ablauf: alle Tests (Go + UI) → Docker-Image und statische Binaries bauen
-→ GitHub-Release mit Binaries → Image per SSH auf den Server kopieren →
-**`pb_data` sichern (Portal kurz gestoppt, konsistente Kopie)** →
-neues Image laden → `docker compose up -d` → Health-Check über
+Ablauf: alle Tests (Go + UI) → GitHub-Release mit statischen Binaries
+(amd64 und arm64) → das zum Server passende Binary per SSH nach
+`incoming/` → `sudo weg-portal-ctl deploy v0.2.0` → Prüfung über
 `https://<DEPLOY_HOST>/api/health`.
 
-### 4.1 Einmalige Einrichtung
+### 4.1 Einmalige Einrichtung in GitHub
 
-**Server** (Hetzner-VPS, Debian/Ubuntu):
-
-```bash
-# Docker + Compose-Plugin installieren (offizielle Anleitung für die
-# Distribution), dann einen Deploy-Benutzer anlegen:
-adduser --disabled-password deploy
-usermod -aG docker deploy
-mkdir -p /srv/weg-portal && chown deploy: /srv/weg-portal
-
-```
-
-**Env-Dateien:** Der erste Workflow-Lauf lädt die Vorlagen hoch und hält
-dann mit einem Hinweis an. Danach einmalig auf dem Server (als `deploy`)
-die echten Dateien anlegen und ausfüllen (Abschnitt 2.1), anschließend den
-Job „Deploy to the server“ neu starten:
-
-```bash
-cd /srv/weg-portal
-cp portal.env.example portal.env   # Bounding-Box, PORTAL_TIMEZONE
-cp caddy.env.example caddy.env     # WEG_SITE_ADDRESS=weg7026.de, /_/-Schutz
-```
-
-Der Workflow überschreibt `portal.env` und `caddy.env` nie.
-
-Die DNS-Einträge `A`/`AAAA` für die Domain (z. B. `weg7026.de`) müssen auf
-den Server zeigen, damit Caddy das TLS-Zertifikat holen kann. Ports 80/443
-in der Hetzner-Firewall freigeben.
-
-**Deploy-Schlüssel** (lokal erzeugen, ohne Passphrase):
-
-```bash
-ssh-keygen -t ed25519 -N '' -C 'weg-portal deploy' -f weg_deploy
-# weg_deploy.pub  -> /home/deploy/.ssh/authorized_keys auf dem Server
-# weg_deploy      -> GitHub-Secret DEPLOY_SSH_KEY (ganze Datei)
-```
-
-**GitHub** (Settings → Environments → `production`):
+Settings → Environments → `production`:
 
 | Art | Name | Wert (Beispiel) |
 |---|---|---|
-| Secret | `DEPLOY_SSH_KEY` | privater Schlüssel `weg_deploy` |
-| Secret | `DEPLOY_SSH_HOST` | IP oder Hostname des VPS |
+| Secret | `DEPLOY_SSH_KEY` | privater Schlüssel `weg_deploy` (ganze Datei) |
+| Secret | `DEPLOY_SSH_HOST` | IP oder Hostname des Servers |
 | Secret | `DEPLOY_SSH_USER` | `deploy` |
-| Variable | `DEPLOY_HOST` | `weg7026.de` (für den Health-Check) |
-| Variable | `DEPLOY_PATH` | `/srv/weg-portal` |
-| Variable (optional) | `DEPLOY_PLATFORM` | `linux/amd64` (Standard; `linux/arm64` für Hetzner CAX) |
-| Variable (optional) | `DEPLOY_COMPOSE` | `docker compose` (Standard) |
+| Variable | `DEPLOY_HOST` | `weg7026.de` (für die Prüfung von außen) |
 
-Optional: im Environment `production` „Required reviewers“ setzen, dann
-wartet das Deployment auf eine Freigabe.
+Optional: „Required reviewers" setzen, dann wartet das Ausrollen auf eine
+Freigabe.
 
-### 4.2 Was der Workflow auf dem Server anfasst
+### 4.2 Rollback
 
-- kopiert: `compose.yaml`, `Caddyfile`, die `*.env.example`-Vorlagen und
-  `release/weg-portal-image.tar.gz`;
-- **nie**: `portal.env`, `caddy.env`, das Volume `pb_data`, `backups/`;
-- legt vor jedem Update `backups/pre-<version>-<zeit>.tar.gz` an
-  (die letzten 10 bleiben), zusätzlich zu den nächtlichen
-  PocketBase-Backups (Abschnitt 3);
-- markiert das bisher laufende Image als `weg-portal:previous`.
+**Automatisch:** wird die neue Version nicht innerhalb von 45 Sekunden
+gesund, stellt `weg-portal-ctl deploy` die vorige Version **und** den
+Datenstand von vor dem Update wieder her; der Workflow schlägt dann fehl
+und zeigt die Log-Zeilen.
 
-### 4.3 Rollback
-
-Schlägt der Health-Check fehl, bricht der Workflow ab und zeigt die
-letzten Log-Zeilen. Zurück auf die vorige Version:
+**Von Hand** (die neue Version läuft, hat aber einen Fehler):
 
 ```bash
-cd /srv/weg-portal
-docker compose stop portal
-# Daten auf den Stand vor dem Update (Migrationen der neuen Version
-# werden damit ebenfalls zurückgenommen):
-docker compose run --rm --no-deps --user root --entrypoint sh \
-    -v "$PWD/backups:/backup" portal \
-    -c 'rm -rf /app/pb_data/* && tar xzf /backup/pre-vX.Y.Z-<zeit>.tar.gz -C /app'
-docker tag weg-portal:previous weg-portal:latest
-docker compose up -d
+sudo weg-portal-ctl rollback            # vorige Version, Daten unverändert
+sudo weg-portal-ctl rollback v0.1.0     # bestimmte installierte Version
 ```
 
-Alternativ eine ältere Version erneut ausrollen: Actions → Release →
-„Run workflow“ mit dem alten Tag. Achtung: ohne Rückspielen der Daten
-läuft dann eine ältere Version auf bereits migrierten Daten – bei
-Datenbank-Änderungen immer zusätzlich das Backup zurückspielen.
+Hatte die neue Version Datenbank-Migrationen, läuft die alte Version nicht
+auf den migrierten Daten: dann zusätzlich die Sicherung von vor dem Update
+zurückspielen (`sudo weg-portal-ctl restore backups/pre-v0.2.0-….tar.gz`).
+Daten, die seit dem Update eingegeben wurden, gehen dabei verloren.
 
-## 5. Manuelle Update-Prozedur (ohne GitHub Actions)
+Eine ältere Version kann auch per Actions → Release → „Run workflow" mit
+dem alten Tag und „deploy only" erneut ausgerollt werden.
 
-Vor jedem Update (neue Portal-Version, neue PocketBase-Version) gilt:
-**erst gegen eine Kopie von `pb_data` testen**, dann die Produktion.
+### 4.3 Vor größeren Updates
+
+Bei neuen PocketBase-Versionen oder umfangreichen Migrationen zuerst lokal
+gegen eine Kopie der Daten testen: Sicherung mit `scripts/backup.sh`
+herunterladen, entpacken und die neue Version damit starten
+(`weg-portal serve --dir <entpacktes pb_data>`).
+
+## 5. Logs und Fehlersuche
 
 ```bash
-# 1) Kopie des Produktions-Volumes in ein Test-Volume ziehen:
-docker run --rm \
-    -v weg-portal-m11_pb_data:/from:ro \
-    -v weg-portal-update-test:/to alpine:3.21 sh -c 'cp -a /from/. /to/'
-
-# 2) Test-Stack mit der Kopie starten (compose override oder temporäres
-#    compose file, das pb_data durch weg-portal-update-test ersetzt und
-#    andere Ports für caddy nutzt) + neue Version bauen:
-docker compose build
-#    Migrationen laufen automatisch; API prüfen und Test-Accounts
-#    durchklicken: Kalender, Login, Mängelbilder, /_/
-
-# 3) Bei Erfolg: Produktion aktualisieren
-docker compose down
-git pull            # bzw. Release auschecken
-docker compose build && docker compose up -d
-
-# 4) Test-Volume wieder entfernen
-docker volume rm weg-portal-update-test
+sudo weg-portal-ctl status
+journalctl -u weg-portal -n 100      # Portal
+journalctl -u caddy -n 100           # TLS, Zertifikate, Proxy
 ```
 
-Rollback: vorherige Image-Version behalten (z. B. `docker tag
-weg-portal:latest weg-portal:rollback-YYYYMMDD` vor dem Update) und bei
-Problemen die alte Version mit dem unveränderten Volume starten. SQLite-
-Downgrades von PocketBase sind nicht vorgesehen — vor einem PocketBase-
-Upgrade immer das Backup prüfen.
+Die Portal-Logs (inkl. fehlgeschlagener Mails) zeigt zusätzlich `/_/` →
+Logs.
 
-## 6. Umgebungsvariablen (Referenz)
+## 6. Umgebungsvariablen (Referenz, `portal.env`)
 
-| Variable | Service | Bedeutung |
-|---|---|---|
-| `PORTAL_MIN_LAT` | portal | Min Latitude des Melde-Gebiets (Standard 51.0) |
-| `PORTAL_MAX_LAT` | portal | Max Latitude (Standard 51.5) |
-| `PORTAL_MIN_LNG` | portal | Min Longitude (Standard 7.0) |
-| `PORTAL_MAX_LNG` | portal | Max Longitude (Standard 7.5) |
-| `PORTAL_TIMEZONE` | portal | Zeitzone der Anlage, IANA-Name (Standard `Europe/Berlin`). Serientermine wiederholen sich zur gleichen Ortszeit in dieser Zone (auch im iCal-Feed); Mails zeigen Zeiten darin. Ungültiger Wert → Start bricht ab. |
-| `WEG_SITE_ADDRESS` | caddy | Site-Label des Caddyfile-Site-Blocks: `localhost` (test) oder echte Domain |
-| `WEG_ADMIN_BASIC_USER` | caddy | Basic-Auth-Benutzername für `/_/` (Default `portal`) |
-| `WEG_ADMIN_BASIC_HASH` | caddy | bcrypt-Hash des Basic-Auth-Passworts (Pflicht!) |
-| — | — | SMTP/S3: **nicht** per env, sondern in `/_/` (Abschnitt 2.5); Superuser-Passwörter: nur per CLI (Abschnitt 2.3) |
+| Variable | Bedeutung |
+|---|---|
+| `PORTAL_MIN_LAT` | Min Latitude des Melde-Gebiets (Standard 51.0) |
+| `PORTAL_MAX_LAT` | Max Latitude (Standard 51.5) |
+| `PORTAL_MIN_LNG` | Min Longitude (Standard 7.0) |
+| `PORTAL_MAX_LNG` | Max Longitude (Standard 7.5) |
+| `PORTAL_TIMEZONE` | Zeitzone der Anlage, IANA-Name (Standard `Europe/Berlin`). Serientermine wiederholen sich zur gleichen Ortszeit (auch im iCal-Feed); Mails zeigen Zeiten darin. Ungültiger Wert → Start bricht ab. |
 
-## 7. Caddy-Varianten für `/_/`
+SMTP/S3: **nicht** per Umgebung, sondern in `/_/` (2.7). Superuser:
+`weg-portal-ctl superuser` (2.5).
 
-Voreingestellt (und hier getestet): **Basic-Auth** im `Caddyfile`-Block
-`handle /_*`. Das schützt die Admin-UI; die Admin-API selbst verlangt
-zusätzlich einen Superuser-Token (Verteidigung in der Tiefe).
+## 7. Schutz von `/_/`
 
-Produktions-Alternative: **IP-Allowlist** über `remote_ip` — im `Caddyfile`
-unter "ALTERNATIVE /_/-SCHUTZ: IP-ALLOWLIST VARIANT" auskommentiert
-dokumentiert. Beide Mechanismen lassen sich auch kombinieren (erst
-Allowlist, dann Basic-Auth).
+Standard ist HTTP-Basic-Auth vor `/_/` (zusätzlich zum Superuser-Login mit
+MFA). Alternativ oder zusätzlich eine IP-Allowlist: siehe Kommentar am Ende
+von `deploy/Caddyfile`; nach der Änderung `server-setup.sh` erneut
+ausführen. Caddy wird mit `systemctl restart caddy` (nicht `reload`) neu
+geladen, weil seine lokale Admin-Schnittstelle abgeschaltet ist.
 
-TLS: lokal `tls internal` (interne CA, Browser-Warnung unkritisch, Tests mit
-`curl -k`). Produktion: echte Domain + Let's Encrypt — die nötige Änderung
-steht im `Caddyfile` unter "PRODUCTION VARIANT" (Domain, `tls`-Block mit
-`protocols tls1.2 tls1.3`, optional erst Staging-CA gegen Rate-Limits).
-
-## 8. Lokale Verifikation des Stacks (ohne DNS/Let's Encrypt)
-
-Genau dieser Ablauf wurde für die Abnahme von M11 durchlaufen.
-
-**Rootless-Podman-Einschränkung:** Unprivilegiertes Podman kann Ports < 1024
-nicht binden. `compose.yaml` erlaubt deshalb die Host-Ports über Variablen
-zu überschreiben — für die lokale Verifikation eine `.env` (nicht committet):
+## 8. Lokal ausführen
 
 ```bash
-cat > .env <<'EOF'
-HTTP_PORT=8081
-HTTPS_PORT=8443
-EOF
-
-docker compose build
-docker compose up -d
-# Health des Portals (das im Image definierte HEALTHCHECK wird von
-# podman im OCI-Format aktuell ignoriert -> hier manuell prüfen):
-docker compose ps
-podman exec weg-portal-m11_portal_1 wget -qO- http://127.0.0.1:8080/api/health
-# SPA via Caddy (interne CA -> curl -k):
-curl -kI https://localhost:8443/          # 200, CSP + HSTS Header
-# Admin-UI ohne Basic-Auth -> 401, mit -> 200:
-curl -kI https://localhost:8443/_/                     # 401
-curl -kI -u portal:PASSWORT https://localhost:8443/_/  # 200
+make ui-build && make build          # Binary ./weg-portal mit eingebetteter Web-App
+./weg-portal serve --http=127.0.0.1:8090
+# oder während der Entwicklung:
+go run ./base serve
 ```
 
-Unter echtem Docker (Produktion) fällt die `.env` weg: dann laufen die
-Standardports 80/443 und `docker compose ps` zeigt den Health-Status des
-Portals aus dem im Image definierten HEALTHCHECK (/api/health).
+## 9. Getestet / nicht getestet
 
-Zum Testen ohne Produktionsgefahr: das Acceptance-Setup benutzt bewusst
-Wegwerf-Passwörter und wird mit `docker compose down -v` vollständig
-(inkl. Volumes) beseitigt — Daten im `pb_data`-Volume gehen dabei verloren,
-also `-v` nur für Test-Instanzen verwenden.
+Getestet (Debian 12 mit systemd im Container): `server-setup.sh`, der
+gehärtete Dienst, `deploy` inkl. automatischem Rollback einer defekten
+Version (Binary und Daten), `rollback`, `backup`, `nightly`, `restore`,
+`superuser`, die sudo-Beschränkung des Benutzers `deploy` sowie die
+Caddy-Konfiguration (`caddy validate`).
 
-## 9. Was in dieser Umgebung NICHT getestet werden konnte
+Erst beim ersten echten Deployment prüfbar:
 
-Damit keine falsche Sicherheit entsteht: folgende Teile waren in der
-Abnahme-Umgebung (rootless Podman, kein DNS, kein S3) nicht prüfbar und
-müssen beim ersten echten Deployment verifiziert werden:
-
-- **Let's Encrypt / echtes TLS**: nur Caddys interne CA (`tls internal`).
-  Der Produktions-Varianten-Block im `Caddyfile` ist ausformuliert, aber
-  nie mit echter Domain/HTTP-01-Challenge gelaufen.
-- **S3-Offsite-Upload**: PocketBase-S3-Einstellungen werden erst bei
-  Deployment in `/_/` gepflegt; getestet wurde nur das lokale Backup-Zip
-  (Erzeugung + vollständiger Restore).
-- **Backup-Cron-Timing** (`0 2 * * *`): gesetzt durch die Migration und
-  kodiert geprüft; der nächtliche Lauf selbst wurde nicht abgewartet
-  (Backup stattdessen per Superuser-API angestoßen).
-- **HEALTHCHECK im Image**: wird von Podman im OCI-Format ignoriert —
-  unter echtem Docker ausprobieren (`docker compose ps` muss "healthy"
-  zeigen).
-
+- Let's Encrypt mit der echten Domain (DNS muss stimmen).
+- Der GitHub-Workflow selbst (braucht die Secrets).
+- S3-Offsite-Upload und der nächtliche Backup-Lauf.
+- Mail-Versand über den gewählten SMTP-Anbieter.
