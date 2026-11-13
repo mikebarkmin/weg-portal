@@ -20,6 +20,8 @@ interface MapPickerProps {
     lng: string;
     // called with coordinate strings whenever a location was picked
     onPick: (lat: string, lng: string) => void;
+    // removes the marker again (the location is optional)
+    onClear?: () => void;
 }
 
 // 6 decimals ≈ 0.1 m - well below the server's 3-decimal rounding
@@ -69,7 +71,7 @@ function ClickPicker({ onPick }: { onPick: (lat: string, lng: string) => void })
     return null;
 }
 
-export default function MapPicker({ lat, lng, onPick }: MapPickerProps) {
+export default function MapPicker({ lat, lng, onPick, onClear }: MapPickerProps) {
     const { t } = useTranslation();
     const mapRef = useRef<L.Map | null>(null);
     const icon = useMemo(pinIcon, []);
@@ -159,6 +161,12 @@ export default function MapPicker({ lat, lng, onPick }: MapPickerProps) {
                         {locating ? t("issue.location.searching") : t("issue.location.useMyLocation")}
                     </span>
                 </button>
+                {position && onClear && (
+                    <button type="button" className="btn sm secondary" onClick={onClear}>
+                        <i className="ri-close-line" aria-hidden="true" />
+                        <span className="txt">{t("issue.location.clear")}</span>
+                    </button>
+                )}
                 {!position && <span className="txt-hint txt-sm">{t("issue.location.hint")}</span>}
             </div>
             {locationError && <div className="field-help error" role="alert">{locationError}</div>}

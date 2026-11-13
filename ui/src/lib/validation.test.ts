@@ -9,6 +9,8 @@ import {
     buildSuggestionDecision,
     buildSuggestionPayload,
     buildUserApprovalPatch,
+    makeIssueSchema,
+    makeSuggestionSchema,
     toPBDateTime,
     noteSchema,
     suggestionSchema,
@@ -63,6 +65,11 @@ describe("suggestionSchema", () => {
     it("rejects a title over 200 characters", () => {
         const result = suggestionSchema.safeParse(validValues({ title: "x".repeat(201) }));
         expect(result.success).toBe(false);
+    });
+
+    it("does not ask logged-in users for an email", () => {
+        expect(makeSuggestionSchema(true).safeParse(validValues({ email: "" })).success).toBe(true);
+        expect(buildSuggestionPayload(validValues({ email: "" }), 1)).not.toHaveProperty("email");
     });
 
     it("rejects a missing/invalid email", () => {
@@ -221,6 +228,12 @@ describe("issueSchema", () => {
         expect(issueSchema.safeParse(validIssueValues({ email: "keine-mail" })).success).toBe(false);
     });
 
+    it("does not ask logged-in users for an email", () => {
+        const loggedIn = makeIssueSchema(true);
+        expect(loggedIn.safeParse(validIssueValues({ email: "" })).success).toBe(true);
+        expect(buildIssueFormData(validIssueValues({ email: "" }), [], 1).has("email")).toBe(false);
+    });
+
     it("enforces the field length limits like the server", () => {
         expect(
             issueSchema.safeParse(validIssueValues({ title: "x".repeat(201) })).success,
@@ -236,7 +249,14 @@ describe("issueSchema", () => {
         ).toBe(false);
     });
 
-    it("requires the coordinates to be present and within the bounding box", () => {
+    it("makes the map point optional", () => {
+        expect(issueSchema.safeParse(validIssueValues({ lat: "", lng: "" })).success).toBe(true);
+        const data = buildIssueFormData(validIssueValues({ lat: "", lng: "" }), [], 1);
+        expect(data.has("lat")).toBe(false);
+        expect(data.has("lng")).toBe(false);
+    });
+
+    it("requires a set location to be complete and within the bounding box", () => {
         expect(issueSchema.safeParse(validIssueValues({ lat: "" })).success).toBe(false);
         expect(issueSchema.safeParse(validIssueValues({ lat: "abc" })).success).toBe(false);
         // outside the box on each axis

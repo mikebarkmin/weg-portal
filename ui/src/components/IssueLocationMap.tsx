@@ -2,7 +2,7 @@ import { Circle, CircleMarker, MapContainer } from "react-leaflet";
 import { useTranslation } from "react-i18next";
 
 import type { PortalIssue } from "../types";
-import { exactPositionOf } from "../lib/issues";
+import { exactPositionOf, hasLocation } from "../lib/issues";
 import { cssColor } from "../lib/cssColor";
 import OsmTileLayer from "./OsmTileLayer";
 import "leaflet/dist/leaflet.css";
@@ -15,6 +15,11 @@ export default function IssueLocationMap({ issue, role }: { issue: PortalIssue; 
     const { t } = useTranslation();
     const exact = exactPositionOf(issue, role);
     const center: [number, number] = exact ?? [issue.lat, issue.lng];
+
+    // the map point is optional
+    if (!hasLocation(issue)) {
+        return <p className="txt-hint txt-sm m-0">{t("issueDetail.noLocation")}</p>;
+    }
 
     return (
         <div className="issue-map map-canvas" aria-label={t("issueDetail.mapLabel")}>

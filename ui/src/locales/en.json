@@ -264,7 +264,8 @@
         "description": "Description",
         "category": "Category",
         "location": {
-            "label": "Location",
+            "label": "Location (optional)",
+            "clear": "Remove marker",
             "hint": "Tap the map, drag the marker or use “Use my location” to mark where the problem is.",
             "useMyLocation": "Use my location",
             "searching": "Detecting location …",
@@ -482,6 +483,7 @@
         },
         "created": "Submitted on",
         "locationExact": "Location (exact)",
+        "noLocation": "No location given.",
         "roundedHint": "rounded to about 100 m",
         "mapLabel": "Map with the location of the report",
         "reporter": "Reported by",

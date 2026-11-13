@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,9 +10,11 @@ import { BackLink, Page, PageHeading, SidebarMenu, Wrapper } from "../components
 import FormField, { SwitchField } from "../components/FormField";
 import Notice from "../components/Notice";
 import PhotoInput, { type PreparedPhoto } from "../components/PhotoInput";
+import { useAuth } from "../lib/auth";
+import { pb } from "../lib/pbClient";
 import {
     buildIssueFormData,
-    issueSchema,
+    makeIssueSchema,
     type IssueFormValues,
 } from "../lib/validation";
 
@@ -47,6 +49,9 @@ function serverErrorMessage(body: unknown): string {
 // EXIF-free photo blobs are ever submitted (components/PhotoInput).
 export default function NewIssue() {
     const { t } = useTranslation();
+    // logged-in users report under their account (no email/name fields)
+    const { isAuthenticated } = useAuth();
+    const schema = useMemo(() => makeIssueSchema(isAuthenticated), [isAuthenticated]);
 
     // time-trap: the moment this page mounted
     const startedAt = useRef(Date.now());
@@ -66,7 +71,7 @@ export default function NewIssue() {
         watch,
         formState: { errors, isSubmitting },
     } = useForm<IssueFormValues>({
-        resolver: zodResolver(issueSchema),
+        resolver: zodResolver(schema),
         defaultValues: {
             title: "",
             description: "",
@@ -100,6 +105,7 @@ export default function NewIssue() {
         setValue("lat", newLat, { shouldValidate: true });
         setValue("lng", newLng, { shouldValidate: true });
     };
+    const clearLocation = () => pickLocation("", "");
 
     const changePhotos = (next: PreparedPhoto[]) => {
         // the zod schema audits the blob list (count + consent coupling)
@@ -116,8 +122,14 @@ export default function NewIssue() {
                 photos.map((photo) => photo.blob),
                 startedAt.current,
             );
+            // the token links the report to the account (and its email)
+            const headers: Record<string, string> = {};
+            if (pb.authStore.isValid && pb.authStore.token) {
+                headers["Authorization"] = pb.authStore.token;
+            }
             const response = await fetch("/api/portal/issues", {
                 method: "POST",
+                headers,
                 body: data, // multipart/form-data with boundary set by the browser
             });
 
@@ -206,10 +218,10 @@ export default function NewIssue() {
                     </FormField>
 
                     <div className="col-12">
-                        <div className="field-group-label required" id="issue-location-label">
+                        <div className="field-group-label" id="issue-location-label">
                             {t("issue.location.label")}
                         </div>
-                        <MapPicker lat={lat} lng={lng} onPick={pickLocation} />
+                        <MapPicker lat={lat} lng={lng} onPick={pickLocation} onClear={clearLocation} />
                         {(errors.lat?.message || errors.lng?.message) && (
                             <div className="field-help error" role="alert">
                                 {err(errors.lat?.message || errors.lng?.message)}
@@ -236,25 +248,29 @@ export default function NewIssue() {
                         />
                     )}
 
-                    <FormField
-                        id="issue-email"
-                        className="col-12 col-md-6"
-                        label={t("issue.email")}
-                        required
-                        hint={t("issue.emailHint")}
-                        error={err(errors.email?.message)}
-                    >
-                        <input id="issue-email" type="email" inputMode="email" autoComplete="email" {...register("email")} />
-                    </FormField>
+                    {!isAuthenticated && (
+                        <FormField
+                            id="issue-email"
+                            className="col-12 col-md-6"
+                            label={t("issue.email")}
+                            required
+                            hint={t("issue.emailHint")}
+                            error={err(errors.email?.message)}
+                        >
+                            <input id="issue-email" type="email" inputMode="email" autoComplete="email" {...register("email")} />
+                        </FormField>
+                    )}
 
-                    <FormField
-                        id="issue-name"
-                        className="col-12 col-md-6"
-                        label={t("issue.name")}
-                        error={err(errors.name?.message)}
-                    >
-                        <input id="issue-name" type="text" maxLength={200} autoComplete="name" {...register("name")} />
-                    </FormField>
+                    {!isAuthenticated && (
+                        <FormField
+                            id="issue-name"
+                            className="col-12 col-md-6"
+                            label={t("issue.name")}
+                            error={err(errors.name?.message)}
+                        >
+                            <input id="issue-name" type="text" maxLength={200} autoComplete="name" {...register("name")} />
+                        </FormField>
+                    )}
 
                     {/*
                         Honeypot: hidden from users (off-screen, not

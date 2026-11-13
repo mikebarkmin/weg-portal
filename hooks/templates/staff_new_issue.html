@@ -7,7 +7,7 @@
         <p><strong>{{ .Title }}</strong></p>
         {{ if .Category }}<p>Kategorie: {{ .Category }}</p>{{ end }}
         <p>Sichtbarkeit: {{ if eq .Visibility "private" }}intern (nur Beirat, Hausmeister und Hausverwaltung){{ else }}&ouml;ffentlich{{ end }}</p>
-        <p>Position (gerundet): {{ .Lat }}, {{ .Lng }}</p>
+        {{ if or .Lat .Lng }}<p>Position (gerundet): {{ .Lat }}, {{ .Lng }}</p>{{ end }}
     </blockquote>
 
     <p>

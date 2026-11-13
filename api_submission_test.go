@@ -120,6 +120,15 @@ func TestSubmitIssueValidation(t *testing.T) {
 	sc.Name = "valid with photos and consent"
 	scenarios = append(scenarios, sc)
 
+	sc = build(func(f map[string]string) { delete(f, "lat"); delete(f, "lng") }, nil, "")
+	sc.Name = "valid without a location"
+	scenarios = append(scenarios, sc)
+
+	sc = build(func(f map[string]string) { delete(f, "email") }, nil, "")
+	sc.Name = "logged-in user without an email field"
+	sc.Headers["Authorization"] = getAuthToken(t, "users", emailResident)
+	scenarios = append(scenarios, sc)
+
 	// field validation failures -> 400
 	failureScenarios := []struct {
 		name   string
@@ -137,6 +146,8 @@ func TestSubmitIssueValidation(t *testing.T) {
 		{"lat out of bounds", func(f map[string]string) { f["lat"] = "55.0" }, nil},
 		{"lng out of bounds", func(f map[string]string) { f["lng"] = "90.0" }, nil},
 		{"email invalid", func(f map[string]string) { f["email"] = "not-an-email" }, nil},
+		{"email missing for guests", func(f map[string]string) { delete(f, "email") }, nil},
+		{"only lat without lng", func(f map[string]string) { delete(f, "lng") }, nil},
 		{"honeypot filled", func(f map[string]string) { f["honeypot"] = "spam" }, nil},
 		{"form_started_at missing", func(f map[string]string) { delete(f, "form_started_at") }, nil},
 		{"form_started_at too recent", func(f map[string]string) { f["form_started_at"] = fmt.Sprint(time.Now().UnixMilli()) }, nil},
@@ -635,5 +646,75 @@ func TestSuggestionCreateRateLimit(t *testing.T) {
 		if code != want {
 			t.Fatalf("request %d: expected %d, got %d (%v)", i, want, code, codes)
 		}
+	}
+}
+
+// Logged-in submitters are not asked for an email or name: the account data is
+// stored instead (also overriding a supplied one), and the map point of an
+// issue report is optional.
+func TestLoggedInSubmissionsUseAccountEmail(t *testing.T) {
+	app := setupTestApp(t)
+	defer app.Cleanup()
+	mux := serveMux(t, app)
+
+	fields := validIssueFields()
+	fields["title"] = "Ohne Ort und Mail"
+	fields["email"] = "someone-else@example.com"
+	delete(fields, "lat")
+	delete(fields, "lng")
+	ct, body := multipartBody(t, fields, nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/portal/issues", body)
+	req.Header.Set("Content-Type", ct)
+	req.Header.Set("Authorization", getAuthToken(t, "users", emailResident))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("issue: expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	issues := findIssuesByTitle(t, app, "Ohne Ort und Mail")
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 issue, got %d", len(issues))
+	}
+	if issues[0].GetFloat("lat") != 0 || issues[0].GetFloat("lng") != 0 || issues[0].GetFloat("lat_exact") != 0 {
+		t.Fatalf("expected no location, got %v/%v", issues[0].GetFloat("lat"), issues[0].GetFloat("lng"))
+	}
+	meta, err := app.FindFirstRecordByData("issue_metas", "issue", issues[0].Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if meta.GetString("email") != emailResident {
+		t.Fatalf("issue meta email: expected %q, got %q", emailResident, meta.GetString("email"))
+	}
+	resident, err := app.FindAuthRecordByEmail("users", emailResident)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if meta.GetString("name") != resident.GetString("name") {
+		t.Fatalf("issue meta name: expected the account name %q, got %q", resident.GetString("name"), meta.GetString("name"))
+	}
+
+	rec = doJSON(t, mux, http.MethodPost, "/api/collections/suggestions/records",
+		`{"title":"Ohne Mail","date_start":"2027-03-01 10:00:00.000Z","status":"pending","honeypot":"","form_started_at":`+fmt.Sprint(trapMS())+`}`,
+		authHeader(t, emailResident))
+	if rec.Code != 200 {
+		t.Fatalf("suggestion: expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	suggestion, err := app.FindFirstRecordByData("suggestions", "title", "Ohne Mail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if suggestion.GetString("email") != emailResident {
+		t.Fatalf("suggestion email: expected %q, got %q", emailResident, suggestion.GetString("email"))
+	}
+	if strings.Contains(rec.Body.String(), emailResident) {
+		t.Fatal("the suggestion response must not echo the email")
+	}
+
+	// guests still need an email for suggestions
+	rec = doJSON(t, mux, http.MethodPost, "/api/collections/suggestions/records",
+		`{"title":"Gast ohne Mail","date_start":"2027-03-01 10:00:00.000Z","status":"pending","honeypot":"","form_started_at":`+fmt.Sprint(trapMS())+`}`, nil)
+	if rec.Code != 400 {
+		t.Fatalf("guest suggestion without email: expected 400, got %d", rec.Code)
 	}
 }

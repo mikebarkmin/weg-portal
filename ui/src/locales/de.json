@@ -264,7 +264,8 @@
         "description": "Beschreibung",
         "category": "Kategorie",
         "location": {
-            "label": "Ort",
+            "label": "Ort (optional)",
+            "clear": "Markierung entfernen",
             "hint": "Auf die Karte tippen, den Marker verschieben oder „Meinen Standort verwenden“, um den Ort des Problems zu markieren.",
             "useMyLocation": "Meinen Standort verwenden",
             "searching": "Standort wird ermittelt …",
@@ -482,6 +483,7 @@
         },
         "created": "Eingereicht am",
         "locationExact": "Ort (genau)",
+        "noLocation": "Kein Ort angegeben.",
         "roundedHint": "auf ca. 100 m gerundet",
         "mapLabel": "Karte mit dem Ort der Meldung",
         "reporter": "Gemeldet von",

@@ -11,9 +11,20 @@ export const SEES_EXACT_COORDS: ReadonlySet<string> = new Set([
     "hausverwaltung",
 ]);
 
+// Whether the reporter marked a map point at all (it is optional; an
+// unmarked issue keeps lat/lng at 0, far outside every community box).
+export function hasLocation(issue: PortalIssue): boolean {
+    return (
+        Number.isFinite(issue.lat) &&
+        Number.isFinite(issue.lng) &&
+        !(issue.lat === 0 && issue.lng === 0)
+    );
+}
+
 // The exact position, or null when the viewer may not / does not get it.
 export function exactPositionOf(issue: PortalIssue, role: string): [number, number] | null {
     if (
+        hasLocation(issue) &&
         SEES_EXACT_COORDS.has(role) &&
         typeof issue.lat_exact === "number" &&
         typeof issue.lng_exact === "number" &&
@@ -25,8 +36,10 @@ export function exactPositionOf(issue: PortalIssue, role: string): [number, numb
     return null;
 }
 
-// Where the issue is drawn: exact for staff, rounded otherwise.
-export function positionOf(issue: PortalIssue, role: string): [number, number] {
+// Where the issue is drawn: exact for staff, rounded otherwise; null
+// when the issue has no location.
+export function positionOf(issue: PortalIssue, role: string): [number, number] | null {
+    if (!hasLocation(issue)) return null;
     return exactPositionOf(issue, role) ?? [issue.lat, issue.lng];
 }
 

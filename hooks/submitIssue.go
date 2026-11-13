@@ -20,8 +20,9 @@ import (
 // SubmitIssue registers the public, account-less issue submission route
 // POST /api/portal/issues (multipart), see plan.md "Public submission routes".
 //
-// The route writes the issue (status pending, rounded + exact coordinates)
-// and its issue_metas record (submitter email) in one transaction and
+// The route writes the issue (status pending, optional rounded + exact
+// coordinates) and its issue_metas record (submitter email - the account
+// address for logged-in users) in one transaction and
 // returns only {"ok": true} - never the created record.
 func SubmitIssue(app core.App) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
@@ -62,7 +63,23 @@ func SubmitIssue(app core.App) {
 			// transaction, rolling the issue back with the meta.
 			name := strings.TrimSpace(form.Get("name"))
 
+			// logged-in accounts report under their account address; the
+			// form only asks guests for an email
+			var authUser *core.Record
+			if e.Auth != nil && e.Auth.Collection().Name == "users" {
+				authUser = e.Auth
+			}
+
 			email := strings.TrimSpace(form.Get("email"))
+			if authUser != nil {
+				email = authUser.Email()
+				// the form does not ask logged-in users for a name either
+				name = strings.TrimSpace(authUser.GetString("name"))
+				// account names may be longer than issue_metas.name (200)
+				if r := []rune(name); len(r) > 200 {
+					name = string(r[:200])
+				}
+			}
 			if len(email) > 254 {
 				return e.BadRequestError("Email address is invalid.", nil)
 			}
@@ -70,28 +87,10 @@ func SubmitIssue(app core.App) {
 				return e.BadRequestError("Email address is invalid.", nil)
 			}
 
-			lat, err := strconv.ParseFloat(strings.TrimSpace(form.Get("lat")), 64)
+			// the map point is optional: both coordinates or none
+			lat, lng, hasLocation, err := parseIssueLocation(form.Get("lat"), form.Get("lng"))
 			if err != nil {
-				return e.BadRequestError("Latitude is required and must be a number.", nil)
-			}
-			// strconv.ParseFloat also accepts NaN/Inf (which would bypass
-			// the bounds comparison), so reject them explicitly
-			if math.IsNaN(lat) || math.IsInf(lat, 0) {
-				return e.BadRequestError("Latitude is required and must be a number.", nil)
-			}
-			lng, err := strconv.ParseFloat(strings.TrimSpace(form.Get("lng")), 64)
-			if err != nil {
-				return e.BadRequestError("Longitude is required and must be a number.", nil)
-			}
-			if math.IsNaN(lng) || math.IsInf(lng, 0) {
-				return e.BadRequestError("Longitude is required and must be a number.", nil)
-			}
-			bounds, err := issueBounds()
-			if err != nil {
-				return e.BadRequestError("The location must be inside the community area.", nil)
-			}
-			if lat < bounds.minLat || lat > bounds.maxLat || lng < bounds.minLng || lng > bounds.maxLng {
-				return e.BadRequestError("The location must be inside the community area.", nil)
+				return e.BadRequestError(err.Error(), nil)
 			}
 
 			// photos
@@ -137,10 +136,12 @@ func SubmitIssue(app core.App) {
 				issue.Set("title", title)
 				issue.Set("description", description)
 				issue.Set("category", category)
-				issue.Set("lat", math.Round(lat*1000)/1000)
-				issue.Set("lng", math.Round(lng*1000)/1000)
-				issue.Set("lat_exact", lat)
-				issue.Set("lng_exact", lng)
+				if hasLocation {
+					issue.Set("lat", math.Round(lat*1000)/1000)
+					issue.Set("lng", math.Round(lng*1000)/1000)
+					issue.Set("lat_exact", lat)
+					issue.Set("lng_exact", lng)
+				}
 				issue.Set("status", "pending")
 				if len(photoFiles) > 0 {
 					issue.Set("photos", photoFiles)
@@ -155,8 +156,8 @@ func SubmitIssue(app core.App) {
 				meta.Set("email", email)
 				// logged-in owners see their own reports under "Meine
 				// Einreichungen" (the link stays Beirat-only data)
-				if e.Auth != nil && e.Auth.Collection().Name == "users" {
-					meta.Set("user", e.Auth.Id)
+				if authUser != nil {
+					meta.Set("user", authUser.Id)
 				}
 				if name != "" {
 					meta.Set("name", name)
@@ -173,6 +174,35 @@ func SubmitIssue(app core.App) {
 
 		return se.Next()
 	})
+}
+
+// parseIssueLocation validates the optional map point. Both values empty
+// means "no location" (ok, hasLocation=false); otherwise both must be
+// finite numbers inside the community box.
+func parseIssueLocation(rawLat, rawLng string) (lat, lng float64, hasLocation bool, err error) {
+	rawLat = strings.TrimSpace(rawLat)
+	rawLng = strings.TrimSpace(rawLng)
+	if rawLat == "" && rawLng == "" {
+		return 0, 0, false, nil
+	}
+
+	lat, err = strconv.ParseFloat(rawLat, 64)
+	// strconv.ParseFloat also accepts NaN/Inf (which would bypass the
+	// bounds comparison), so reject them explicitly
+	if err != nil || math.IsNaN(lat) || math.IsInf(lat, 0) {
+		return 0, 0, false, fmt.Errorf("Latitude must be a number.")
+	}
+	lng, err = strconv.ParseFloat(rawLng, 64)
+	if err != nil || math.IsNaN(lng) || math.IsInf(lng, 0) {
+		return 0, 0, false, fmt.Errorf("Longitude must be a number.")
+	}
+
+	bounds, err := issueBounds()
+	if err != nil || lat < bounds.minLat || lat > bounds.maxLat || lng < bounds.minLng || lng > bounds.maxLng {
+		return 0, 0, false, fmt.Errorf("The location must be inside the community area.")
+	}
+
+	return lat, lng, true, nil
 }
 
 type issueBoundsBox struct {

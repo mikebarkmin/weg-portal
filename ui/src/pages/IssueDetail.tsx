@@ -24,7 +24,7 @@ import ProtectedPhotos from "../components/ProtectedPhotos";
 import IssueLocationMap from "../components/IssueLocationMap";
 import IssueReporter from "../components/IssueReporter";
 import IssueHistory from "../components/IssueHistory";
-import { exactPositionOf } from "../lib/issues";
+import { exactPositionOf, hasLocation } from "../lib/issues";
 
 // Issue detail (M9): the fields, photos and - for beirat/hausmeister -
 // the status change buttons for exactly the transitions the server
@@ -265,11 +265,13 @@ export default function IssueDetail() {
                             {exact ? t("issueDetail.locationExact") : t("issueDetail.location")}
                         </h2>
                         <IssueLocationMap issue={record} role={role} />
-                        <p className="txt-hint txt-sm m-0">
-                            {exact
-                                ? `${exact[0].toFixed(6)}, ${exact[1].toFixed(6)}`
-                                : `${record.lat.toFixed(3)}, ${record.lng.toFixed(3)} · ${t("issueDetail.roundedHint")}`}
-                        </p>
+                        {hasLocation(record) && (
+                            <p className="txt-hint txt-sm m-0">
+                                {exact
+                                    ? `${exact[0].toFixed(6)}, ${exact[1].toFixed(6)}`
+                                    : `${record.lat.toFixed(3)}, ${record.lng.toFixed(3)} · ${t("issueDetail.roundedHint")}`}
+                            </p>
+                        )}
                     </div>
 
                     {record.photos.length > 0 && (

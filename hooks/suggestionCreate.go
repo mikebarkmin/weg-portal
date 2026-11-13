@@ -35,6 +35,9 @@ func SuggestionCreate(app core.App) {
 		e.Record.Set("user", "")
 		if e.Auth != nil && e.Auth.Collection().Name == "users" {
 			e.Record.Set("user", e.Auth.Id)
+			// logged-in accounts are contacted at their account address;
+			// the form does not ask them for an email
+			e.Record.Set("email", e.Auth.Email())
 		}
 		e.Record.Set("calendar", "")
 

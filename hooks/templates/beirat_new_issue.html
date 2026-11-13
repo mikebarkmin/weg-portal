@@ -6,7 +6,7 @@
     <blockquote>
         <p><strong>{{ .Title }}</strong></p>
         {{ if .Category }}<p>Kategorie: {{ .Category }}</p>{{ end }}
-        <p>Position (gerundet): {{ .Lat }}, {{ .Lng }}</p>
+        {{ if or .Lat .Lng }}<p>Position (gerundet): {{ .Lat }}, {{ .Lng }}</p>{{ end }}
         {{ if .Description }}<p>{{ .Description }}</p>{{ end }}
     </blockquote>
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,13 +7,14 @@ import type { TFunction } from "i18next";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
+import { useAuth } from "../lib/auth";
 import { BackLink, Page, PageHeading, SidebarMenu, Wrapper } from "../components/Page";
 import FormField, { SwitchField } from "../components/FormField";
 import Notice from "../components/Notice";
 import { errorStatus, fieldErrors } from "../lib/pbErrors";
 import {
     buildSuggestionPayload,
-    suggestionSchema,
+    makeSuggestionSchema,
     type SuggestionFormValues,
 } from "../lib/validation";
 
@@ -35,6 +36,9 @@ function messageText(message: string | undefined, t: TFunction): string {
 // old - both are enforced again server-side (hooks/trap.go).
 export default function NewSuggestion() {
     const { t } = useTranslation();
+    // logged-in users are contacted at their account address (no email field)
+    const { isAuthenticated } = useAuth();
+    const schema = useMemo(() => makeSuggestionSchema(isAuthenticated), [isAuthenticated]);
 
     // time-trap: the moment this page mounted
     const startedAt = useRef(Date.now());
@@ -50,7 +54,7 @@ export default function NewSuggestion() {
         watch,
         formState: { errors, isSubmitting },
     } = useForm<SuggestionFormValues>({
-        resolver: zodResolver(suggestionSchema),
+        resolver: zodResolver(schema),
         defaultValues: {
             title: "",
             description: "",
@@ -191,15 +195,17 @@ export default function NewSuggestion() {
                         <input id="suggestion-category" type="text" maxLength={100} {...register("category")} />
                     </FormField>
 
-                    <FormField
-                        id="suggestion-email"
-                        label={t("suggestion.email")}
-                        required
-                        hint={t("suggestion.emailHint")}
-                        error={err(errors.email?.message)}
-                    >
-                        <input id="suggestion-email" type="email" inputMode="email" autoComplete="email" {...register("email")} />
-                    </FormField>
+                    {!isAuthenticated && (
+                        <FormField
+                            id="suggestion-email"
+                            label={t("suggestion.email")}
+                            required
+                            hint={t("suggestion.emailHint")}
+                            error={err(errors.email?.message)}
+                        >
+                            <input id="suggestion-email" type="email" inputMode="email" autoComplete="email" {...register("email")} />
+                        </FormField>
+                    )}
 
                     {/*
                         Honeypot: hidden from users (off-screen, not

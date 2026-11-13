@@ -38,7 +38,18 @@ export function toPBDateTime(value: string, allDay: boolean): string {
     return new Date(value).toISOString();
 }
 
-export const suggestionSchema = z
+// Submitter email of the public forms: required for guests (the decision
+// is reported back by mail), not asked for when logged in - the server
+// then uses the account address (hooks/submitIssue.go, suggestionCreate.go).
+function submitterEmailSchema(loggedIn: boolean) {
+    const email = z.string().trim();
+    return loggedIn
+        ? email
+        : email.min(1, "validation.required").email("validation.invalidEmail");
+}
+
+export function makeSuggestionSchema(loggedIn: boolean) {
+    return z
     .object({
         title: z
             .string()
@@ -56,11 +67,7 @@ export const suggestionSchema = z
         all_day: z.boolean(),
         location: z.string().trim().max(FIELD_LIMITS.location, "validation.tooLong"),
         category: z.string().trim().max(FIELD_LIMITS.category, "validation.tooLong"),
-        email: z
-            .string()
-            .trim()
-            .min(1, "validation.required")
-            .email("validation.invalidEmail"),
+        email: submitterEmailSchema(loggedIn),
         // honeypot: hidden anti-spam field, must stay empty
         honeypot: z.string().refine((v) => v.trim() === "", "validation.submitFailed"),
     })
@@ -79,6 +86,10 @@ export const suggestionSchema = z
             }
         }
     });
+}
+
+// The guest variant (email required).
+export const suggestionSchema = makeSuggestionSchema(false);
 
 export type SuggestionFormValues = z.infer<typeof suggestionSchema>;
 
@@ -91,7 +102,8 @@ export interface SuggestionPayload {
     all_day: boolean;
     location: string;
     category: string;
-    email: string;
+    // omitted when logged in (the server uses the account address)
+    email?: string;
     honeypot: string;
     // epoch ms, set when the form is mounted (time-trap)
     form_started_at: number;
@@ -99,8 +111,9 @@ export interface SuggestionPayload {
 
 // Payload for the public suggestion create. The createRule forces
 // status='pending' (sent here, never decided client-side beyond that)
-// and forbids decision fields - none are sent. The submitter email is
-// required so the Beirat decision can be reported back.
+// and forbids decision fields - none are sent. Guests must give an email
+// so the Beirat decision can be reported back; for logged-in users the
+// server sets the account address, so an empty email is not sent.
 export function buildSuggestionPayload(
     values: SuggestionFormValues,
     formStartedAt: number,
@@ -113,10 +126,12 @@ export function buildSuggestionPayload(
         all_day: values.all_day,
         location: values.location,
         category: values.category,
-        email: values.email,
         honeypot: values.honeypot,
         form_started_at: formStartedAt,
     };
+    if (values.email) {
+        payload.email = values.email;
+    }
     if (values.date_end) {
         payload.date_end = toPBDateTime(values.date_end, values.all_day);
     }
@@ -216,9 +231,11 @@ export function isWithinIssueBounds(lat: number, lng: number): boolean {
 // The maximum number of photos the server accepts (submitIssue.go).
 export const MAX_PHOTOS = 5;
 
-// parseable coordinate string within the bounding box
+// parseable coordinate string within the bounding box; "" = no location
+// (the map point is optional, but lat and lng come as a pair)
 function coordinateSchema(axis: "lat" | "lng") {
-    return z.string().min(1, "validation.locationRequired").superRefine((value, ctx) => {
+    return z.string().superRefine((value, ctx) => {
+            if (value === "") return;
             const parsed = Number(value);
             if (!Number.isFinite(parsed)) {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.locationRequired" });
@@ -234,7 +251,8 @@ function coordinateSchema(axis: "lat" | "lng") {
         });
 }
 
-export const issueSchema = z
+export function makeIssueSchema(loggedIn: boolean) {
+    return z
     .object({
         title: z
             .string()
@@ -245,12 +263,8 @@ export const issueSchema = z
         category: z.string().trim().max(FIELD_LIMITS.category, "validation.tooLong"),
         lat: coordinateSchema("lat"),
         lng: coordinateSchema("lng"),
-        // required: the decision is reported back by mail
-        email: z
-            .string()
-            .trim()
-            .min(1, "validation.required")
-            .email("validation.invalidEmail"),
+        // guests only: the decision is reported back by mail
+        email: submitterEmailSchema(loggedIn),
         // optional, matched to the issue_metas.name schema limit
         name: z.string().trim().max(200, "validation.tooLong"),
         // blobs produced by lib/exifStrip (re-encoded, EXIF-free)
@@ -267,7 +281,18 @@ export const issueSchema = z
                 message: "validation.consentRequired",
             });
         }
+        if ((values.lat === "") !== (values.lng === "")) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: [values.lat === "" ? "lat" : "lng"],
+                message: "validation.locationRequired",
+            });
+        }
     });
+}
+
+// The guest variant (email required).
+export const issueSchema = makeIssueSchema(false);
 
 export type IssueFormValues = z.infer<typeof issueSchema>;
 
@@ -285,9 +310,13 @@ export function buildIssueFormData(
     data.set("title", values.title);
     data.set("description", values.description);
     data.set("category", values.category);
-    data.set("lat", values.lat);
-    data.set("lng", values.lng);
-    data.set("email", values.email);
+    if (values.lat !== "" && values.lng !== "") {
+        data.set("lat", values.lat);
+        data.set("lng", values.lng);
+    }
+    if (values.email) {
+        data.set("email", values.email);
+    }
     if (values.name) {
         data.set("name", values.name);
     }

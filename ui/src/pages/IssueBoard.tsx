@@ -181,10 +181,16 @@ export default function IssueBoard() {
         return result;
     }, [items]);
 
-    const positions = useMemo(
-        () => filtered.map((issue) => positionOf(issue, auth.role)),
+    // issues without a map point are listed but not drawn
+    const located = useMemo(
+        () =>
+            filtered.flatMap((issue) => {
+                const position = positionOf(issue, auth.role);
+                return position ? [{ issue, position }] : [];
+            }),
         [filtered, auth.role],
     );
+    const positions = useMemo(() => located.map((entry) => entry.position), [located]);
 
     const filterOptions: { value: StatusFilter; icon: string; label: string }[] = [
         { value: "active", icon: "ri-inbox-line", label: t("board.filters.active") },
@@ -258,10 +264,10 @@ export default function IssueBoard() {
                         <MapContainer bounds={issueLatLngBounds()} maxZoom={19} className="board-map-canvas">
                             <FitToMarkers positions={positions} />
                             <OsmTileLayer />
-                            {filtered.map((issue, index) => (
+                            {located.map(({ issue, position }) => (
                                 <CircleMarker
                                     key={issue.id}
-                                    center={positions[index]!}
+                                    center={position}
                                     radius={8}
                                     pathOptions={{
                                         color: "#fff",
