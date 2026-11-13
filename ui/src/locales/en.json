@@ -7,6 +7,7 @@
         "newSuggestion": "Suggest an event",
         "moderation": "Moderation",
         "users": "Users",
+        "notes": "Notes",
         "login": "Log in",
         "logout": "Log out",
         "newIssue": "Report issue",
@@ -186,6 +187,36 @@
         },
         "approve": "Approve",
         "revoke": "Revoke approval"
+    },
+    "notes": {
+        "heading": "Internal notes",
+        "loading": "Loading …",
+        "empty": "No notes yet.",
+        "error": {
+            "load": "Notes could not be loaded. Please try again later.",
+            "save": "The note could not be saved.",
+            "delete": "The note could not be deleted."
+        },
+        "new": {
+            "heading": "New note",
+            "title": "Title",
+            "body": "Text (Markdown)",
+            "submit": "Create note"
+        },
+        "edit": {
+            "heading": "Edit note",
+            "submit": "Save",
+            "cancel": "Cancel"
+        },
+        "author": "By",
+        "unknownAuthor": "Unknown",
+        "pinned": "Pinned",
+        "pin": "Pin",
+        "unpin": "Unpin",
+        "editAction": "Edit",
+        "delete": "Delete",
+        "confirmDelete": "Really delete this note?",
+        "hint": "The text supports Markdown formatting, e.g. **bold**, lists and links."
     },
     "issue": {
         "heading": "Report an issue",

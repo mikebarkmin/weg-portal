@@ -7,6 +7,7 @@
         "newSuggestion": "Termin vorschlagen",
         "moderation": "Moderation",
         "users": "Benutzer",
+        "notes": "Notizen",
         "login": "Anmelden",
         "logout": "Abmelden",
         "newIssue": "Meldung",
@@ -186,6 +187,36 @@
         },
         "approve": "Freigeben",
         "revoke": "Freigabe zurückziehen"
+    },
+    "notes": {
+        "heading": "Interne Notizen",
+        "loading": "Wird geladen …",
+        "empty": "Noch keine Notizen.",
+        "error": {
+            "load": "Notizen konnten nicht geladen werden. Bitte später erneut versuchen.",
+            "save": "Die Notiz konnte nicht gespeichert werden.",
+            "delete": "Die Notiz konnte nicht gelöscht werden."
+        },
+        "new": {
+            "heading": "Neue Notiz",
+            "title": "Titel",
+            "body": "Text (Markdown)",
+            "submit": "Notiz anlegen"
+        },
+        "edit": {
+            "heading": "Notiz bearbeiten",
+            "submit": "Speichern",
+            "cancel": "Abbrechen"
+        },
+        "author": "Von",
+        "unknownAuthor": "Unbekannt",
+        "pinned": "Angepinnt",
+        "pin": "Anpinnen",
+        "unpin": "Lösen",
+        "editAction": "Bearbeiten",
+        "delete": "Löschen",
+        "confirmDelete": "Soll diese Notiz wirklich gelöscht werden?",
+        "hint": "Der Text kann mit Markdown formatiert werden, z. B. **fett**, Listen und Links."
     },
     "issue": {
         "heading": "Problem melden",

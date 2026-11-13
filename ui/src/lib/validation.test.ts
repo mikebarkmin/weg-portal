@@ -4,10 +4,13 @@ import {
     buildIssueAccept,
     buildIssueFormData,
     buildIssueReject,
+    buildNoteCreate,
+    buildNoteUpdate,
     buildSuggestionDecision,
     buildSuggestionPayload,
     buildUserApprovalPatch,
     toPBDateTime,
+    noteSchema,
     suggestionSchema,
     issueSchema,
     isWithinIssueBounds,
@@ -565,5 +568,30 @@ describe("buildIssueStatusUpdate", () => {
         expect(() => buildIssueStatusUpdate("hausverwaltung", "open", "in_progress")).toThrow();
         expect(() => buildIssueStatusUpdate("resident", "open", "in_progress")).toThrow();
         expect(() => buildIssueStatusUpdate("beirat", "pending", "pending")).toThrow();
+    });
+});
+
+describe("noteSchema and note payloads", () => {
+    it("accepts a valid note and rejects empty fields", () => {
+        expect(noteSchema.safeParse({ title: "Notiz", body: "**Text**" }).success).toBe(true);
+        expect(noteSchema.safeParse({ title: "", body: "Text" }).success).toBe(false);
+        expect(noteSchema.safeParse({ title: "Notiz", body: "  " }).success).toBe(false);
+    });
+
+    it("buildNoteCreate sends author only from the caller", () => {
+        const values = { title: "Notiz", body: "Text" };
+        expect(buildNoteCreate(values, "userbeirat00000")).toEqual({
+            title: "Notiz",
+            body: "Text",
+            author: "userbeirat00000",
+            pinned: false,
+        });
+    });
+
+    it("buildNoteUpdate never contains author", () => {
+        const values = { title: "Notiz", body: "Text" };
+        const payload = buildNoteUpdate(values) as Record<string, unknown>;
+        expect(payload).toEqual({ title: "Notiz", body: "Text" });
+        expect("author" in payload).toBe(false);
     });
 });

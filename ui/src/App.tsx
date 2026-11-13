@@ -15,6 +15,7 @@ import IssueBoard from "./pages/IssueBoard";
 import IssueDetail from "./pages/IssueDetail";
 import ModerationQueue from "./pages/ModerationQueue";
 import UserApproval from "./pages/UserApproval";
+import Notes from "./pages/Notes";
 
 export default function App() {
     return (
@@ -51,6 +52,14 @@ export default function App() {
                     element={
                         <RequireBeirat>
                             <UserApproval />
+                        </RequireBeirat>
+                    }
+                />
+                <Route
+                    path="notes"
+                    element={
+                        <RequireBeirat>
+                            <Notes />
                         </RequireBeirat>
                     }
                 />

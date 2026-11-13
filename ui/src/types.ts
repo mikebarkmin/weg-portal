@@ -73,3 +73,23 @@ export interface PortalUser {
     approved: boolean;
     verified: boolean;
 }
+
+// Shared client-side view of the PocketBase `notes` collection
+// (internal Beirat notes, M10). `body` holds the RAW markdown as
+// stored in the editor field; rendering + sanitization happen
+// client-side only (lib/markdown.ts). `author` is set from the auth
+// record on create (the server rule requires author = self) and is
+// never part of an update payload.
+export interface PortalNote {
+    id: string;
+    title: string;
+    body: string;
+    author: string;
+    pinned: boolean;
+    expand?: {
+        author?: {
+            id: string;
+            name: string;
+        };
+    };
+}

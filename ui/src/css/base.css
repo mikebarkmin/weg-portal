@@ -816,3 +816,131 @@ input[type="radio"] {
 .card.form + .card.form {
     margin-top: var(--xsSpacing);
 }
+
+/* beirat notes (M10) */
+.notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--xsSpacing);
+    margin-bottom: var(--xsSpacing);
+}
+
+.note-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--xsSpacing);
+}
+
+.note-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--xsSpacing);
+}
+
+.note-title {
+    font-size: var(--lgFontSize);
+    margin: 0;
+}
+
+.note-meta {
+    color: var(--surfaceTxtHintColor);
+    font-size: var(--smFontSize);
+    margin: 0;
+}
+
+/* rendered note bodies (lib/markdown.ts, sanitize-then-inject) */
+.md-body {
+    line-height: var(--lineHeight);
+    overflow-wrap: break-word;
+}
+
+.md-body > :first-child {
+    margin-top: 0;
+}
+
+.md-body > :last-child {
+    margin-bottom: 0;
+}
+
+.md-body h1,
+.md-body h2,
+.md-body h3,
+.md-body h4,
+.md-body h5,
+.md-body h6 {
+    font-size: var(--lgFontSize);
+    line-height: var(--lgLineHeight);
+    margin: var(--xsSpacing) 0 var(--smSpacing);
+}
+
+.md-body blockquote {
+    margin: var(--xsSpacing) 0;
+    padding-left: var(--xsSpacing);
+    border-left: var(--borderWidth) solid var(--borderColor);
+    color: var(--surfaceTxtHintColor);
+}
+
+.md-body ul,
+.md-body ol {
+    margin: var(--xsSpacing) 0;
+    padding-left: var(--xsSpacing);
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--xsSpacing) / 3);
+}
+
+.md-body code {
+    font-family: var(--monospaceFontFamily);
+    font-size: var(--smFontSize);
+    background: var(--surfaceAlt2Color);
+    border-radius: calc(var(--smBorderRadius) / 2);
+    padding: 2px 4px;
+}
+
+.md-body pre {
+    margin: var(--xsSpacing) 0;
+    padding: var(--xsSpacing);
+    background: var(--surfaceAlt2Color);
+    border-radius: var(--smBorderRadius);
+    overflow-x: auto;
+}
+
+.md-body pre code {
+    background: transparent;
+    padding: 0;
+}
+
+.md-body hr {
+    border: none;
+    border-top: var(--borderWidth) solid var(--borderColor);
+    margin: var(--xsSpacing) 0;
+}
+
+.md-body a {
+    color: var(--surfaceTxtColor);
+    text-decoration: underline;
+}
+
+.md-body a:visited {
+    color: var(--surfaceTxtHintColor);
+}
+
+.note-textarea {
+    font-family: var(--monospaceFontFamily);
+    min-height: 160px;
+    resize: vertical;
+}
+
+.chip-pinned {
+    border-color: var(--warningAlt2Color);
+    background: var(--surfaceWarningColor);
+}
+
+/* small variant for in-card actions */
+.btn.btn-sm {
+    height: var(--smBtnHeight);
+    padding: 0 var(--xsSpacing);
+    font-size: var(--smFontSize);
+}

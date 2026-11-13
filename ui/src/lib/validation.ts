@@ -12,6 +12,9 @@ const FIELD_LIMITS = {
     decisionNote: 2000,
     // users.name allows 255 (PocketBase default); stay below it
     name: 200,
+    // notes.body (editor field) - generous client-side cap for
+    // internal markdown notes, well inside PocketBase's editor limit
+    noteBody: 20000,
 } as const;
 
 // Error message values are i18n keys resolved with t() in the pages.
@@ -473,4 +476,55 @@ export function buildIssueStatusUpdate(
         return { status: next, visibility };
     }
     return { status: next };
+}
+
+// ---------------------------------------------------------------------------
+// Notes (M10) - the Beirat's internal markdown notes. The payloads are
+// pure data builders: `author` is ONLY ever set from the auth store and
+// only for the create request (the create rule requires
+// @request.body.author = @request.auth.id); it is NEVER part of an
+// update payload, so a client cannot re-attribute a note.
+
+export const noteSchema = z.object({
+    title: z
+        .string()
+        .trim()
+        .min(1, "validation.required")
+        .max(FIELD_LIMITS.title, "validation.tooLong"),
+    // raw markdown, rendered + sanitized client-side (lib/markdown.ts)
+    body: z
+        .string()
+        .trim()
+        .min(1, "validation.required")
+        .max(FIELD_LIMITS.noteBody, "validation.tooLong"),
+});
+
+export type NoteFormValues = z.infer<typeof noteSchema>;
+
+// Create payload: `author` comes from the caller (pb.authStore), never
+// from form input, and matches @request.auth.id by construction.
+export function buildNoteCreate(
+    values: NoteFormValues,
+    authorId: string,
+): { title: string; body: string; author: string; pinned: boolean } {
+    return {
+        title: values.title,
+        body: values.body,
+        author: authorId,
+        pinned: false,
+    };
+}
+
+// Update payload: title/body only - `author` is deliberately absent so
+// the note can never be re-attributed through the client.
+export function buildNoteUpdate(values: NoteFormValues): { title: string; body: string } {
+    return {
+        title: values.title,
+        body: values.body,
+    };
+}
+
+// Pin/unpin payload (sent on its own, without content fields).
+export function buildNotePinUpdate(pinned: boolean): { pinned: boolean } {
+    return { pinned };
 }

@@ -34,6 +34,7 @@ export default function Layout() {
                                 {t("nav.moderation")}
                             </NavLink>
                             <NavLink to="/users">{t("nav.users")}</NavLink>
+                            <NavLink to="/notes">{t("nav.notes")}</NavLink>
                         </>
                     )}
                     <span className="app-nav-spacer" />
