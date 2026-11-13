@@ -1,0 +1,21 @@
+{{ define "body" }}
+    <p>Hallo,</p>
+
+    <p>vielen Dank f&uuml;r Ihre Meldung an das WEG-Portal.</p>
+
+    {{ if eq .Decision "accepted" }}
+    <p><strong>Der Beirat hat Ihre Meldung <strong>angenommen</strong>.</strong> Sie wird bearbeitet und erscheint je nach Sichtbarkeit auf der Pinnwand der Gemeinschaft.</p>
+    {{ else if eq .Decision "rejected" }}
+    <p><strong>Der Beirat hat Ihre Meldung <strong>abgelehnt</strong>.</strong></p>
+    {{ else if eq .Decision "in_progress" }}
+    <p><strong>Ihre Meldung wird <strong>bearbeitet</strong>.</strong></p>
+    {{ else if eq .Decision "resolved" }}
+    <p><strong>Ihre Meldung wurde als <strong>erledigt</strong> geschlossen.</strong> Vielen Dank f&uuml;r Ihren Beitrag.</p>
+    {{ end }}
+
+    <hr />
+
+    <small>
+        Dies ist eine automatische Nachricht des WEG-Portals. Bitte antworten Sie nicht auf diese E-Mail.
+    </small>
+{{ end }}

@@ -34,6 +34,10 @@ non-fixture instance (see M3).
 Plus one superuser (`super@portal.test`, `passwort123`).
 "Guest" (no account) is used via requests without Authorization header.
 
+Since M4 the hausmeister opts into new-issue mails
+(`notify_new_issues = true`), the hausverwaltung does not (`false`), so both
+branches of the M4 staff notification are testable against the fixture.
+
 ## Other records
 
 - events: `eventsimple0001` (single), `eventrecurring1` (rrule FREQ=DAILY)

@@ -106,8 +106,15 @@ func run() error {
 	beirat := createUser(app, users, "userbeirat00000", "beirat@portal.test", "beirat", true)
 	createUser(app, users, "userunapproved0", "unapproved@portal.test", "resident", false)
 	createUser(app, users, "userresident000", "resident@portal.test", "resident", true)
-	createUser(app, users, "userhausmeister", "hm@portal.test", "hausmeister", true)
+	hm := createUser(app, users, "userhausmeister", "hm@portal.test", "hausmeister", true)
 	createUser(app, users, "userhausverwalt", "hv@portal.test", "hausverwaltung", true)
+
+	// the hausmeister opts into new-issue mails (the hausverwaltung does
+	// not, so both branches of the notify_new_issues flag are testable)
+	hm.Set("notify_new_issues", true)
+	if err := app.Save(hm); err != nil {
+		log.Fatal("hm notify_new_issues: " + err.Error())
+	}
 
 	// -------------------------------------------------------------------
 	// events

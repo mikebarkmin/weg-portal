@@ -1,0 +1,21 @@
+{{ define "body" }}
+    <p>Hallo,</p>
+
+    {{ if eq .Decision "accepted" }}
+    <p>vielen Dank f&uuml;r Ihren Kalendervorschlag.</p>
+    <p><strong>Ihr Vorschlag wurde vom Beirat <strong>angenommen</strong> und in den Veranstaltungskalender aufgenommen.</strong></p>
+    {{ else }}
+    <p>vielen Dank f&uuml;r Ihren Kalendervorschlag.</p>
+    <p><strong>Der Beirat hat Ihren Vorschlag leider <strong>abgelehnt</strong>.</strong></p>
+    {{ end }}
+
+    {{ if .DecisionNote }}
+    <blockquote>Anmerkung des Beirats: {{ .DecisionNote }}</blockquote>
+    {{ end }}
+
+    <hr />
+
+    <small>
+        Dies ist eine automatische Nachricht des WEG-Portals. Bitte antworten Sie nicht auf diese E-Mail.
+    </small>
+{{ end }}
