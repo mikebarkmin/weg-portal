@@ -14,6 +14,7 @@ func init() {
 		}
 
 		record := core.NewRecord(collection)
+		record.Set("id", "portsettings000")
 		record.Set("retention_suggestions_rejected_days", 90)
 		record.Set("retention_suggestions_accepted_days", 90)
 		record.Set("retention_issues_rejected_days", 90)

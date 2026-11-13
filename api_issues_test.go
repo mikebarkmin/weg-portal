@@ -1,0 +1,489 @@
+package portal
+
+import (
+	"net/http"
+	"strings"
+	"testing"
+
+	"ganigeorgiev.com/pocketbase/pocketbase/tests"
+)
+
+// issues role-matrix tests (read rule, enrich-unhidden exact coords,
+// staff update whitelist). See plan.md "Issue read rule" and "Issue update rule".
+//
+// Fixture recap (see test_pb_data/README.md):
+//   - issuepcom000001: pending + community   (beirat only)
+//   - issuepprv000001: pending + private     (beirat only)
+//   - issueocom000001: open + community       (all approved)
+//   - issueoprv000001: open + private         (beirat + staff)
+//   - issueicom000001: in_progress + community
+//   - issueiprv000001: in_progress + private
+//   - issuercom000001: resolved + community
+//   - issuerprv000001: resolved + private
+//   - issuejcom000001: rejected + community   (beirat + staff)
+//   - issuejprv000001: rejected + private
+//
+// community issues have lat_exact > 50, private/pending ones < 50.
+
+func TestIssuesList(t *testing.T) {
+	t.Parallel()
+
+	scenarios := []tests.ApiScenario{
+		{
+			Name:            "guest",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records",
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"totalItems":0`},
+		},
+		{
+			Name:               "unapproved resident sees nothing",
+			Method:             http.MethodGet,
+			URL:                "/api/collections/issues/records",
+			Headers:            authHeader(t, emailUnapproved),
+			TestAppFactory:     setupTestApp,
+			ExpectedStatus:     200,
+			ExpectedContent:    []string{`"totalItems":0`},
+			NotExpectedContent: []string{`"Kaputte Gartenbank"`, `lat_exact`},
+		},
+		{
+			Name:               "resident sees accepted community issues only, no exact coords",
+			Method:             http.MethodGet,
+			URL:                "/api/collections/issues/records",
+			Headers:            authHeader(t, emailResident),
+			TestAppFactory:     setupTestApp,
+			ExpectedStatus:     200,
+			ExpectedContent:    []string{`"totalItems":3`, `"issueocom000001"`, `"issueicom000001"`, `"issuercom000001"`, `"lat":51.123`},
+			NotExpectedContent: []string{`lat_exact`, `lng_exact`, `"issuepcom000001"`, `"issuepprv000001"`, `"issueoprv000001"`, `"issueiprv000001"`, `"issuerprv000001"`, `"issuejcom000001"`, `"issuejprv000001"`, `submitter@example.com`},
+		},
+		{
+			Name:            "beirat sees all issues incl. exact coords",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records",
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"totalItems":10`, `"lat_exact"`, `"issuepcom000001"`, `"issuejprv000001"`},
+		},
+		{
+			Name:               "hausmeister sees accepted issues incl. private with exact coords",
+			Method:             http.MethodGet,
+			URL:                "/api/collections/issues/records",
+			Headers:            authHeader(t, emailHausmeister),
+			TestAppFactory:     setupTestApp,
+			ExpectedStatus:     200,
+			ExpectedContent:    []string{`"totalItems":6`, `"lat_exact"`, `"issueoprv000001"`},
+			NotExpectedContent: []string{`"issuepcom000001"`, `"issuejcom000001"`},
+		},
+		{
+			Name:               "hausverwaltung sees accepted issues incl. private with exact coords",
+			Method:             http.MethodGet,
+			URL:                "/api/collections/issues/records",
+			Headers:            authHeader(t, emailHausverwaltung),
+			TestAppFactory:     setupTestApp,
+			ExpectedStatus:     200,
+			ExpectedContent:    []string{`"totalItems":6`, `"lat_exact"`, `"issueoprv000001"`},
+			NotExpectedContent: []string{`"issuepcom000001"`},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		scenario.Test(t)
+	}
+}
+
+func TestIssuesViewPending(t *testing.T) {
+	t.Parallel()
+
+	scenarios := []tests.ApiScenario{
+		{
+			Name:            "guest",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issuepcom000001",
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "resident",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issuepcom000001",
+			Headers:         authHeader(t, emailResident),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "hausmeister",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issuepcom000001",
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "beirat sees pending issue with exact coords",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issuepcom000001",
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"Defekte Laterne"`, `"lat_exact":51`},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		scenario.Test(t)
+	}
+}
+
+func TestIssuesViewOpenCommunity(t *testing.T) {
+	t.Parallel()
+
+	scenarios := []tests.ApiScenario{
+		{
+			Name:            "guest",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "unapproved resident",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Headers:         authHeader(t, emailUnapproved),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:               "resident: rounded coords only",
+			Method:             http.MethodGet,
+			URL:                "/api/collections/issues/records/issueocom000001",
+			Headers:            authHeader(t, emailResident),
+			TestAppFactory:     setupTestApp,
+			ExpectedStatus:     200,
+			ExpectedContent:    []string{`"Kaputte Gartenbank"`, `"lat":51.123`, `"lng":7.456`},
+			NotExpectedContent: []string{`lat_exact`, `lng_exact`, `submitter@example.com`, `Max Mustermann`},
+		},
+		{
+			Name:            "beirat: exact coords",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"Kaputte Gartenbank"`, `"lat_exact":53`},
+		},
+		{
+			Name:            "hausmeister: exact coords",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"lat_exact":53`},
+		},
+		{
+			Name:            "hausverwaltung: exact coords",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Headers:         authHeader(t, emailHausverwaltung),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"lat_exact":53`},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		scenario.Test(t)
+	}
+}
+
+func TestIssuesViewOpenPrivate(t *testing.T) {
+	t.Parallel()
+
+	scenarios := []tests.ApiScenario{
+		{
+			Name:            "guest",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueoprv000001",
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "resident cannot see private issues",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueoprv000001",
+			Headers:         authHeader(t, emailResident),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "beirat sees private issues",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueoprv000001",
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"Privater Parkplatz belegt"`, `"lat_exact":13`},
+		},
+		{
+			Name:            "hausmeister sees private issues",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueoprv000001",
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"lat_exact":13`},
+		},
+		{
+			Name:            "hausverwaltung sees private issues",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueoprv000001",
+			Headers:         authHeader(t, emailHausverwaltung),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"lat_exact":13`},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		scenario.Test(t)
+	}
+}
+
+func TestIssuesCreate(t *testing.T) {
+	t.Parallel()
+
+	// issues are created only via the custom /api/portal/issues route (M3)
+	body := `{"title":"Direkt","description":"Test","lat":51.1,"lng":7.4,"status":"pending","category":"test"}`
+
+	scenarios := []tests.ApiScenario{
+		{
+			Name:            "guest",
+			Method:          http.MethodPost,
+			URL:             "/api/collections/issues/records",
+			Body:            strings.NewReader(body),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  403,
+			ExpectedContent: []string{`"status":403`},
+		},
+		{
+			Name:            "resident",
+			Method:          http.MethodPost,
+			URL:             "/api/collections/issues/records",
+			Body:            strings.NewReader(body),
+			Headers:         authHeader(t, emailResident),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  403,
+			ExpectedContent: []string{`"status":403`},
+		},
+		{
+			Name:            "beirat",
+			Method:          http.MethodPost,
+			URL:             "/api/collections/issues/records",
+			Body:            strings.NewReader(body),
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  403,
+			ExpectedContent: []string{`"status":403`},
+		},
+		{
+			Name:            "hausmeister",
+			Method:          http.MethodPost,
+			URL:             "/api/collections/issues/records",
+			Body:            strings.NewReader(body),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  403,
+			ExpectedContent: []string{`"status":403`},
+		},
+		{
+			Name:            "hausverwaltung",
+			Method:          http.MethodPost,
+			URL:             "/api/collections/issues/records",
+			Body:            strings.NewReader(body),
+			Headers:         authHeader(t, emailHausverwaltung),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  403,
+			ExpectedContent: []string{`"status":403`},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		scenario.Test(t)
+	}
+}
+
+func TestIssuesUpdate(t *testing.T) {
+	t.Parallel()
+
+	scenarios := []tests.ApiScenario{
+		{
+			Name:            "guest",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"status":"in_progress"}`),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "resident cannot change status",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"status":"in_progress"}`),
+			Headers:         authHeader(t, emailResident),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "beirat can edit accepted issues",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"status":"in_progress"}`),
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"status":"in_progress"`},
+		},
+		{
+			Name:            "hausmeister progresses an open issue",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"status":"in_progress"}`),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"status":"in_progress"`},
+		},
+		{
+			Name:            "hausmeister progresses a private issue",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueoprv000001",
+			Body:            strings.NewReader(`{"status":"in_progress"}`),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"status":"in_progress"`},
+		},
+		{
+			Name:            "hausmeister cannot accept a pending issue",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issuepcom000001",
+			Body:            strings.NewReader(`{"status":"in_progress"}`),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "hausmeister cannot change visibility",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"visibility":"private"}`),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "hausmeister cannot change the title",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"title":"Umgetauft"}`),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "hausmeister cannot touch photos/coords",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"lat":51.999,"lng":7.999,"lat_exact":51.999}`),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "hausmeister cannot work on resolved issues",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issuercom000001",
+			Body:            strings.NewReader(`{"status":"in_progress"}`),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "hausverwaltung cannot update issues",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"status":"in_progress"}`),
+			Headers:         authHeader(t, emailHausverwaltung),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		scenario.Test(t)
+	}
+}
+
+func TestIssuesDelete(t *testing.T) {
+	t.Parallel()
+
+	scenarios := []tests.ApiScenario{
+		{
+			Name:            "guest",
+			Method:          http.MethodDelete,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  403,
+			ExpectedContent: []string{`"status":403`},
+		},
+		{
+			Name:            "resident",
+			Method:          http.MethodDelete,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Headers:         authHeader(t, emailResident),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  403,
+			ExpectedContent: []string{`"status":403`},
+		},
+		{
+			Name:            "beirat (retention cron deletes server-side)",
+			Method:          http.MethodDelete,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  403,
+			ExpectedContent: []string{`"status":403`},
+		},
+		{
+			Name:            "hausmeister",
+			Method:          http.MethodDelete,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  403,
+			ExpectedContent: []string{`"status":403`},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		scenario.Test(t)
+	}
+}

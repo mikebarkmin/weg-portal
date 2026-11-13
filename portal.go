@@ -9,8 +9,10 @@ import (
 	"ganigeorgiev.com/pocketbase/pocketbase/core"
 	"ganigeorgiev.com/pocketbase/pocketbase/tools/hook"
 
+	"weg-portal/hooks"
 	_ "weg-portal/migrations"
-	"weg-portal/ui")
+	"weg-portal/ui"
+)
 
 // New creates a new portal app instance with the default config (see [pocketbase.New()]).
 func New() *pocketbase.PocketBase {
@@ -59,4 +61,8 @@ func bindAppHooks(app core.App) {
 
 		return se.Next()
 	})
+
+	// ---------------------------------------------------------------
+
+	hooks.IssueEnrich(app)
 }
