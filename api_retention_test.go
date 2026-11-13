@@ -340,8 +340,22 @@ func TestRetentionIssueCascade(t *testing.T) {
 	if metaCountForIssue(app, issue.Id) != 0 {
 		t.Error("expected the cascade-deleted issue_metas record to be gone")
 	}
-	if _, err := os.Stat(photoDir); !os.IsNotExist(err) {
-		t.Errorf("expected the photo directory %s to be removed with the record, got %v", photoDir, err)
+
+	// PocketBase deletes the record files in a background goroutine
+	// ("optimistic" file delete, core.OnModelAfterDeleteSuccess ->
+	// routine.FireAndForget), so app.Delete can return before the storage
+	// prefix is actually removed - wait for the directory until a generous
+	// deadline instead of asserting synchronously.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		_, statErr := os.Stat(photoDir)
+		if os.IsNotExist(statErr) {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("expected the photo directory %s to be removed with the record, still exists (stat err: %v)", photoDir, statErr)
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 
@@ -430,5 +444,66 @@ func TestRetentionMissingSettingsDeletesNothing(t *testing.T) {
 		if !recordExists(app, collection, id) {
 			t.Errorf("with the portal_settings record missing nothing must be deleted, but %s was removed from %s", id, collection)
 		}
+	}
+}
+
+// TestRetentionAdversarialTimestamps covers hostile decided_at/resolved_at
+// values (added by the M5 review):
+//   - NULL / empty (unset) decided_at must never lead to a silent delete
+//     (legacy data without a decision timestamp stays in the queue);
+//   - an ancient (far past) decided_at on a rejected record is outside
+//     retention and is deleted;
+//   - a resolved record keys on resolved_at even with an ancient decided_at;
+//   - decided_at values written with a non-UTC offset are normalized to
+//     absolute instants before the boundary comparison (PocketBase stores
+//     all datetimes in the "Z" layout, but a direct DB edit or a future
+//     import could carry offsets at read time).
+func TestRetentionAdversarialTimestamps(t *testing.T) {
+	t.Parallel()
+
+	app := setupTestApp(t)
+	defer app.Cleanup()
+
+	day := 24 * time.Hour
+
+	// rejected, no decided_at at all -> kept (never delete silently)
+	createTestIssue(t, app, "advisnull000001", "rejected", time.Time{}, time.Time{}, false)
+	// rejected, ancient decided_at (far before 1970) -> deleted
+	createTestIssue(t, app, "advisneg0000001", "rejected", time.Date(1850, 1, 1, 0, 0, 0, 0, time.UTC), time.Time{}, false)
+	// resolved, ancient decided_at but recent resolved_at -> kept
+	createTestIssue(t, app, "advisresmix0001", "resolved", time.Date(1850, 1, 1, 0, 0, 0, 0, time.UTC), retentionNow.Add(-10*day), false)
+	// rejected, decided_at written with a +05:30 offset: exactly at the
+	// threshold instant (2027-03-03 12:00:00Z) -> kept
+	createTestIssue(t, app, "advistzedge0001", "rejected", retentionNow.Add(-90*day), time.Time{}, false)
+	if _, err := app.DB().NewQuery("UPDATE issues SET decided_at = {:v} WHERE id = {:id}").
+		Bind(dbx.Params{"v": "2027-03-03 17:30:00.000+05:30", "id": "advistzedge0001"}).
+		Execute(); err != nil {
+		t.Fatal(err)
+	}
+	// rejected, decided_at written with a +01:00 offset: one second past
+	// the threshold instant (10:59:59Z) -> deleted
+	createTestIssue(t, app, "advistzdeep0001", "rejected", time.Time{}, time.Time{}, false)
+	if _, err := app.DB().NewQuery("UPDATE issues SET decided_at = {:v} WHERE id = {:id}").
+		Bind(dbx.Params{"v": "2027-03-03 11:59:59.000+01:00", "id": "advistzdeep0001"}).
+		Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	hooks.RunRetentionAt(app, retentionNow)
+
+	if !recordExists(app, "issues", "advisnull000001") {
+		t.Error("a rejected issue with NULL decided_at must never be deleted silently")
+	}
+	if recordExists(app, "issues", "advisneg0000001") {
+		t.Error("a rejected issue with an ancient (1850) decided_at must be deleted as far outside retention")
+	}
+	if !recordExists(app, "issues", "advisresmix0001") {
+		t.Error("a resolved issue with an ancient decided_at but a recent resolved_at must be kept")
+	}
+	if !recordExists(app, "issues", "advistzedge0001") {
+		t.Error("a rejected issue exactly at the threshold with a +05:30 offset decided_at must be kept")
+	}
+	if recordExists(app, "issues", "advistzdeep0001") {
+		t.Error("a rejected issue one second past the threshold with a +01:00 offset decided_at must be deleted")
 	}
 }

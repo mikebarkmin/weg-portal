@@ -142,6 +142,23 @@ func TestPortalSettingsSingleRecordInvariant(t *testing.T) {
 			ExpectedContent: []string{`"status":400`, `The portal_settings record cannot be deleted.`},
 		},
 		{
+			Name:   "superuser batch double create (batch API is disabled app-wide)",
+			Method: http.MethodPost,
+			URL:    "/api/batch",
+			Body: strings.NewReader(`{"requests":[` +
+				`{"method":"POST","url":"/api/collections/portal_settings/records","body":` + newRecord + `},` +
+				`{"method":"POST","url":"/api/collections/portal_settings/records","body":` + newRecord + `}]}`),
+			Headers: map[string]string{
+				"Authorization": getAuthToken(t, "_superusers", superuserEmail),
+			},
+			TestAppFactory: setupTestApp,
+			ExpectedStatus: 403,
+			// PocketBase ships with Batch.Enabled = false and no migration
+			// enables it, so /api/batch is closed for every identity and
+			// cannot be used to bypass the create/delete guards.
+			ExpectedContent: []string{`Batch requests are not allowed.`},
+		},
+		{
 			Name:   "superuser create (allowed while no record exists)",
 			Method: http.MethodPost,
 			URL:    "/api/collections/portal_settings/records",
