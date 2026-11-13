@@ -251,3 +251,23 @@ Zum Testen ohne Produktionsgefahr: das Acceptance-Setup benutzt bewusst
 Wegwerf-Passwörter und wird mit `docker compose down -v` vollständig
 (inkl. Volumes) beseitigt — Daten im `pb_data`-Volume gehen dabei verloren,
 also `-v` nur für Test-Instanzen verwenden.
+
+## 8. Was in dieser Umgebung NICHT getestet werden konnte
+
+Damit keine falsche Sicherheit entsteht: folgende Teile waren in der
+Abnahme-Umgebung (rootless Podman, kein DNS, kein S3) nicht prüfbar und
+müssen beim ersten echten Deployment verifiziert werden:
+
+- **Let's Encrypt / echtes TLS**: nur Caddys interne CA (`tls internal`).
+  Der Produktions-Varianten-Block im `Caddyfile` ist ausformuliert, aber
+  nie mit echter Domain/HTTP-01-Challenge gelaufen.
+- **S3-Offsite-Upload**: PocketBase-S3-Einstellungen werden erst bei
+  Deployment in `/_/` gepflegt; getestet wurde nur das lokale Backup-Zip
+  (Erzeugung + vollständiger Restore).
+- **Backup-Cron-Timing** (`0 2 * * *`): gesetzt durch die Migration und
+  kodiert geprüft; der nächtliche Lauf selbst wurde nicht abgewartet
+  (Backup stattdessen per Superuser-API angestoßen).
+- **HEALTHCHECK im Image**: wird von Podman im OCI-Format ignoriert —
+  unter echtem Docker ausprobieren (`docker compose ps` muss "healthy"
+  zeigen).
+

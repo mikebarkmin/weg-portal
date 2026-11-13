@@ -12,17 +12,36 @@ services:
     image: weg-portal:latest
     restart: unless-stopped
     env_file: portal.env
+    # explicit healthcheck (same probe as the Dockerfile); needed for
+    # caddy's depends_on condition and for runtimes that ignore the
+    # image HEALTHCHECK (rootless podman builds OCI format)
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - pb_data:/app/pb_data
     expose:
       - "8080"
-    # command is defined in the Dockerfile (serve --http=0.0.0.0:8080);
+    # command is defined in the Dockerfile (serve --http=0.0.0.0:8080)
     # the image has a HEALTHCHECK against /api/health
 
   caddy:
     image: docker.io/library/caddy:2-alpine
     restart: unless-stopped
     env_file: caddy.env
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       # production defaults: 80/443. Rootless podman cannot bind ports
       # < 1024 — for local verification use a .env file with
@@ -34,7 +53,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - portal
+      portal:
+        condition: service_healthy
 
 volumes:
   pb_data:
