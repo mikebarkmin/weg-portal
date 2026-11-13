@@ -10,6 +10,8 @@ const FIELD_LIMITS = {
     location: 200,
     category: 100,
     decisionNote: 2000,
+    // users.name allows 255 (PocketBase default); stay below it
+    name: 200,
 } as const;
 
 // Error message values are i18n keys resolved with t() in the pages.
@@ -270,4 +272,205 @@ export function buildIssueFormData(
     data.set("honeypot", values.honeypot);
     data.set("form_started_at", String(formStartedAt));
     return data;
+}
+
+// ---------------------------------------------------------------------------
+// Accounts (M9) - signup + profile payloads and schemas.
+//
+// role, approved and verified are owned by the server: hooks/usersCreate.go
+// forces them on create, the users update rule blocks them, and the email
+// change goes through PocketBase's own flow only. No payload built here ever
+// contains any of the three fields.
+
+// PocketBase's minimum password length (PasswordAuth default).
+export const MIN_PASSWORD_LENGTH = 8;
+
+export const signupSchema = z
+    .object({
+        name: z
+            .string()
+            .trim()
+            .min(1, "validation.required")
+            .max(FIELD_LIMITS.name, "validation.tooLong"),
+        email: z
+            .string()
+            .trim()
+            .min(1, "validation.required")
+            .email("validation.invalidEmail"),
+        password: z.string().min(MIN_PASSWORD_LENGTH, "validation.passwordTooShort"),
+        passwordConfirm: z
+            .string()
+            .min(MIN_PASSWORD_LENGTH, "validation.passwordTooShort"),
+    })
+    .superRefine((values, ctx) => {
+        if (values.password !== values.passwordConfirm) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["passwordConfirm"],
+                message: "validation.passwordMismatch",
+            });
+        }
+    });
+
+export type SignupFormValues = z.infer<typeof signupSchema>;
+
+// Body for POST /api/collections/users/records. Only the four self-service
+// fields are sent; the create hook forces role=resident, approved=false,
+// verified=false (hooks/usersCreate.go).
+export function buildSignupPayload(values: SignupFormValues) {
+    return {
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        passwordConfirm: values.passwordConfirm,
+    };
+}
+
+// The name field shared by the profile page (same limits as the schema).
+export const profileNameSchema = z
+    .string()
+    .trim()
+    .min(1, "validation.required")
+    .max(FIELD_LIMITS.name, "validation.tooLong");
+
+export const passwordChangeSchema = z
+    .object({
+        oldPassword: z.string().min(1, "validation.required"),
+        password: z.string().min(MIN_PASSWORD_LENGTH, "validation.passwordTooShort"),
+        passwordConfirm: z
+            .string()
+            .min(MIN_PASSWORD_LENGTH, "validation.passwordTooShort"),
+    })
+    .superRefine((values, ctx) => {
+        if (values.password !== values.passwordConfirm) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["passwordConfirm"],
+                message: "validation.passwordMismatch",
+            });
+        }
+    });
+
+export type PasswordChangeValues = z.infer<typeof passwordChangeSchema>;
+
+// Own-record update via the regular users update endpoint: the name and
+// (for hausmeister/hausverwaltung) the notify_new_issues flag. Nothing else
+// is ever sent - role/approved/verified must not be editable (plan.md
+// "Users: updates and approval").
+export function buildProfileUpdate(
+    name: string,
+    options: { notifyNewIssues?: boolean } = {},
+): { name: string; notify_new_issues?: boolean } {
+    const patch: { name: string; notify_new_issues?: boolean } = {
+        name: profileNameSchema.parse(name),
+    };
+    if (options.notifyNewIssues !== undefined) {
+        patch.notify_new_issues = options.notifyNewIssues;
+    }
+    return patch;
+}
+
+// Changing the password is an own-record update with PocketBase's special
+// oldPassword field (required for non-superusers).
+export function buildPasswordUpdate(values: PasswordChangeValues) {
+    return {
+        oldPassword: values.oldPassword,
+        password: values.password,
+        passwordConfirm: values.passwordConfirm,
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Issue status transitions (M9) - the client mirror of the server-side
+// diagram enforced by hooks/issueWorkflow.go:
+//
+// pending --accept (beirat, must set visibility)--> open --> in_progress --> resolved
+//    \--reject (beirat)--> rejected
+//
+// Everything else is rejected with 400 by the hook - for every role. The
+// pages use these helpers to enable ONLY the next steps that are valid for
+// the caller's role; the server stays authoritative regardless.
+
+export const ISSUE_STATUSES = [
+    "pending",
+    "open",
+    "in_progress",
+    "resolved",
+    "rejected",
+] as const;
+
+export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+
+export interface IssueTransition {
+    // the next status the role may set from the current one
+    status: IssueStatus;
+    // beirat accept: the visibility must be decided in the SAME request
+    requiresVisibility: boolean;
+}
+
+const BEIRAT_NEXT: Record<IssueStatus, IssueStatus[]> = {
+    pending: ["open", "rejected"],
+    open: ["in_progress"],
+    in_progress: ["resolved"],
+    resolved: [],
+    rejected: [],
+};
+
+// The hausmeister rule whitelists status changes from open/in_progress only.
+const HAUSMEISTER_NEXT: Record<IssueStatus, IssueStatus[]> = {
+    pending: [],
+    open: ["in_progress"],
+    in_progress: ["resolved"],
+    resolved: [],
+    rejected: [],
+};
+
+// The hausverwaltung is read-only; residents never change statuses.
+const NO_NEXT: Record<IssueStatus, IssueStatus[]> = {
+    pending: [],
+    open: [],
+    in_progress: [],
+    resolved: [],
+    rejected: [],
+};
+
+export function issueTransitionsFor(
+    role: string,
+    status: IssueStatus,
+): IssueTransition[] {
+    const next =
+        role === "beirat"
+            ? BEIRAT_NEXT[status]
+            : role === "hausmeister"
+              ? HAUSMEISTER_NEXT[status]
+              : NO_NEXT[status];
+    return next.map((nextStatus) => ({
+        status: nextStatus,
+        requiresVisibility: status === "pending" && nextStatus === "open",
+    }));
+}
+
+// The update body for a status transition. Throws when the role may not
+// perform that transition from the current status (the UI never offers
+// those buttons anyway - this guards against programming mistakes that
+// the server would otherwise answer with 400).
+export function buildIssueStatusUpdate(
+    role: string,
+    current: IssueStatus,
+    next: IssueStatus,
+    visibility?: IssueVisibility,
+): { status: IssueStatus; visibility?: IssueVisibility } {
+    const transition = issueTransitionsFor(role, current).find(
+        (candidate) => candidate.status === next,
+    );
+    if (!transition) {
+        throw new Error(`invalid transition for ${role}: ${current} -> ${next}`);
+    }
+    if (transition.requiresVisibility) {
+        if (visibility !== "community" && visibility !== "private") {
+            throw new Error("accepting a pending issue requires the visibility");
+        }
+        return { status: next, visibility };
+    }
+    return { status: next };
 }

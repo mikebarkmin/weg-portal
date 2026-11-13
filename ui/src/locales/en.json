@@ -9,7 +9,10 @@
         "users": "Users",
         "login": "Log in",
         "logout": "Log out",
-        "newIssue": "Report issue"
+        "newIssue": "Report issue",
+        "board": "Issues",
+        "profile": "Profile",
+        "signup": "Sign up"
     },
     "calendar": {
         "heading": "Community calendar",
@@ -72,7 +75,9 @@
         "locationRequired": "Please mark the location on the map.",
         "locationOutside": "The marked location is outside the community area.",
         "maxPhotos": "At most 5 photos can be attached.",
-        "consentRequired": "Please confirm the photo upload consent."
+        "consentRequired": "Please confirm the photo upload consent.",
+        "passwordTooShort": "The password must be at least 8 characters long.",
+        "passwordMismatch": "The passwords do not match."
     },
     "suggestion": {
         "heading": "Suggest an event",
@@ -112,7 +117,8 @@
             "rateLimited": "Too many attempts. Please wait a moment and try again.",
             "invalid": "Email address or password is wrong.",
             "generic": "Login failed. Please try again later."
-        }
+        },
+        "toSignup": "No account yet? Sign up now"
     },
     "auth": {
         "forbidden": {
@@ -224,6 +230,150 @@
             "text": "Your report has been received by the advisory board moderation. You will get an email as soon as a decision has been made.",
             "another": "Report another issue",
             "back": "Back to the calendar"
+        }
+    },
+    "signup": {
+        "heading": "Create account",
+        "intro": "With an account you can see the accepted community issues. After signing up you confirm your email address; the Beirat then approves your account.",
+        "name": "Name",
+        "email": "Email address",
+        "emailHint": "The confirmation email is sent to this address.",
+        "password": "Password",
+        "passwordConfirm": "Repeat password",
+        "submit": "Sign up",
+        "submitting": "Submitting …",
+        "toLogin": "Back to the login",
+        "error": {
+            "rateLimited": "Too many requests. Please wait a moment and try again.",
+            "generic": "The account could not be created. Please check your input and try again."
+        },
+        "success": {
+            "title": "Thank you!",
+            "stepEmail": "Step 1: confirm your email address via the link that was sent to you.",
+            "stepEmailSent": "The confirmation email has been sent.",
+            "stepEmailMaybe": "The confirmation email could not be sent (email delivery may not be configured). You can request it again on the profile page.",
+            "stepApproval": "Step 2: once your address is confirmed, the Beirat approves your account for the issue board. You will be notified by email whenever a decision about your reports is made.",
+            "toLogin": "To the login",
+            "back": "Back to the calendar"
+        }
+    },
+    "profile": {
+        "heading": "Profile",
+        "readonlyHint": "Your role, approval and email status are managed by the Beirat or administration and cannot be changed here.",
+        "account": "Account",
+        "name": "Name",
+        "email": "Email address",
+        "emailHint": "The email address itself is changed via the confirmation flow below.",
+        "notify": "Notify me by email about accepted issues",
+        "notifyHint": "Only for caretaker and property management accounts.",
+        "save": "Save",
+        "saving": "Saving …",
+        "saved": "Saved.",
+        "verify": {
+            "hint": "Your email address is not confirmed yet. Please follow the link in the confirmation email.",
+            "resend": "Resend confirmation email",
+            "sent": "The confirmation email has been sent."
+        },
+        "password": {
+            "heading": "Change password",
+            "old": "Current password",
+            "new": "New password",
+            "confirm": "Repeat new password",
+            "submit": "Change password",
+            "saved": "The password has been changed."
+        },
+        "emailChange": {
+            "heading": "Change email address",
+            "newEmail": "New email address",
+            "hint": "The change only takes effect after you confirm the link that is sent to the new address.",
+            "submit": "Send confirmation link",
+            "sent": "The confirmation email has been sent to the new address."
+        },
+        "error": {
+            "save": "The change could not be saved.",
+            "rateLimited": "Too many requests. Please wait a moment and try again.",
+            "emailInvalid": "Please enter a valid new email address.",
+            "emailChange": "The confirmation email could not be sent. Please try again later."
+        }
+    },
+    "gate": {
+        "anonymous": {
+            "title": "Login required",
+            "text": "The issue board is available to residents with an approved account. Please log in.",
+            "login": "Log in",
+            "signup": "Create account"
+        },
+        "unverified": {
+            "title": "Confirm your email",
+            "text": "Your email address is not confirmed yet. Please follow the link in the confirmation email – the Beirat reviews your approval afterwards.",
+            "profile": "To the profile"
+        },
+        "waiting": {
+            "title": "Waiting for approval",
+            "text": "Your account is waiting for the Beirat's approval. You will be notified by email whenever a decision about your reports is made.",
+            "profile": "To the profile"
+        }
+    },
+    "board": {
+        "heading": "Issues",
+        "intro": "Accepted community issues with their location on the map. For residents, positions are rounded to about 100 m.",
+        "loading": "Loading issues …",
+        "error": "The issues could not be loaded. Please try again later.",
+        "retry": "Try again",
+        "empty": "No issues visible.",
+        "count": "{{count}} issue(s)",
+        "map": {
+            "label": "Map of issues"
+        },
+        "filters": {
+            "all": "All",
+            "status": "Status",
+            "category": "Category",
+            "categoryPlaceholder": "Search category …"
+        }
+    },
+    "issueStatus": {
+        "pending": "New",
+        "open": "Accepted",
+        "in_progress": "In progress",
+        "resolved": "Resolved",
+        "rejected": "Rejected"
+    },
+    "issueVisibility": {
+        "community": {
+            "label": "Community",
+            "hint": "Visible for the community"
+        },
+        "private": {
+            "label": "Private",
+            "hint": "Internal only (private)"
+        }
+    },
+    "issueDetail": {
+        "heading": "Issue",
+        "back": "Back to the issue board",
+        "loading": "Loading the issue …",
+        "notFoundTitle": "Issue not found",
+        "notFoundText": "This issue does not exist or is not visible to you.",
+        "loadError": "The issue could not be loaded. Please try again later.",
+        "retry": "Try again",
+        "category": "Category",
+        "location": "Location (rounded)",
+        "decided": "Decided on",
+        "resolved": "Resolved on",
+        "photos": "Photos",
+        "photoAlt": "Photo {{index}}",
+        "photoFailed": "At least one photo could not be loaded.",
+        "actions": "Change status",
+        "action": {
+            "in_progress": "Start working",
+            "resolved": "Mark as resolved",
+            "rejected": "Reject"
+        },
+        "error": {
+            "transition": "The action was rejected by the server",
+            "generic": "The action failed. Please try again later.",
+            "visibilityRequired": "Please choose the visibility before accepting."
         }
     }
 }

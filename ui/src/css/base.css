@@ -659,3 +659,160 @@ input[type="radio"] {
     min-height: 26px;
     font-size: var(--xsFontSize);
 }
+
+/* --- issue board + detail, profile (M9) --- */
+
+/* status badges */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--smBorderRadius);
+    font-size: var(--xsFontSize);
+    white-space: nowrap;
+    background: var(--surfaceAlt3Color);
+    color: var(--surfaceTxtColor);
+}
+
+.badge-status-pending {
+    background: var(--surfaceAlt3Color);
+}
+
+.badge-status-open {
+    background: var(--surfaceInfoColor);
+}
+
+.badge-status-in_progress {
+    background: var(--surfaceWarningColor);
+}
+
+.badge-status-resolved {
+    background: var(--surfaceSuccessColor);
+}
+
+.badge-status-rejected {
+    background: var(--surfaceDangerColor);
+}
+
+/* visibility chips */
+.chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--smBorderRadius);
+    font-size: var(--xsFontSize);
+    border: var(--borderWidth) solid var(--borderColor);
+    white-space: nowrap;
+}
+
+.chip-visibility-private {
+    border-color: var(--surfaceAlt5Color);
+    background: var(--surfaceAlt2Color);
+}
+
+.chip-visibility-community {
+    background: transparent;
+}
+
+/* form section titles (profile page) */
+.section-title {
+    font-size: var(--lgFontSize);
+    margin: 0;
+}
+
+.card.form .section-title {
+    margin-bottom: var(--xsSpacing);
+}
+
+/* board filters: fit side by side even at 375px */
+.board-filters {
+    display: flex;
+    gap: var(--xsSpacing);
+    flex-wrap: wrap;
+    margin: var(--xsSpacing) 0;
+}
+
+.board-filters .field {
+    flex: 1 1 140px;
+    min-width: 0;
+    margin: 0;
+}
+
+/* the board map shares the M8 canvas look; inner leaflet panes get their
+   own stacking context so they never overlap the sticky app header */
+.board-map {
+    margin: var(--xsSpacing) 0;
+    isolation: isolate;
+}
+
+.board-map-canvas {
+    height: 100%;
+    width: 100%;
+    border-radius: var(--smBorderRadius);
+}
+
+/* board list */
+.board-list {
+    list-style: none;
+    margin: var(--xsSpacing) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--xsSpacing);
+}
+
+.board-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.board-item-title {
+    font-weight: 600;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.board-item-title:visited {
+    color: inherit;
+}
+
+.board-item-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* issue detail */
+.detail-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--xsSpacing);
+}
+
+.detail-title {
+    margin: 0;
+}
+
+.detail-photos {
+    margin-top: 6px;
+}
+
+.photo-placeholder {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: var(--smBorderRadius);
+    background: var(--surfaceAlt2Color);
+}
+
+.detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--xsSpacing);
+    border-top: var(--borderWidth) solid var(--borderLightColor);
+    padding-top: var(--xsSpacing);
+}
+
+/* stacked form cards keep a visible gap (profile page) */
+.card.form + .card.form {
+    margin-top: var(--xsSpacing);
+}

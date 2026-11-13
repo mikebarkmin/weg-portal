@@ -25,6 +25,7 @@ export default function Layout() {
                 </div>
                 <nav className="app-nav">
                     <NavLink to="/">{t("nav.calendar")}</NavLink>
+                    <NavLink to="/issues">{t("nav.board")}</NavLink>
                     <NavLink to="/suggestions/new">{t("nav.newSuggestion")}</NavLink>
                     <NavLink to="/issues/new">{t("nav.newIssue")}</NavLink>
                     {canShow(auth.role) && (
@@ -37,15 +38,21 @@ export default function Layout() {
                     )}
                     <span className="app-nav-spacer" />
                     {auth.isAuthenticated ? (
-                        <button
-                            type="button"
-                            className="app-nav-logout"
-                            onClick={logout}
-                        >
-                            {t("nav.logout")}
-                        </button>
+                        <>
+                            <NavLink to="/profile">{t("nav.profile")}</NavLink>
+                            <button
+                                type="button"
+                                className="app-nav-logout"
+                                onClick={logout}
+                            >
+                                {t("nav.logout")}
+                            </button>
+                        </>
                     ) : (
-                        <NavLink to="/login">{t("nav.login")}</NavLink>
+                        <>
+                            <NavLink to="/login">{t("nav.login")}</NavLink>
+                            <NavLink to="/signup">{t("nav.signup")}</NavLink>
+                        </>
                     )}
                 </nav>
             </header>

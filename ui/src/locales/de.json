@@ -9,7 +9,10 @@
         "users": "Benutzer",
         "login": "Anmelden",
         "logout": "Abmelden",
-        "newIssue": "Meldung"
+        "newIssue": "Meldung",
+        "board": "Pinnwand",
+        "profile": "Profil",
+        "signup": "Registrieren"
     },
     "calendar": {
         "heading": "Terminkalender",
@@ -72,7 +75,9 @@
         "locationRequired": "Bitte markieren Sie den Ort auf der Karte.",
         "locationOutside": "Der markierte Ort liegt außerhalb des Gemeinschaftsbereichs.",
         "maxPhotos": "Es können maximal 5 Fotos angehängt werden.",
-        "consentRequired": "Bitte bestätigen Sie die Einwilligung zum Hochladen der Fotos."
+        "consentRequired": "Bitte bestätigen Sie die Einwilligung zum Hochladen der Fotos.",
+        "passwordTooShort": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+        "passwordMismatch": "Die Passwörter stimmen nicht überein."
     },
     "suggestion": {
         "heading": "Termin vorschlagen",
@@ -112,7 +117,8 @@
             "rateLimited": "Zu viele Anmeldeversuche. Bitte warten Sie einen Moment und versuchen es erneut.",
             "invalid": "E-Mail-Adresse oder Passwort ist falsch.",
             "generic": "Die Anmeldung ist fehlgeschlagen. Bitte später erneut versuchen."
-        }
+        },
+        "toSignup": "Noch kein Konto? Jetzt registrieren."
     },
     "auth": {
         "forbidden": {
@@ -224,6 +230,150 @@
             "text": "Ihre Meldung ist bei der Beiratsmoderation eingegangen. Sie erhalten eine E-Mail, sobald darüber entschieden wurde.",
             "another": "Weitere Meldung",
             "back": "Zum Kalender"
+        }
+    },
+    "signup": {
+        "heading": "Konto erstellen",
+        "intro": "Mit einem Konto sehen Sie die angenommenen Meldungen aus der Gemeinschaftsanlage. Nach der Registrierung bestätigen Sie Ihre E-Mail-Adresse; anschließend schaltet der Beirat Ihr Konto frei.",
+        "name": "Name",
+        "email": "E-Mail-Adresse",
+        "emailHint": "An diese Adresse wird die Bestätigungs-E-Mail geschickt.",
+        "password": "Passwort",
+        "passwordConfirm": "Passwort wiederholen",
+        "submit": "Registrieren",
+        "submitting": "Wird gesendet …",
+        "toLogin": "Zurück zur Anmeldung",
+        "error": {
+            "rateLimited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen es dann erneut.",
+            "generic": "Das Konto konnte nicht erstellt werden. Bitte prüfen Sie Ihre Eingaben und versuchen es erneut."
+        },
+        "success": {
+            "title": "Vielen Dank!",
+            "stepEmail": "Schritt 1: Bestätigen Sie Ihre E-Mail-Adresse über den Link, der an Ihre Adresse geschickt wurde.",
+            "stepEmailSent": "Die Bestätigungs-E-Mail wurde versendet.",
+            "stepEmailMaybe": "Die Bestätigungs-E-Mail konnte nicht versendet werden (E-Mail-Versand evtl. nicht konfiguriert). Sie können sie im Profil erneut anfordern.",
+            "stepApproval": "Schritt 2: Sobald Ihre Adresse bestätigt ist, schaltet der Beirat Ihr Konto für die Pinnwand frei. Sie werden per E-Mail benachrichtigt, sobald Entscheidungen zu Ihren Meldungen fallen.",
+            "toLogin": "Zur Anmeldung",
+            "back": "Zum Kalender"
+        }
+    },
+    "profile": {
+        "heading": "Profil",
+        "readonlyHint": "Rolle, Freigabe und E-Mail-Status Ihres Kontos werden vom Beirat bzw. der Verwaltung verwaltet und können hier nicht geändert werden.",
+        "account": "Konto",
+        "name": "Name",
+        "email": "E-Mail-Adresse",
+        "emailHint": "Die E-Mail-Adresse selbst wird über den unten stehenden Bestätigungsvorgang geändert.",
+        "notify": "Über angenommene Meldungen per E-Mail benachrichtigen",
+        "notifyHint": "Nur für Hausmeister und Hausverwaltung.",
+        "save": "Speichern",
+        "saving": "Wird gespeichert …",
+        "saved": "Gespeichert.",
+        "verify": {
+            "hint": "Ihre E-Mail-Adresse ist noch nicht bestätigt. Bitte folgen Sie dem Link in der Bestätigungs-E-Mail.",
+            "resend": "Bestätigungs-E-Mail erneut senden",
+            "sent": "Die Bestätigungs-E-Mail wurde versendet."
+        },
+        "password": {
+            "heading": "Passwort ändern",
+            "old": "Altes Passwort",
+            "new": "Neues Passwort",
+            "confirm": "Neues Passwort wiederholen",
+            "submit": "Passwort ändern",
+            "saved": "Das Passwort wurde geändert."
+        },
+        "emailChange": {
+            "heading": "E-Mail-Adresse ändern",
+            "newEmail": "Neue E-Mail-Adresse",
+            "hint": "Die Änderung wird erst wirksam, nachdem Sie den Bestätigungslink bestätigt haben, der an die neue Adresse geschickt wird.",
+            "submit": "Bestätigungslink senden",
+            "sent": "Die Bestätigungs-E-Mail wurde an die neue Adresse gesendet."
+        },
+        "error": {
+            "save": "Die Änderung konnte nicht gespeichert werden.",
+            "rateLimited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen es dann erneut.",
+            "emailInvalid": "Bitte eine gültige neue E-Mail-Adresse eingeben.",
+            "emailChange": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte später erneut versuchen."
+        }
+    },
+    "gate": {
+        "anonymous": {
+            "title": "Anmeldung erforderlich",
+            "text": "Die Pinnwand ist für Bewohner mit freigegebenem Konto zugänglich. Bitte melden Sie sich an.",
+            "login": "Anmelden",
+            "signup": "Konto erstellen"
+        },
+        "unverified": {
+            "title": "E-Mail bestätigen",
+            "text": "Ihre E-Mail-Adresse ist noch nicht bestätigt. Bitte folgen Sie dem Link in der Bestätigungs-E-Mail – erst danach prüft der Beirat Ihre Freigabe.",
+            "profile": "Zum Profil"
+        },
+        "waiting": {
+            "title": "Warten auf Freigabe",
+            "text": "Ihr Konto wartet auf die Freigabe durch den Beirat. Sie werden per E-Mail benachrichtigt, sobald Entscheidungen zu Ihren Meldungen fallen.",
+            "profile": "Zum Profil"
+        }
+    },
+    "board": {
+        "heading": "Pinnwand",
+        "intro": "Angenommene Meldungen aus der Gemeinschaftsanlage mit Lage auf der Karte. Positionen sind aus Sicht der Bewohner auf ca. 100 m gerundet.",
+        "loading": "Meldungen werden geladen …",
+        "error": "Meldungen konnten nicht geladen werden. Bitte später erneut versuchen.",
+        "retry": "Erneut versuchen",
+        "empty": "Keine Meldungen sichtbar.",
+        "count": "{{count}} Meldung(en)",
+        "map": {
+            "label": "Karte der Meldungen"
+        },
+        "filters": {
+            "all": "Alle",
+            "status": "Status",
+            "category": "Kategorie",
+            "categoryPlaceholder": "Kategorie suchen …"
+        }
+    },
+    "issueStatus": {
+        "pending": "Neu",
+        "open": "Angenommen",
+        "in_progress": "In Bearbeitung",
+        "resolved": "Erledigt",
+        "rejected": "Abgelehnt"
+    },
+    "issueVisibility": {
+        "community": {
+            "label": "Gemeinschaft",
+            "hint": "Für die Gemeinschaft sichtbar"
+        },
+        "private": {
+            "label": "Privat",
+            "hint": "Nur intern (privat)"
+        }
+    },
+    "issueDetail": {
+        "heading": "Meldung",
+        "back": "Zurück zur Pinnwand",
+        "loading": "Meldung wird geladen …",
+        "notFoundTitle": "Meldung nicht gefunden",
+        "notFoundText": "Diese Meldung existiert nicht oder ist für Sie nicht sichtbar.",
+        "loadError": "Die Meldung konnte nicht geladen werden. Bitte später erneut versuchen.",
+        "retry": "Erneut versuchen",
+        "category": "Kategorie",
+        "location": "Ort (gerundet)",
+        "decided": "Entschieden am",
+        "resolved": "Erledigt am",
+        "photos": "Fotos",
+        "photoAlt": "Foto {{index}}",
+        "photoFailed": "Mindestens ein Foto konnte nicht geladen werden.",
+        "actions": "Status ändern",
+        "action": {
+            "in_progress": "Bearbeitung starten",
+            "resolved": "Als erledigt markieren",
+            "rejected": "Ablehnen"
+        },
+        "error": {
+            "transition": "Die Aktion wurde vom Server abgelehnt",
+            "generic": "Die Aktion ist fehlgeschlagen. Bitte später erneut versuchen.",
+            "visibilityRequired": "Bitte die Sichtbarkeit wählen, bevor Sie annehmen."
         }
     }
 }

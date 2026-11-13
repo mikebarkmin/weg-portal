@@ -326,3 +326,244 @@ describe("buildIssueFormData", () => {
         expect(data.get("lng_exact")).toBeNull();
     });
 });
+
+// ---------------------------------------------------------------------------
+// M9: accounts + issue workflow
+
+import {
+    buildIssueStatusUpdate,
+    buildPasswordUpdate,
+    buildProfileUpdate,
+    buildSignupPayload,
+    issueTransitionsFor,
+    ISSUE_STATUSES,
+    MIN_PASSWORD_LENGTH,
+    passwordChangeSchema,
+    profileNameSchema,
+    signupSchema,
+    type IssueStatus,
+} from "./validation";
+
+function signupValues(overrides: Record<string, unknown> = {}) {
+    return {
+        name: "Anna Beispiel",
+        email: "anna@example.com",
+        password: "passwort123",
+        passwordConfirm: "passwort123",
+        ...overrides,
+    };
+}
+
+describe("signupSchema", () => {
+    it("accepts a valid signup", () => {
+        const result = signupSchema.safeParse(signupValues());
+        expect(result.success).toBe(true);
+    });
+
+    it("requires all four fields", () => {
+        for (const key of ["name", "email", "password", "passwordConfirm"]) {
+            const values = { ...signupValues(), [key]: "" };
+            const result = signupSchema.safeParse(values);
+            expect(result.success).toBe(false);
+        }
+    });
+
+    it("rejects an invalid email", () => {
+        const result = signupSchema.safeParse(signupValues({ email: "kein-at" }));
+        expect(result.success).toBe(false);
+    });
+
+    it("enforces the minimum password length", () => {
+        const result = signupSchema.safeParse(
+            signupValues({ password: "kurz", passwordConfirm: "kurz" }),
+        );
+        expect(result.success).toBe(false);
+        expect(MIN_PASSWORD_LENGTH).toBe(8);
+    });
+
+    it("rejects mismatching passwords", () => {
+        const result = signupSchema.safeParse(
+            signupValues({ passwordConfirm: "anderes123" }),
+        );
+        expect(result.success).toBe(false);
+        const issue = result.error?.issues[0];
+        expect(issue?.path).toEqual(["passwordConfirm"]);
+        expect(issue?.message).toBe("validation.passwordMismatch");
+    });
+
+    it("trims name and email", () => {
+        const result = signupSchema.parse(
+            signupValues({ name: "  Anna  ", email: "  anna@example.com " }),
+        );
+        expect(result.name).toBe("Anna");
+        expect(result.email).toBe("anna@example.com");
+    });
+
+    it("limits the name length (below the PocketBase schema max)", () => {
+        const result = signupSchema.safeParse({
+            ...signupValues(),
+            name: "a".repeat(201),
+        });
+        expect(result.success).toBe(false);
+    });
+});
+
+describe("buildSignupPayload", () => {
+    it("sends only the four self-service fields", () => {
+        const values = signupSchema.parse(signupValues());
+        const payload = buildSignupPayload(values);
+        expect(payload).toEqual({
+            name: "Anna Beispiel",
+            email: "anna@example.com",
+            password: "passwort123",
+            passwordConfirm: "passwort123",
+        });
+        expect(Object.keys(payload).sort()).toEqual(
+            ["email", "name", "password", "passwordConfirm"],
+        );
+    });
+});
+
+describe("profile/password payload builders", () => {
+    it("buildProfileUpdate sends the name and, only for staff, the notify flag", () => {
+        expect(buildProfileUpdate("Neuer Name")).toEqual({ name: "Neuer Name" });
+        expect(
+            buildProfileUpdate("Neuer Name", { notifyNewIssues: true }),
+        ).toEqual({ name: "Neuer Name", notify_new_issues: true });
+    });
+
+    it("buildProfileUpdate throws on an empty or too long name", () => {
+        expect(() => buildProfileUpdate("   ")).toThrow();
+        expect(() => buildProfileUpdate("a".repeat(201))).toThrow();
+    });
+
+    it("buildProfileUpdate never touches role/approved/verified", () => {
+        const patch = buildProfileUpdate("N", { notifyNewIssues: false });
+        expect("role" in patch).toBe(false);
+        expect("approved" in patch).toBe(false);
+        expect("verified" in patch).toBe(false);
+    });
+
+    it("profileNameSchema trims before validating", () => {
+        expect(profileNameSchema.parse("  A  ")).toBe("A");
+        expect(profileNameSchema.safeParse("").success).toBe(false);
+    });
+
+    it("passwordChangeSchema validates like the signup schema", () => {
+        const valid = {
+            oldPassword: "altes123",
+            password: "neues1234",
+            passwordConfirm: "neues1234",
+        };
+        expect(passwordChangeSchema.safeParse(valid).success).toBe(true);
+        const invalid = { ...valid, password: "kurz", passwordConfirm: "kurz" };
+        expect(passwordChangeSchema.safeParse(invalid).success).toBe(false);
+        const mismatch = { ...valid, passwordConfirm: "anders123" };
+        expect(passwordChangeSchema.safeParse(mismatch).success).toBe(false);
+
+        const payload = buildPasswordUpdate(passwordChangeSchema.parse(valid));
+        expect(payload).toEqual(valid);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Transition matrix (mirrors hooks/issueWorkflow.go - the review
+// checklist asks for the role x status -> allowed next statuses)
+
+function allowed(role: string, status: IssueStatus): IssueStatus[] {
+    return issueTransitionsFor(role, status).map((transition) => transition.status);
+}
+
+describe("issueTransitionsFor", () => {
+    it("beirat: accept/reject a pending issue, then progress along the chain", () => {
+        expect(allowed("beirat", "pending")).toEqual(["open", "rejected"]);
+        expect(allowed("beirat", "open")).toEqual(["in_progress"]);
+        expect(allowed("beirat", "in_progress")).toEqual(["resolved"]);
+    });
+
+    it("beirat has no way out of rejected/resolved (hook answers 400)", () => {
+        expect(allowed("beirat", "resolved")).toEqual([]);
+        expect(allowed("beirat", "rejected")).toEqual([]);
+    });
+
+    it("hausmeister: only open -> in_progress -> resolved", () => {
+        expect(allowed("hausmeister", "open")).toEqual(["in_progress"]);
+        expect(allowed("hausmeister", "in_progress")).toEqual(["resolved"]);
+    });
+
+    it("hausmeister cannot touch pending or terminal statuses", () => {
+        expect(allowed("hausmeister", "pending")).toEqual([]);
+        expect(allowed("hausmeister", "resolved")).toEqual([]);
+        expect(allowed("hausmeister", "rejected")).toEqual([]);
+    });
+
+    it("hausverwaltung and residents are read-only for every status", () => {
+        for (const status of ISSUE_STATUSES) {
+            expect(allowed("hausverwaltung", status)).toEqual([]);
+            expect(allowed("resident", status)).toEqual([]);
+            expect(allowed("", status)).toEqual([]);
+        }
+    });
+
+    it("marks the accept transition as the only visibility-requiring one", () => {
+        const transitions = issueTransitionsFor("beirat", "pending");
+        expect(transitions.find((t) => t.status === "open")?.requiresVisibility).toBe(true);
+        expect(
+            transitions.find((t) => t.status === "rejected")?.requiresVisibility,
+        ).toBe(false);
+        expect(
+            issueTransitionsFor("beirat", "open").every((t) => !t.requiresVisibility),
+        ).toBe(true);
+        expect(
+            issueTransitionsFor("hausmeister", "open").every((t) => !t.requiresVisibility),
+        ).toBe(true);
+    });
+});
+
+describe("buildIssueStatusUpdate", () => {
+    it("accept requires the visibility and sends it in the same request", () => {
+        expect(buildIssueStatusUpdate("beirat", "pending", "open", "community")).toEqual({
+            status: "open",
+            visibility: "community",
+        });
+        expect(buildIssueStatusUpdate("beirat", "pending", "open", "private")).toEqual({
+            status: "open",
+            visibility: "private",
+        });
+    });
+
+    it("accept without a valid visibility is refused client-side", () => {
+        // the visibility is optional in the signature, but the builder
+        // refuses an accept without a valid visibility at runtime
+        expect(() => buildIssueStatusUpdate("beirat", "pending", "open")).toThrow();
+        // @ts-expect-error the empty string is not a visibility either
+        expect(() => buildIssueStatusUpdate("beirat", "pending", "open", "")).toThrow();
+        // @ts-expect-error anything else is not a visibility either
+        expect(() => buildIssueStatusUpdate("beirat", "pending", "open", "friends")).toThrow();
+    });
+
+    it("reject and the working transitions send the status only", () => {
+        expect(buildIssueStatusUpdate("beirat", "pending", "rejected")).toEqual({
+            status: "rejected",
+        });
+        expect(buildIssueStatusUpdate("beirat", "open", "in_progress")).toEqual({
+            status: "in_progress",
+        });
+        expect(buildIssueStatusUpdate("hausmeister", "open", "in_progress")).toEqual({
+            status: "in_progress",
+        });
+        expect(buildIssueStatusUpdate("hausmeister", "in_progress", "resolved")).toEqual({
+            status: "resolved",
+        });
+    });
+
+    it("throws for arrows the server hook rejects with 400", () => {
+        expect(() => buildIssueStatusUpdate("beirat", "open", "resolved")).toThrow();
+        expect(() => buildIssueStatusUpdate("beirat", "resolved", "pending")).toThrow();
+        expect(() => buildIssueStatusUpdate("beirat", "open", "rejected")).toThrow();
+        expect(() => buildIssueStatusUpdate("hausmeister", "pending", "in_progress")).toThrow();
+        expect(() => buildIssueStatusUpdate("hausverwaltung", "open", "in_progress")).toThrow();
+        expect(() => buildIssueStatusUpdate("resident", "open", "in_progress")).toThrow();
+        expect(() => buildIssueStatusUpdate("beirat", "pending", "pending")).toThrow();
+    });
+});

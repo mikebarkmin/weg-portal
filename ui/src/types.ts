@@ -37,9 +37,14 @@ export interface PortalSuggestion {
     decision_note: string;
 }
 
-// Shared client-side view of the pending `issues` records shown in the
-// moderation queue. Exact coordinates are only unhidden for
-// beirat/hausmeister/hausverwaltung (enrich hook, M2).
+// Shared client-side view of the PocketBase `issues` records as shown on
+// the issue board and detail page (M9). Exact coordinates are only
+// unhidden for beirat/hausmeister/hausverwaltung (enrich hook, M2) -
+// residents' records have no lat_exact/lng_exact and the rounded
+// lat/lng are used instead. `photos` holds the protected file names
+// (viewable only with a file token, plan.md "Files"). NOTE: the
+// collection has NO autodate fields (M1) - decided_at/resolved_at (set
+// by the workflow hook) are the only timestamps.
 export interface PortalIssue {
     id: string;
     title: string;
@@ -49,6 +54,11 @@ export interface PortalIssue {
     lng: number;
     status: "pending" | "open" | "in_progress" | "resolved" | "rejected";
     visibility: IssueVisibilityValue;
+    photos: string[];
+    decided_at: string;
+    resolved_at: string;
+    lat_exact?: number;
+    lng_exact?: number;
 }
 
 export type IssueVisibilityValue = "community" | "private" | "";

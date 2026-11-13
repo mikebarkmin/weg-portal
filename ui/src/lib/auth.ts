@@ -55,3 +55,35 @@ export function useAuth(): AuthState {
 export function logout(): void {
     pb.authStore.clear();
 }
+
+// The approval gate for the issue board (M9). Residents whose account is
+// not usable yet (unverified or awaiting the Beirat's approval) get an
+// explanatory page instead of the board; beirat, hausmeister and
+// hausverwaltung are exempt (their accounts are approved by definition -
+// see the roles matrix). The server rules stay authoritative: the gate
+// only picks which explanatory page to render.
+export type BoardAccessState = "granted" | "unverified" | "waiting";
+
+function flagOf(record: Record<string, unknown> | null, key: string): boolean {
+    return record?.[key] === true;
+}
+
+export function boardAccessOf(record: unknown): BoardAccessState {
+    const role = roleOf(record);
+
+    if (role !== "resident") {
+        // beirat / hausmeister / hausverwaltung: no approval gate
+        return "granted";
+    }
+
+    const data = record as Record<string, unknown> | null;
+    if (!flagOf(data, "verified")) {
+        // the email address must be confirmed first - only verified
+        // users enter the Beirat's approval queue
+        return "unverified";
+    }
+    if (!flagOf(data, "approved")) {
+        return "waiting";
+    }
+    return "granted";
+}

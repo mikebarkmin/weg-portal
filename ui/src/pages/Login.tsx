@@ -80,6 +80,8 @@ export default function Login() {
             </form>
             <p className="hint">
                 <Link to="/">{t("login.back")}</Link>
+                {" · "}
+                <Link to="/signup">{t("login.toSignup")}</Link>
             </p>
         </section>
     );
