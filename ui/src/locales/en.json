@@ -24,7 +24,8 @@
         "report": "Report",
         "beirat": "Beirat",
         "mySubmissions": "My submissions",
-        "legal": "Legal texts"
+        "legal": "Legal texts",
+        "admin": "Admin"
     },
     "calendar": {
         "heading": "Community calendar",
@@ -150,6 +151,11 @@
             "title": "No access",
             "text": "This page is reserved for advisory board members.",
             "back": "Go to the start page"
+        },
+        "forbiddenAdmin": {
+            "title": "No access",
+            "text": "This page is reserved for admins.",
+            "back": "Go to the start page"
         }
     },
     "moderation": {
@@ -217,7 +223,8 @@
             "resident": "Owner",
             "beirat": "Advisory board",
             "hausmeister": "Janitor",
-            "hausverwaltung": "Property management"
+            "hausverwaltung": "Property management",
+            "admin": "Admin"
         },
         "approve": "Approve",
         "revoke": "Revoke approval",
@@ -735,5 +742,56 @@
         "noteHint": "Visible to the Beirat, caretaker and property management only – e.g. \"Company commissioned, appointment on 12 March\".",
         "saveNote": "Save note",
         "saveError": "The note could not be saved."
+    },
+    "admin": {
+        "heading": "Administration",
+        "intro": "As an admin you manage accounts here: create users, change roles, grant or revoke approvals, reset passwords and delete accounts. For your own record (name, password, email) use the profile page.",
+        "loading": "Loading …",
+        "noName": "—",
+        "name": "Name",
+        "email": "Email address",
+        "ownRecord": "Own account — managed in the profile.",
+        "role": {
+            "label": "Role",
+            "change": "Change role"
+        },
+        "all": {
+            "heading": "All users"
+        },
+        "pending": {
+            "heading": "Waiting for approval",
+            "empty": "No users are waiting for approval."
+        },
+        "status": {
+            "unverified": "Email not confirmed",
+            "waiting": "Waiting for approval"
+        },
+        "approve": "Approve",
+        "revoke": "Revoke approval",
+        "approvedToggle": "Grant or revoke the approval",
+        "password": {
+            "reset": "Reset password",
+            "generated": "New password (shown only once)",
+            "copy": "Copy",
+            "copied": "Copied"
+        },
+        "delete": "Delete",
+        "confirmDelete": "Really delete the account {{email}}? This cannot be undone.",
+        "new": {
+            "heading": "New user",
+            "submit": "Create user",
+            "busy": "Creating …",
+            "password": "Password (optional)",
+            "passwordHint": "Leave empty to generate one automatically. It is shown once after creation.",
+            "created": "The account for {{email}} has been created.",
+            "note": "New accounts count as checked and approved; you hand over the credentials yourself."
+        },
+        "error": {
+            "load": "Users could not be loaded. Please try again later.",
+            "save": "The change could not be saved.",
+            "create": "The user could not be created.",
+            "password": "The password could not be set.",
+            "delete": "The user could not be deleted."
+        }
     }
 }

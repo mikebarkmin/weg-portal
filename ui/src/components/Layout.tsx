@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
-import { canShow, logout, useAuth, useOwnerAccount } from "../lib/auth";
+import { canShow, canShowAdmin, logout, useAuth, useOwnerAccount } from "../lib/auth";
 import { changeLanguage, supportedLanguages, type Language } from "../lib/i18n";
 import { setColorScheme, useColorScheme } from "../lib/theme";
 import { portalVersion } from "../lib/portalConfig";
@@ -39,6 +39,7 @@ export default function Layout() {
     const accountId = useId().replace(/:/g, "");
 
     const isBeirat = canShow(auth.role);
+    const isAdmin = canShowAdmin(auth.role);
 
     // Like BugStage's project menu: the items stay inline while they fit
     // into one row and collapse into a dropdown otherwise. An invisible
@@ -69,7 +70,7 @@ export default function Layout() {
         const observer = new ResizeObserver(update);
         observer.observe(bar);
         return () => observer.disconnect();
-    }, [isBeirat, auth.isAuthenticated, t]);
+    }, [isBeirat, isAdmin, auth.isAuthenticated, t]);
 
     // keep the document title in sync with the active language
     useEffect(() => {
@@ -99,6 +100,11 @@ export default function Layout() {
     ];
     if (isOwner) {
         items.push({ to: "/mitreden", icon: "ri-chat-poll-line", label: t("nav.participate") });
+    }
+    if (isAdmin) {
+        // account management of the admin role, separated from the content
+        // pages because it is infrastructure, not community work
+        items.push({ to: "/admin", icon: "ri-user-settings-line", label: t("nav.admin") });
     }
     const reportItems: NavItem[] = [
         { to: "/issues/new", icon: "ri-error-warning-line", label: t("nav.newIssue") },

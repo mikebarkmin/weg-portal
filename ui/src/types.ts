@@ -83,6 +83,17 @@ export interface PortalUser {
     verified: boolean;
 }
 
+// The valid `users.role` values (migration 1795000100 + 1795000108).
+// Server rules/routes remain authoritative; this list only feeds the
+// role dropdowns of the admin page.
+export const USER_ROLES = [
+    "resident",
+    "beirat",
+    "hausmeister",
+    "hausverwaltung",
+    "admin",
+] as const;
+
 // Shared client-side view of the PocketBase `notes` collection
 // (internal Beirat notes, M10). `body` holds the RAW markdown as
 // stored in the editor field; rendering + sanitization happen

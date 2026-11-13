@@ -16,6 +16,7 @@ const (
 	emailBeirat         = "beirat@portal.test"
 	emailHausmeister    = "hm@portal.test"
 	emailHausverwaltung = "hv@portal.test"
+	emailAdmin         = "admin@portal.test"
 
 	superuserEmail = "super@portal.test"
 )

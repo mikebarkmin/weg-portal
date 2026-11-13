@@ -97,4 +97,5 @@ func bindAppHooks(app core.App) {
 	hooks.NotesAuthor(app)
 	hooks.OwnerPortal(app)
 	hooks.OwnerMail(app)
+	hooks.AdminUsers(app)
 }

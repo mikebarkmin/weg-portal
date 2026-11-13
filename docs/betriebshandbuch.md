@@ -57,10 +57,24 @@ PocketBase-Administration `/_/` — Superuser nur dort, wo unten genannt.
 ### 5. Wer kontaktiert wen?
 - Eigentümer und Mieter mit Fragen (Termin nicht sichtbar, Meldung, Zugangsprobleme)
   → **Beirat** (TODO(Beirat): E-Mail-Adresse des Beirats eintragen).
-- Beirat bei technischen Problemen, Rollenänderungen
-  (Hausmeister/Hausverwaltung/Beirat) oder Löschfristen → **Superuser**
-  (TODO(Beirat): Kontaktdaten der beiden Superuser eintragen; niemals
-  Passwörter weitergeben).
+- Zugangsprobleme, Passwortzurücksetzung, Konten (anlegen, Rollen
+  ändern, freigeben/verweigern, löschen) → **Administrator** über die
+  Seite „Verwaltung“ (`/admin`) im Portal (TODO(Beirat): Kontaktdaten
+  des Administrators eintragen; niemals Passwörter weitergeben).
+- Beirat bei technischen Problemen oder Löschfristen → **Superuser**
+  (TODO(Beirat): Kontaktdaten der beiden Superuser eintragen).
+
+## Aufgaben der Administratoren (Rolle `admin`, Seite `/admin` im Portal)
+
+- **Benutzer anlegen**: Name, E-Mail-Adresse und Rolle (Eigentümer,
+  Beirat, Hausmeister, Hausverwaltung, Administrator); das
+  Anfangspasswort wird erzeugt und einmalig angezeigt, um es persönlich
+  zu übergeben.
+- **Freigeben/verweigern und löschen**: neue Konten freigeben, Freigaben
+  entziehen (z. B. nach Verkauf), Konten entfernen.
+- **Rollen ändern** und **Passwörter zurücksetzen**.
+- Das eigene Konto wird im Profil verwaltet; der letzte aktive
+  Administrator kann weder degradiert noch gelöscht werden.
 
 ## Aufgaben der Superuser (nur `/_/` bzw. Server)
 
@@ -68,9 +82,10 @@ PocketBase-Administration `/_/` — Superuser nur dort, wo unten genannt.
    anlegen (`superuser upsert`), Superuser-MFA aktivieren
    (Passwort + E-Mail-OTP), Restore-Übung aus `docs/deploy.md` einmal
    durchführen.
-2. **Rollen vergeben**: Rolle `beirat`, `hausmeister` oder
-   `hausverwaltung` setzen — alles Weitere (Freigaben, Moderation)
-   macht der Beirat selbst über das Portal.
+2. **Administratoren ernennen**: die Rolle `admin` setzen (bzw. das
+   erste Administratorkonto in `/_/` anlegen) — Rollen normaler Benutzer
+   vergeben die Administratoren danach selbst über `/admin`; alles
+   Weitere (Freigaben, Moderation) macht der Beirat über das Portal.
 3. **Backups** nach `docs/deploy.md` betreiben (geplante Backups,
    verschlüsselter Offsite-Transfer; niemals die live Datenbank kopieren).
 4. **Löschfristen ändern** (Sammlung `portal_settings`, Datensatz

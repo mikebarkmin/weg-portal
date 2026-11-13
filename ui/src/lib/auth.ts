@@ -20,6 +20,11 @@ export function canShow(role: string): boolean {
     return role === "beirat";
 }
 
+// Whether the admin-only account management page (/admin) may be shown.
+export function canShowAdmin(role: string): boolean {
+    return role === "admin";
+}
+
 export interface AuthState {
     isAuthenticated: boolean;
     role: string;

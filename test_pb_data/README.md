@@ -30,6 +30,7 @@ non-fixture instance (see M3).
 | beirat@portal.test      | userbeirat00000  | beirat        | true     | true     | passwort123  |
 | hm@portal.test          | userhausmeister  | hausmeister   | true     | true     | passwort123  |
 | hv@portal.test          | userhausverwalt  | hausverwaltung| true     | true     | passwort123  |
+| admin@portal.test       | useradmin000000  | admin         | true     | true     | passwort123  |
 
 Plus one superuser (`super@portal.test`, `passwort123`).
 "Guest" (no account) is used via requests without Authorization header.

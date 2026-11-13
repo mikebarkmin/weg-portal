@@ -46,7 +46,16 @@ func TestUsersList(t *testing.T) {
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":5`},
+			ExpectedContent: []string{`"totalItems":6`},
+		},
+		{
+			Name:            "admin (sees every account)",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/users/records",
+			Headers:         authHeader(t, emailAdmin),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"totalItems":6`},
 		},
 		{
 			Name:            "hausmeister",

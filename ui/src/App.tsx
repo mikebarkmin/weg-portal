@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import RequireBeirat from "./components/RequireBeirat";
+import RequireAdmin from "./components/RequireAdmin";
 import RequireBoardAccess from "./components/RequireBoardAccess";
 import NotFound from "./pages/NotFound";
 import PublicCalendar from "./pages/PublicCalendar";
@@ -23,6 +24,7 @@ import IssueBoard from "./pages/IssueBoard";
 import IssueDetail from "./pages/IssueDetail";
 import ModerationQueue from "./pages/ModerationQueue";
 import UserApproval from "./pages/UserApproval";
+import AdminUsers from "./pages/AdminUsers";
 import Notes from "./pages/Notes";
 import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
@@ -107,6 +109,14 @@ export default function App() {
                         <RequireBeirat>
                             <UserApproval />
                         </RequireBeirat>
+                    }
+                />
+                <Route
+                    path="admin"
+                    element={
+                        <RequireAdmin>
+                            <AdminUsers />
+                        </RequireAdmin>
                     }
                 />
                 <Route

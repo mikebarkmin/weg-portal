@@ -20,7 +20,9 @@ Additional decisions made during planning:
 - Map: Leaflet + OpenStreetMap (no API key, no data to Google).
 - Issues pass through a Beirat moderation step (`pending` → accepted) before becoming visible.
 - Issues are tagged `community` or `private` (visibility decided by the Beirat on acceptance).
-- Roles: `resident`, `beirat`, `hausmeister`, `hausverwaltung`.
+- Roles: `resident`, `beirat`, `hausmeister`, `hausverwaltung`, `admin`.
+- The `admin` role manages accounts (users, roles, approvals, password
+  resets) in the app under `/admin` instead of a superuser in `/_/`.
 - Frontend design language modeled on BugStage's design tokens (`../bugstage/ui/src/css/vars.css`).
 - Status vocabulary is shared: `pending`, `rejected` for both suggestions and issues.
 - The Beirat never uses the PocketBase admin UI (`/_/`); everything it does goes
@@ -89,7 +91,34 @@ Helper expressions used below:
 - Beirat approval: `B && @request.body.role:isset = false && @request.body.email:isset = false && @request.body.name:isset = false`
   — i.e. the Beirat may only flip `approved` (and `notify_new_issues`). A Go hook
   additionally rejects any non-superuser request that changes `role`.
-- Roles other than `resident` are set by a superuser only.
+- Roles other than `resident` are set by a superuser — or by an `admin` through
+  the custom admin routes (see below), never through the collection API.
+- List/view: own record, `B`, or `admin` (the `/admin` page needs the full list).
+
+### Admin routes (`admin` role, migration 1795000108 + `hooks/adminUsers.go`)
+
+Everything a superuser previously had to do in `/_/` for the `users`
+collection happens in the app under `/admin`. The routes act server-side
+with full record access (the collection rules and `usersCreate`/
+`usersUpdate` hooks stay authoritative for every other endpoint), so
+their own guards are the decisive ones:
+
+- `POST /api/portal/admin/users` — name, email, role; optional password
+  (otherwise generated and returned exactly once); `approved`/`verified`
+  default to `true` (the admin verified the person offline); staff roles
+  get `notify_new_issues = true` unless given.
+- `PATCH /api/portal/admin/users/{id}` — name, email (direct change, no
+  confirmation mail flow), role, `approved`, `verified`,
+  `notify_new_issues`.
+- `POST /api/portal/admin/users/{id}/reset-password` — admin-chosen or
+  generated password, returned once, never stored or mailed in clear.
+- `DELETE /api/portal/admin/users/{id}` — removes the account
+  (PocketBase's relation cleanup applies as with the owner self-delete).
+
+Guards: callers must be approved+verified `admin`s (superusers pass too);
+an admin never operates on their own record (profile page); the last
+active admin can neither be demoted nor removed (a superuser can still
+fix that from `/_/`).
 - On create of a `hausmeister`/`hausverwaltung` user, a hook sets
   `notify_new_issues = true` unless explicitly given.
 - Moved-out residents: Beirat sets `approved = false` (takes effect immediately,
@@ -148,16 +177,21 @@ transaction as the suggestion update.
 
 ### Roles matrix (`users.role`)
 
-| | Resident | Beirat | Hausmeister | Hausverwaltung |
-|---|---|---|---|---|
-| Public calendar | read | read + write | read | read |
-| Suggestion queue | – | full | – | – |
-| Issue board + map | accepted, community, rounded coords | all incl. pending/rejected/private, exact coords | accepted incl. private, exact coords | accepted incl. private, exact coords |
-| Change issue status (`open`→`in_progress`→`resolved`) | – | yes | yes | no |
-| Accept/reject, set `visibility` | – | yes | – | – |
-| Approve resident accounts | – | yes | – | – |
-| Beirat notes | – | full | – | – |
-| Submitter emails | – | yes | – | – |
+| | Resident | Beirat | Hausmeister | Hausverwaltung | Admin |
+|---|---|---|---|---|---|
+| Public calendar | read | read + write | read | read | read |
+| Suggestion queue | – | full | – | – | – |
+| Issue board + map | accepted, community, rounded coords | all incl. pending/rejected/private, exact coords | accepted incl. private, exact coords | accepted incl. private, exact coords | like resident¹ |
+| Change issue status (`open`→`in_progress`→`resolved`) | – | yes | yes | no | no |
+| Accept/reject, set `visibility` | – | yes | – | – | – |
+| Approve resident accounts | – | yes | – | – | yes (/admin: approve/deny, delete) |
+| Account management: create/remove users, change roles, reset passwords | – | – | – | – | yes (/admin, custom routes) |
+| Beirat notes | – | full | – | – | – |
+| Submitter emails | – | yes | – | – | – |
+
+¹ an admin is an account manager, not a content role: the board read rule
+  treats `admin` like an approved resident. The /admin routes are the
+  only admin-only surface.
 
 ### Public submission routes
 

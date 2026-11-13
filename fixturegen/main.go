@@ -108,6 +108,7 @@ func run() error {
 	createUser(app, users, "userresident000", "resident@portal.test", "resident", true)
 	hm := createUser(app, users, "userhausmeister", "hm@portal.test", "hausmeister", true)
 	createUser(app, users, "userhausverwalt", "hv@portal.test", "hausverwaltung", true)
+	createUser(app, users, "useradmin000000", "admin@portal.test", "admin", true)
 
 	// the hausmeister opts into new-issue mails (the hausverwaltung does
 	// not, so both branches of the notify_new_issues flag are testable)

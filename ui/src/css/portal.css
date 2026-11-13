@@ -948,6 +948,28 @@ fieldset.visibility-choice {
     }
 }
 
+/* admin page (/admin): the compact role select and the callout that
+   shows a freshly generated password exactly once */
+.admin-role-select {
+    width: 158px;
+    min-height: var(--smBtnHeight);
+    align-self: center;
+}
+
+.admin-password {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 0;
+    padding: 8px 12px;
+
+    code {
+        font-family: var(--monoFontFamily, monospace);
+        word-break: break-all;
+    }
+}
+
 .note-card {
     .post-header .thumb {
         --thumbSize: 32px;

@@ -24,7 +24,8 @@
         "report": "Melden",
         "beirat": "Beirat",
         "mySubmissions": "Meine Einreichungen",
-        "legal": "Rechtstexte"
+        "legal": "Rechtstexte",
+        "admin": "Verwaltung"
     },
     "calendar": {
         "heading": "Terminkalender",
@@ -150,6 +151,11 @@
             "title": "Kein Zugriff",
             "text": "Diese Seite ist Beiratsmitgliedern vorbehalten.",
             "back": "Zur Startseite"
+        },
+        "forbiddenAdmin": {
+            "title": "Kein Zugriff",
+            "text": "Diese Seite ist Administratorinnen und Administratoren vorbehalten.",
+            "back": "Zur Startseite"
         }
     },
     "moderation": {
@@ -217,7 +223,8 @@
             "resident": "Eigentümer",
             "beirat": "Beirat",
             "hausmeister": "Hausmeister",
-            "hausverwaltung": "Hausverwaltung"
+            "hausverwaltung": "Hausverwaltung",
+            "admin": "Administrator"
         },
         "approve": "Freigeben",
         "revoke": "Freigabe zurückziehen",
@@ -735,5 +742,56 @@
         "noteHint": "Nur für Beirat, Hausmeister und Hausverwaltung sichtbar – z. B. „Firma beauftragt, Termin am 12.3.“",
         "saveNote": "Notiz speichern",
         "saveError": "Die Notiz konnte nicht gespeichert werden."
+    },
+    "admin": {
+        "heading": "Verwaltung",
+        "intro": "Als Administrator verwalten Sie hier Konten: Benutzer anlegen, Rollen ändern, Freigaben erteilen oder entziehen, Passwörter neu setzen und Konten löschen. Eigenen Änderungen (Name, Passwort, E-Mail) machen Sie in Ihrem Profil.",
+        "loading": "Wird geladen …",
+        "noName": "—",
+        "name": "Name",
+        "email": "E-Mail-Adresse",
+        "ownRecord": "Eigenes Konto – verwaltet im Profil.",
+        "role": {
+            "label": "Rolle",
+            "change": "Rolle ändern"
+        },
+        "all": {
+            "heading": "Alle Benutzer"
+        },
+        "pending": {
+            "heading": "Warten auf Freigabe",
+            "empty": "Keine Benutzer warten auf Freigabe."
+        },
+        "status": {
+            "unverified": "E-Mail nicht bestätigt",
+            "waiting": "Warten auf Freigabe"
+        },
+        "approve": "Freigeben",
+        "revoke": "Freigabe entziehen",
+        "approvedToggle": "Freigabe erteilen oder entziehen",
+        "password": {
+            "reset": "Passwort neu setzen",
+            "generated": "Neues Passwort (nur einmal sichtbar)",
+            "copy": "Kopieren",
+            "copied": "Kopiert"
+        },
+        "delete": "Löschen",
+        "confirmDelete": "Das Konto {{email}} wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
+        "new": {
+            "heading": "Neuer Benutzer",
+            "submit": "Benutzer anlegen",
+            "busy": "Wird angelegt …",
+            "password": "Passwort (optional)",
+            "passwordHint": "Leer lassen, um ein Passwort automatisch zu erzeugen. Es wird nach dem Anlegen einmalig angezeigt.",
+            "created": "Konto für {{email}} wurde angelegt.",
+            "note": "Neue Konten gelten als geprüft und freigegeben; die Zugangsdaten geben Sie selbst weiter."
+        },
+        "error": {
+            "load": "Benutzer konnten nicht geladen werden. Bitte später erneut versuchen.",
+            "save": "Die Änderung konnte nicht gespeichert werden.",
+            "create": "Der Benutzer konnte nicht angelegt werden.",
+            "password": "Das Passwort konnte nicht gesetzt werden.",
+            "delete": "Der Benutzer konnte nicht gelöscht werden."
+        }
     }
 }
