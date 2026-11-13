@@ -1,0 +1,24 @@
+# PocketBase data (SQLite + uploads)
+/pb_data/
+
+# fixture DB runtime artifacts
+/test_pb_data/.*
+/test_pb_data/logs.*
+/test_pb_data/auxiliary.*
+/test_pb_data/types.d.ts
+
+# UI
+/ui/node_modules/
+
+# built UI, except the checked-in placeholder
+/ui/dist/*
+!/ui/dist/index.html
+
+# binaries
+/weg-portal
+/weg-portal-*
+*.exe
+
+.DS_Store
+.idea
+.vscode
