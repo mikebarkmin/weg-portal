@@ -22,7 +22,9 @@ Additional decisions made during planning:
 - Issues are tagged `community` or `private` (visibility decided by the Beirat on acceptance).
 - Roles: `resident`, `beirat`, `hausmeister`, `hausverwaltung`, `admin`.
 - The `admin` role manages accounts (users, roles, approvals, password
-  resets) in the app under `/admin` instead of a superuser in `/_/`.
+  resets) in the app under `/admin` instead of a superuser in `/_/` — and
+  has every Beirat capability (all calendars, moderation, notes, legal
+  texts).
 - Frontend design language modeled on BugStage's design tokens (`../bugstage/ui/src/css/vars.css`).
 - Status vocabulary is shared: `pending`, `rejected` for both suggestions and issues.
 - The Beirat never uses the PocketBase admin UI (`/_/`); everything it does goes
@@ -179,19 +181,23 @@ transaction as the suggestion update.
 
 | | Resident | Beirat | Hausmeister | Hausverwaltung | Admin |
 |---|---|---|---|---|---|
-| Public calendar | read | read + write | read | read | read |
-| Suggestion queue | – | full | – | – | – |
-| Issue board + map | accepted, community, rounded coords | all incl. pending/rejected/private, exact coords | accepted incl. private, exact coords | accepted incl. private, exact coords | like resident¹ |
-| Change issue status (`open`→`in_progress`→`resolved`) | – | yes | yes | no | no |
-| Accept/reject, set `visibility` | – | yes | – | – | – |
-| Approve resident accounts | – | yes | – | – | yes (/admin: approve/deny, delete) |
+| Public calendar | read | read + write | read | read | read + write (all three calendars) |
+| Suggestion queue | – | full | – | – | full |
+| Issue board + map | accepted, community, rounded coords | all incl. pending/rejected/private, exact coords | accepted incl. private, exact coords | accepted incl. private, exact coords | all incl. pending/rejected/private, exact coords |
+| Change issue status (`open`→`in_progress`→`resolved`) | – | yes | yes | no | yes |
+| Accept/reject, set `visibility` | – | yes | – | – | yes |
+| Approve resident accounts | – | yes | – | – | yes (+ deny/delete in /admin) |
 | Account management: create/remove users, change roles, reset passwords | – | – | – | – | yes (/admin, custom routes) |
-| Beirat notes | – | full | – | – | – |
-| Submitter emails | – | yes | – | – | – |
+| Beirat notes | – | full | – | – | full |
+| Submitter emails | – | yes | – | – | yes |
 
-¹ an admin is an account manager, not a content role: the board read rule
-  treats `admin` like an approved resident. The /admin routes are the
-  only admin-only surface.
+The admin column equals the Beirat column everywhere (migration
+1795000109 widens every `role = 'beirat'` rule to
+`(role = 'beirat' || role = 'admin')`, hooks never check the beirat role
+themselves) plus the /admin account management. Differences to the
+Beirat: admins never appear in the beirat notification mail recipients
+(`findRoleEmails("role = 'beirat'")`) and the last-active-admin guard
+applies only to admins (hooks/adminUsers.go).
 
 ### Public submission routes
 

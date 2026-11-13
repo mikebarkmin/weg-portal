@@ -7,6 +7,7 @@ import type { PortalIssue } from "../types";
 // depth on top of the enrich hook).
 export const SEES_EXACT_COORDS: ReadonlySet<string> = new Set([
     "beirat",
+    "admin",
     "hausmeister",
     "hausverwaltung",
 ]);

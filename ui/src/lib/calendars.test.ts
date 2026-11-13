@@ -17,16 +17,18 @@ describe("calendars", () => {
         expect(visibleCalendars("resident", true)).toEqual(["public", "owners"]);
         expect(visibleCalendars("hausmeister", true)).toEqual(["public", "owners"]);
         expect(visibleCalendars("beirat", true)).toEqual(["public", "owners", "beirat"]);
+        expect(visibleCalendars("admin", false)).toEqual(["public", "owners", "beirat"]);
     });
 });
 
 describe("isOwnerAccount", () => {
-    it("requires an approved and verified account, the Beirat always counts", () => {
+    it("requires an approved and verified account; beirat and admin always count", () => {
         expect(isOwnerAccount(null)).toBe(false);
         expect(isOwnerAccount({ role: "resident", approved: true, verified: false })).toBe(false);
         expect(isOwnerAccount({ role: "resident", approved: false, verified: true })).toBe(false);
         expect(isOwnerAccount({ role: "resident", approved: true, verified: true })).toBe(true);
         expect(isOwnerAccount({ role: "beirat" })).toBe(true);
+        expect(isOwnerAccount({ role: "admin" })).toBe(true);
     });
 });
 

@@ -5,7 +5,7 @@ import L from "leaflet";
 import { CircleMarker, MapContainer, Tooltip, useMap } from "react-leaflet";
 
 import { pb } from "../lib/pbClient";
-import { useAuth } from "../lib/auth";
+import { canShow, useAuth } from "../lib/auth";
 import { ISSUE_STATUSES, type IssueStatus } from "../lib/validation";
 import { ACTIVE_ISSUE_STATUSES, positionOf, STATUS_ICONS } from "../lib/issues";
 import { formatShortDate } from "../lib/dates";
@@ -73,7 +73,8 @@ export default function IssueBoard() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const auth = useAuth();
-    const isBeirat = auth.role === "beirat";
+    // beirat and admin share the Beirat view (plan.md roles matrix)
+    const isBeirat = canShow(auth.role);
     const locale = useTranslation().i18n.language;
 
     const [items, setItems] = useState<PortalIssue[]>([]);

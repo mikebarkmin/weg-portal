@@ -510,6 +510,12 @@ describe("issueTransitionsFor", () => {
         expect(allowed("beirat", "rejected")).toEqual([]);
     });
 
+    it("admin has the same transitions as beirat", () => {
+        expect(allowed("admin", "pending")).toEqual(["open", "rejected"]);
+        expect(allowed("admin", "open")).toEqual(["in_progress"]);
+        expect(allowed("admin", "in_progress")).toEqual(["resolved"]);
+    });
+
     it("hausmeister: only open -> in_progress -> resolved", () => {
         expect(allowed("hausmeister", "open")).toEqual(["in_progress"]);
         expect(allowed("hausmeister", "in_progress")).toEqual(["resolved"]);

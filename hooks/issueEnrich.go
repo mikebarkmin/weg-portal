@@ -22,7 +22,8 @@ func IssueEnrich(app core.App) {
 		}
 
 		switch e.RequestInfo.Auth.GetString("role") {
-		case "beirat", "hausmeister", "hausverwaltung":
+		// admins see what the Beirat sees (plan.md roles matrix)
+		case "beirat", "admin", "hausmeister", "hausverwaltung":
 			e.Record.Unhide("lat_exact", "lng_exact")
 		}
 

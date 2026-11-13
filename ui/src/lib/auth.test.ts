@@ -15,9 +15,10 @@ describe("roleOf", () => {
     });
 });
 
-describe("canShow (beirat-only pages)", () => {
-    it("is true only for the beirat role", () => {
+describe("canShow (beirat pages)", () => {
+    it("is true for the beirat and admin roles only", () => {
         expect(canShow("beirat")).toBe(true);
+        expect(canShow("admin")).toBe(true);
         expect(canShow("resident")).toBe(false);
         expect(canShow("hausmeister")).toBe(false);
         expect(canShow("hausverwaltung")).toBe(false);

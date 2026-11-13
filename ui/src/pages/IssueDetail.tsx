@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
-import { useAuth } from "../lib/auth";
+import { canShow, useAuth } from "../lib/auth";
 import { errorStatus, serverMessage } from "../lib/pbErrors";
 import { formatLongDate } from "../lib/dates";
 import { parsePBDate } from "../lib/recurrence";
@@ -217,7 +217,7 @@ export default function IssueDetail() {
                     <SidebarInfo label={t("issueDetail.status")}>
                         <span className="labels-list">
                             <StatusBadge status={record.status} />
-                            {auth.role === "beirat" && <VisibilityChip visibility={record.visibility} />}
+                            {canShow(auth.role) && <VisibilityChip visibility={record.visibility} />}
                         </span>
                     </SidebarInfo>
                     {record.category && (
@@ -240,7 +240,7 @@ export default function IssueDetail() {
                             <span>{formatLongDate(resolved, locale)}</span>
                         </SidebarInfo>
                     )}
-                    {role === "beirat" && (
+                    {canShow(role) && (
                         <SidebarInfo label={t("issueDetail.reporter")}>
                             <IssueReporter issueId={record.id} />
                         </SidebarInfo>
@@ -348,11 +348,11 @@ export default function IssueDetail() {
                     </section>
                 )}
 
-                {(role === "beirat" || role === "hausmeister" || role === "hausverwaltung") && (
+                {(canShow(role) || role === "hausmeister" || role === "hausverwaltung") && (
                     <IssueHistory
                         issueId={record.id}
                         refreshKey={record.status}
-                        canWrite={role === "beirat" || (record.status !== "pending" && record.status !== "rejected")}
+                        canWrite={canShow(role) || (record.status !== "pending" && record.status !== "rejected")}
                     />
                 )}
             </div>

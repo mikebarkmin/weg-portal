@@ -378,7 +378,8 @@ func calendarsFor(user *core.Record) []string {
 	if user == nil {
 		return []string{"public"}
 	}
-	if user.GetString("role") == "beirat" {
+	// admins see what the Beirat sees (beirat calendar included)
+	if user.GetString("role") == "beirat" || user.GetString("role") == "admin" {
 		return []string{"public", "owners", "beirat"}
 	}
 	if user.GetBool("approved") && user.Verified() {

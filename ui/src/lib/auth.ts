@@ -14,10 +14,12 @@ export function roleOf(record: unknown): string {
     return "";
 }
 
-// Whether the Beirat-only pages (moderation queue, user approval) may
-// be shown for the given role.
+// Whether the Beirat pages (moderation queue, user approval, notes,
+// legal texts, event editor) may be shown for the given role. Admins
+// can do everything the Beirat can do (plan.md roles matrix), so they
+// share these pages.
 export function canShow(role: string): boolean {
-    return role === "beirat";
+    return role === "beirat" || role === "admin";
 }
 
 // Whether the admin-only account management page (/admin) may be shown.
@@ -99,12 +101,12 @@ export function boardAccessOf(record: unknown): BoardAccessState {
 }
 
 // Accounts are for owners only: an approved + verified account (or a
-// Beirat/staff account) counts as "owner" for owner-only content
+// Beirat/admin/staff account) counts as "owner" for owner-only content
 // (announcements, documents, contacts, the owners' calendar, polls and
 // meeting topics). Server rules decide; this only picks what to show.
 export function isOwnerAccount(record: unknown): boolean {
     const role = roleOf(record);
-    if (role === "beirat") return true;
+    if (role === "beirat" || role === "admin") return true;
     const data = record as Record<string, unknown> | null;
     return flagOf(data, "approved") && flagOf(data, "verified");
 }

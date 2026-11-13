@@ -66,6 +66,10 @@ PocketBase-Administration `/_/` — Superuser nur dort, wo unten genannt.
 
 ## Aufgaben der Administratoren (Rolle `admin`, Seite `/admin` im Portal)
 
+Administratoren können **alles, was der Beirat kann** (Beiratskalender,
+Moderation, Notizen, Rechtstexte, Aktuelles, Dokumente, Kontakte), und
+verwalten zusätzlich die Konten:
+
 - **Benutzer anlegen**: Name, E-Mail-Adresse und Rolle (Eigentümer,
   Beirat, Hausmeister, Hausverwaltung, Administrator); das
   Anfangspasswort wird erzeugt und einmalig angezeigt, um es persönlich

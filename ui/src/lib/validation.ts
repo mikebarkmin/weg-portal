@@ -497,7 +497,7 @@ export function issueTransitionsFor(
     status: IssueStatus,
 ): IssueTransition[] {
     const next =
-        role === "beirat"
+        role === "beirat" || role === "admin"
             ? BEIRAT_NEXT[status]
             : role === "hausmeister"
               ? HAUSMEISTER_NEXT[status]

@@ -12,9 +12,9 @@ export function calendarOf(event: { calendar?: string }): CalendarId {
 }
 
 // Which calendars a role/account may see (mirrors the events rules; the
-// server stays authoritative).
+// server stays authoritative). Admins see everything the Beirat sees.
 export function visibleCalendars(role: string, isOwnerAccount: boolean): CalendarId[] {
-    if (role === "beirat") return ["public", "owners", "beirat"];
+    if (role === "beirat" || role === "admin") return ["public", "owners", "beirat"];
     if (isOwnerAccount) return ["public", "owners"];
     return ["public"];
 }
