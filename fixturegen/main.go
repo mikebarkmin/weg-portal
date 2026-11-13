@@ -149,6 +149,50 @@ func run() error {
 		return err
 	}
 
+	// single all-day event without date_end (iCal: DTSTART;VALUE=DATE,
+	// no DTEND)
+	eventAllDaySingle := core.NewRecord(events)
+	eventAllDaySingle.Set("id", "eventallday0001")
+	eventAllDaySingle.Set("title", "Gartenfest")
+	eventAllDaySingle.Set("description", "Gemeinsames Fest im Garten.")
+	eventAllDaySingle.Set("date_start", "2026-07-04 00:00:00.000Z")
+	eventAllDaySingle.Set("all_day", true)
+	eventAllDaySingle.Set("location", "Garten")
+	eventAllDaySingle.Set("category", "fest")
+	if err := app.Save(eventAllDaySingle); err != nil {
+		return err
+	}
+
+	// all-day event spanning multiple days (iCal: VALUE=DATE with an
+	// exclusive DTEND = stored date_end + 1 day, matching the inclusive
+	// display of the SPA)
+	eventAllDayMulti := core.NewRecord(events)
+	eventAllDayMulti.Set("id", "eventallday0002")
+	eventAllDayMulti.Set("title", "Fassadenreinigung")
+	eventAllDayMulti.Set("description", "Geruest steht, Zugaenge begrenzt.")
+	eventAllDayMulti.Set("date_start", "2026-08-14 00:00:00.000Z")
+	eventAllDayMulti.Set("date_end", "2026-08-16 00:00:00.000Z")
+	eventAllDayMulti.Set("all_day", true)
+	eventAllDayMulti.Set("location", "Haus A")
+	eventAllDayMulti.Set("category", "wartung")
+	if err := app.Save(eventAllDayMulti); err != nil {
+		return err
+	}
+
+	// event with RFC 5545 escapable characters (comma, semicolon,
+	// backslash, newline) and a long description (iCal line folding)
+	eventEscaping := core.NewRecord(events)
+	eventEscaping.Set("id", "eventescapes001")
+	eventEscaping.Set("title", "Keller, Waschkeller; 2. OG")
+	eventEscaping.Set("description", "Der Keller, die Waschkueche sowie das 2. OG muessen geputzt werden. Beachtet die Hinweise am schwarzen Brett, den Plan im Ordner \\Gemeinschaft; Muelleimer vorher ausleeren.\nFragen an den Beirat.")
+	eventEscaping.Set("date_start", "2026-09-12 09:00:00.000Z")
+	eventEscaping.Set("date_end", "2026-09-12 12:00:00.000Z")
+	eventEscaping.Set("location", "Keller; neben dem Fahrstuhl, 1. OG")
+	eventEscaping.Set("category", "putzen")
+	if err := app.Save(eventEscaping); err != nil {
+		return err
+	}
+
 	// -------------------------------------------------------------------
 	// suggestions (one per status)
 	// -------------------------------------------------------------------

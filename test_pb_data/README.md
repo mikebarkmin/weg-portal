@@ -40,7 +40,11 @@ branches of the M4 staff notification are testable against the fixture.
 
 ## Other records
 
-- events: `eventsimple0001` (single), `eventrecurring1` (rrule FREQ=DAILY)
+- events: `eventsimple0001` (single, timed), `eventrecurring1` (all-day
+  with rrule FREQ=DAILY;COUNT=30), `eventallday0001` (single all-day,
+  no date_end), `eventallday0002` (all-day over 3 days, date_end 2026-08-16),
+  `eventescapes001` (title/description/location with `,` `;` `\` and a
+  newline plus a long description - the iCal escaping/folding cases)
 - suggestions: `suggpending0001`, `suggaccepted001`, `suggrejected001`
   (one per status), each with submitter email `submitter@example.com`
 - issues: `issue<status><visibility>000001` for each status

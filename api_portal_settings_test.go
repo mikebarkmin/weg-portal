@@ -90,3 +90,72 @@ func TestPortalSettingsAccess(t *testing.T) {
 		scenario.Test(t)
 	}
 }
+
+// setupTestAppWithoutSettings returns a test app whose portal_settings
+// record was removed directly on the DB level (bypassing the API guard)
+// so that the "first record may be created" case is testable.
+func setupTestAppWithoutSettings(t testing.TB) *tests.TestApp {
+	app := setupTestApp(t)
+
+	settings, err := app.FindRecordById("portal_settings", "portsettings000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := app.Delete(settings); err != nil {
+		t.Fatal(err)
+	}
+
+	return app
+}
+
+// portal_settings is a single-record collection: the M5 hooks reject a
+// second record and the deletion of the existing one - including for
+// superusers (all rules are null, so superusers are the only ones who
+// reach these endpoints at all).
+func TestPortalSettingsSingleRecordInvariant(t *testing.T) {
+	t.Parallel()
+
+	newRecord := `{"retention_suggestions_rejected_days":30,"retention_suggestions_accepted_days":30,"retention_issues_rejected_days":30,"retention_issues_resolved_days":30}`
+
+	scenarios := []tests.ApiScenario{
+		{
+			Name:   "superuser create (second record rejected)",
+			Method: http.MethodPost,
+			URL:    "/api/collections/portal_settings/records",
+			Body:   strings.NewReader(newRecord),
+			Headers: map[string]string{
+				"Authorization": getAuthToken(t, "_superusers", superuserEmail),
+			},
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  400,
+			ExpectedContent: []string{`"status":400`, `Only a single portal_settings record is allowed.`},
+		},
+		{
+			Name:   "superuser delete (existing record rejected)",
+			Method: http.MethodDelete,
+			URL:    "/api/collections/portal_settings/records/portsettings000",
+			Headers: map[string]string{
+				"Authorization": getAuthToken(t, "_superusers", superuserEmail),
+			},
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  400,
+			ExpectedContent: []string{`"status":400`, `The portal_settings record cannot be deleted.`},
+		},
+		{
+			Name:   "superuser create (allowed while no record exists)",
+			Method: http.MethodPost,
+			URL:    "/api/collections/portal_settings/records",
+			Body:   strings.NewReader(newRecord),
+			Headers: map[string]string{
+				"Authorization": getAuthToken(t, "_superusers", superuserEmail),
+			},
+			TestAppFactory:  setupTestAppWithoutSettings,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"retention_issues_resolved_days":30`},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		scenario.Test(t)
+	}
+}

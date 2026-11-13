@@ -71,4 +71,7 @@ func bindAppHooks(app core.App) {
 	hooks.IssueWorkflow(app)
 	hooks.SuggestionWorkflow(app)
 	hooks.Mail(app)
+	hooks.PortalSettings(app)
+	hooks.Retention(app)
+	hooks.ICal(app)
 }

@@ -19,7 +19,7 @@ func TestEventsList(t *testing.T) {
 			URL:             "/api/collections/events/records",
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":2`, `"eventsimple0001"`, `"eventrecurring1"`},
+			ExpectedContent: []string{`"totalItems":5`, `"eventsimple0001"`, `"eventrecurring1"`},
 		},
 		{
 			Name:            "unapproved resident",
@@ -28,7 +28,7 @@ func TestEventsList(t *testing.T) {
 			Headers:         authHeader(t, emailUnapproved),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":2`},
+			ExpectedContent: []string{`"totalItems":5`},
 		},
 		{
 			Name:            "resident",
@@ -37,7 +37,7 @@ func TestEventsList(t *testing.T) {
 			Headers:         authHeader(t, emailResident),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":2`},
+			ExpectedContent: []string{`"totalItems":5`},
 		},
 		{
 			Name:            "beirat",
@@ -46,7 +46,7 @@ func TestEventsList(t *testing.T) {
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":2`},
+			ExpectedContent: []string{`"totalItems":5`},
 		},
 		{
 			Name:            "hausmeister",
@@ -55,7 +55,7 @@ func TestEventsList(t *testing.T) {
 			Headers:         authHeader(t, emailHausmeister),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":2`},
+			ExpectedContent: []string{`"totalItems":5`},
 		},
 		{
 			Name:            "hausverwaltung",
@@ -64,7 +64,7 @@ func TestEventsList(t *testing.T) {
 			Headers:         authHeader(t, emailHausverwaltung),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":2`},
+			ExpectedContent: []string{`"totalItems":5`},
 		},
 	}
 
