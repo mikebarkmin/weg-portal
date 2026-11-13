@@ -60,6 +60,10 @@ export default function Layout() {
             <main className="app-main">
                 <Outlet />
             </main>
+            <footer className="app-footer">
+                <NavLink to="/impressum">{t("legal.footer.impressum")}</NavLink>
+                <NavLink to="/datenschutz">{t("legal.footer.datenschutz")}</NavLink>
+            </footer>
         </div>
     );
 }

@@ -16,6 +16,8 @@ import IssueDetail from "./pages/IssueDetail";
 import ModerationQueue from "./pages/ModerationQueue";
 import UserApproval from "./pages/UserApproval";
 import Notes from "./pages/Notes";
+import Impressum from "./pages/Impressum";
+import Datenschutz from "./pages/Datenschutz";
 
 export default function App() {
     return (
@@ -63,6 +65,8 @@ export default function App() {
                         </RequireBeirat>
                     }
                 />
+                <Route path="impressum" element={<Impressum />} />
+                <Route path="datenschutz" element={<Datenschutz />} />
                 <Route path="*" element={<NotFound />} />
             </Route>
         </Routes>
