@@ -14,9 +14,16 @@ func SuggestionCreate(app core.App) {
 			return e.BadRequestError("Failed to read the submitted data.", err)
 		}
 
+		// the honeypot must be a present, empty string; any other value
+		// (non-empty, number, bool, ...) is treated as a filled trap
+		// (multipart bodies always deliver strings, JSON may not)
 		honeypot := ""
 		if v, ok := info.Body["honeypot"]; ok {
-			honeypot, _ = v.(string)
+			s, isString := v.(string)
+			if !isString || s != "" {
+				return e.BadRequestError("Failed to submit the suggestion.", nil)
+			}
+			honeypot = s
 		}
 
 		if err := validateTrap(honeypot, info.Body["form_started_at"]); err != nil {

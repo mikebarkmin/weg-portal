@@ -6,6 +6,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -130,6 +132,8 @@ func TestSubmitIssueValidation(t *testing.T) {
 		{"category too long", func(f map[string]string) { f["category"] = strings.Repeat("x", 101) }, nil},
 		{"name too long", func(f map[string]string) { f["name"] = strings.Repeat("x", 201) }, nil},
 		{"lat not a number", func(f map[string]string) { f["lat"] = "abc" }, nil},
+		{"lat NaN", func(f map[string]string) { f["lat"] = "NaN" }, nil},
+		{"lat infinite", func(f map[string]string) { f["lat"] = "Inf" }, nil},
 		{"lat out of bounds", func(f map[string]string) { f["lat"] = "55.0" }, nil},
 		{"lng out of bounds", func(f map[string]string) { f["lng"] = "90.0" }, nil},
 		{"email invalid", func(f map[string]string) { f["email"] = "not-an-email" }, nil},
@@ -415,6 +419,18 @@ func TestSuggestionCreateTraps(t *testing.T) {
 			NotExpectedContent: []string{"secret@example.com"},
 		},
 		{
+			// review fix: a non-string honeypot value (as a lazy bot would
+			// send) must also be treated as a filled trap
+			Name:               "honeypot as number is still a filled trap",
+			Method:             http.MethodPost,
+			URL:                "/api/collections/suggestions/records",
+			Body:               strings.NewReader(`{"title":"Neuer Vorschlag","date_start":"2027-03-01 10:00:00.000Z","email":"secret@example.com","status":"pending","honeypot":123,"form_started_at":` + fmt.Sprint(trapMS()) + `}`),
+			TestAppFactory:     setupTestApp,
+			ExpectedStatus:     400,
+			ExpectedContent:    []string{`"status":400`},
+			NotExpectedContent: []string{"secret@example.com"},
+		},
+		{
 			Name:            "form_started_at missing",
 			Method:          http.MethodPost,
 			URL:             "/api/collections/suggestions/records",
@@ -527,5 +543,97 @@ func TestUsersCreateForcesRole(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		scenario.Test(t)
+	}
+}
+
+// listStorageFiles returns all file paths under the test app's local storage.
+func listStorageFiles(t testing.TB, app *tests.TestApp) map[string]bool {
+	files := map[string]bool{}
+	err := filepath.Walk(filepath.Join(app.DataDir(), "storage"), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			files[strings.TrimPrefix(path, filepath.Join(app.DataDir(), "storage"))] = true
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return files
+}
+
+// A submission whose transaction rolls back AFTER the issue (and its photos)
+// was already saved must not leave orphaned photo files behind. PocketBase
+// defers the file-field interceptor cleanup to the transaction completion
+// (core/db.go registers it via txInfo.OnComplete), which this test pins down.
+func TestSubmitIssueRollbackCleansFiles(t *testing.T) {
+	app := setupTestApp(t)
+	defer app.Cleanup()
+
+	mux := serveMux(t, app)
+
+	before := listStorageFiles(t, app)
+
+	// the 201-char meta name only fails at meta save time, i.e. after the
+	// issue (with its photo) was saved inside the transaction
+	fields := validIssueFields()
+	fields["title"] = "Rollback Photos Fall"
+	fields["name"] = strings.Repeat("x", 201)
+	rec := doIssueSubmission(t, mux, fields, []photoPart{{name: "a.png", content: testPNG}})
+	if rec.Code != 400 {
+		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if len(findIssuesByTitle(t, app, "Rollback Photos Fall")) != 0 {
+		t.Fatal("rollback failed: the issue from the failed transaction still exists")
+	}
+
+	after := listStorageFiles(t, app)
+
+	if len(after) != len(before) {
+		t.Fatalf("expected unchanged storage (%d files), got %d", len(before), len(after))
+	}
+	for path := range after {
+		if !before[path] {
+			t.Fatalf("orphaned file from the failed submission: %s", path)
+		}
+	}
+}
+
+// The M1 rate limit rule labeled "suggestions:create" must still cover the
+// public suggestion create endpoint (the fixture disables rate limits,
+// this test enables them; see also TestSubmitIssueRateLimit).
+func TestSuggestionCreateRateLimit(t *testing.T) {
+	app := setupTestApp(t)
+	defer app.Cleanup()
+
+	settings := app.Settings()
+	settings.RateLimits.Enabled = true
+	if err := app.Save(settings); err != nil {
+		t.Fatal(err)
+	}
+
+	mux := serveMux(t, app)
+
+	codes := []int{}
+	for i := 0; i < 6; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/api/collections/suggestions/records", strings.NewReader(
+			`{"title":"RL Vorschlag `+fmt.Sprint(i)+`","date_start":"2027-03-01 10:00:00.000Z","email":"rl`+fmt.Sprint(i)+`@example.com","status":"pending","honeypot":"","form_started_at":`+fmt.Sprint(trapMS())+`}`,
+		))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		codes = append(codes, rec.Code)
+	}
+
+	for i, code := range codes {
+		want := 200
+		if i == 5 {
+			want = 429
+		}
+		if code != want {
+			t.Fatalf("request %d: expected %d, got %d (%v)", i, want, code, codes)
+		}
 	}
 }

@@ -74,8 +74,16 @@ func SubmitIssue(app core.App) {
 			if err != nil {
 				return e.BadRequestError("Latitude is required and must be a number.", nil)
 			}
+			// strconv.ParseFloat also accepts NaN/Inf (which would bypass
+			// the bounds comparison), so reject them explicitly
+			if math.IsNaN(lat) || math.IsInf(lat, 0) {
+				return e.BadRequestError("Latitude is required and must be a number.", nil)
+			}
 			lng, err := strconv.ParseFloat(strings.TrimSpace(form.Get("lng")), 64)
 			if err != nil {
+				return e.BadRequestError("Longitude is required and must be a number.", nil)
+			}
+			if math.IsNaN(lng) || math.IsInf(lng, 0) {
 				return e.BadRequestError("Longitude is required and must be a number.", nil)
 			}
 			bounds, err := issueBounds()
