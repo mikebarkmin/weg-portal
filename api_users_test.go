@@ -230,13 +230,15 @@ func TestUsersCreate(t *testing.T) {
 			ExpectedContent: []string{`"role":"resident"`},
 		},
 		{
-			Name:            "guest - missing role",
+			// the users create hook forces role=resident, so clients
+			// cannot and need not submit a role
+			Name:            "guest - missing role is forced to resident",
 			Method:          http.MethodPost,
 			URL:             "/api/collections/users/records",
 			Body:            strings.NewReader(`{"email":"newuser@example.com","password":"` + fixturePassword + `","passwordConfirm":"` + fixturePassword + `","name":"Neu"}`),
 			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  400,
-			ExpectedContent: []string{`"status":400`},
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"role":"resident"`, `"approved":false`},
 		},
 	}
 

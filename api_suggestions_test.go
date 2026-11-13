@@ -125,7 +125,7 @@ func TestSuggestionsView(t *testing.T) {
 func TestSuggestionsCreate(t *testing.T) {
 	t.Parallel()
 
-	body := `{"title":"Neuer Vorschlag","description":"Test","date_start":"2027-03-01 10:00:00.000Z","email":"newsubmitter@example.com","status":"pending"}`
+	body := `{"title":"Neuer Vorschlag","description":"Test","date_start":"2027-03-01 10:00:00.000Z","email":"newsubmitter@example.com","status":"pending","honeypot":"","form_started_at":1794567508651}`
 
 	scenarios := []tests.ApiScenario{
 		{
@@ -172,7 +172,7 @@ func TestSuggestionsCreate(t *testing.T) {
 			Name:            "guest cannot pre-accept a suggestion",
 			Method:          http.MethodPost,
 			URL:             "/api/collections/suggestions/records",
-			Body:            strings.NewReader(`{"title":"Neuer Vorschlag","date_start":"2027-03-01 10:00:00.000Z","email":"newsubmitter@example.com","status":"accepted"}`),
+			Body:            strings.NewReader(`{"title":"Neuer Vorschlag","date_start":"2027-03-01 10:00:00.000Z","email":"newsubmitter@example.com","status":"accepted","honeypot":"","form_started_at":1794567514781,`),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  400,
 			ExpectedContent: []string{`"status":400`},
@@ -181,7 +181,7 @@ func TestSuggestionsCreate(t *testing.T) {
 			Name:            "guest cannot inject a decision note",
 			Method:          http.MethodPost,
 			URL:             "/api/collections/suggestions/records",
-			Body:            strings.NewReader(`{"title":"Neuer Vorschlag","date_start":"2027-03-01 10:00:00.000Z","email":"newsubmitter@example.com","status":"pending","decision_note":"selbst entschieden"}`),
+			Body:            strings.NewReader(`{"title":"Neuer Vorschlag","date_start":"2027-03-01 10:00:00.000Z","email":"newsubmitter@example.com","status":"pending","decision_note":"selbst entschieden","honeypot":"","form_started_at":1794567514781}`),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  400,
 			ExpectedContent: []string{`"status":400`},
@@ -190,7 +190,7 @@ func TestSuggestionsCreate(t *testing.T) {
 			Name:            "guest cannot inject decided_at",
 			Method:          http.MethodPost,
 			URL:             "/api/collections/suggestions/records",
-			Body:            strings.NewReader(`{"title":"Neuer Vorschlag","date_start":"2027-03-01 10:00:00.000Z","email":"newsubmitter@example.com","status":"pending","decided_at":"2026-11-01 10:00:00.000Z"}`),
+			Body:            strings.NewReader(`{"title":"Neuer Vorschlag","date_start":"2027-03-01 10:00:00.000Z","email":"newsubmitter@example.com","status":"pending","decided_at":"2026-11-01 10:00:00.000Z","honeypot":"","form_started_at":1794567514781}`),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  400,
 			ExpectedContent: []string{`"status":400`},
