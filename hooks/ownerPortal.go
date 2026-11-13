@@ -43,6 +43,17 @@ func OwnerPortal(app core.App) {
 	keepField("polls", "created_by")
 	keepField("agenda_items", "author")
 
+	// legal pages: who changed them is recorded by the server
+	app.OnRecordUpdateRequest("legal_pages").BindFunc(func(e *core.RecordRequestEvent) error {
+		e.Record.Set("slug", e.Record.Original().Get("slug"))
+		if e.Auth != nil && e.Auth.Collection().Name == "users" {
+			e.Record.Set("updated_by", e.Auth.Id)
+		} else {
+			e.Record.Set("updated_by", "")
+		}
+		return e.Next()
+	})
+
 	// ---------------------------------------------------------------
 	// agenda items: pending -> accepted | rejected (beirat)
 	// ---------------------------------------------------------------
@@ -225,6 +236,27 @@ func OwnerPortal(app core.App) {
 				"issues":      issueItems,
 				"suggestions": suggestionItems,
 			})
+		})
+
+		// -----------------------------------------------------------
+		// GET /api/portal/retention: the current deletion periods (days)
+		// for the privacy policy placeholders - public, nothing secret
+		// -----------------------------------------------------------
+		se.Router.GET("/api/portal/retention", func(e *core.RequestEvent) error {
+			settings, err := e.App.FindFirstRecordByFilter("portal_settings", "id != ''")
+			if err != nil {
+				return e.NotFoundError("No retention settings.", nil)
+			}
+			result := map[string]int{}
+			for _, field := range []string{
+				"retention_suggestions_rejected_days",
+				"retention_suggestions_accepted_days",
+				"retention_issues_rejected_days",
+				"retention_issues_resolved_days",
+			} {
+				result[field] = settings.GetInt(field)
+			}
+			return e.JSON(http.StatusOK, result)
 		})
 
 		// -----------------------------------------------------------

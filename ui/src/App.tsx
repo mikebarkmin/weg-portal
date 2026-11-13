@@ -26,6 +26,7 @@ import UserApproval from "./pages/UserApproval";
 import Notes from "./pages/Notes";
 import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
+import LegalEditor from "./pages/LegalEditor";
 
 export default function App() {
     return (
@@ -113,6 +114,14 @@ export default function App() {
                     element={
                         <RequireBeirat>
                             <Notes />
+                        </RequireBeirat>
+                    }
+                />
+                <Route
+                    path="rechtstexte"
+                    element={
+                        <RequireBeirat>
+                            <LegalEditor />
                         </RequireBeirat>
                     }
                 />

@@ -1,9 +1,10 @@
-import { Circle, CircleMarker, MapContainer, TileLayer } from "react-leaflet";
+import { Circle, CircleMarker, MapContainer } from "react-leaflet";
 import { useTranslation } from "react-i18next";
 
 import type { PortalIssue } from "../types";
 import { exactPositionOf } from "../lib/issues";
 import { cssColor } from "../lib/cssColor";
+import OsmTileLayer from "./OsmTileLayer";
 import "leaflet/dist/leaflet.css";
 
 // Read-only map of ONE issue's location. Viewers who receive the exact
@@ -24,12 +25,7 @@ export default function IssueLocationMap({ issue, role }: { issue: PortalIssue; 
                 scrollWheelZoom={false}
                 className="board-map-canvas"
             >
-                <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    subdomains="abc"
-                    maxZoom={19}
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
-                />
+                <OsmTileLayer />
                 {exact ? (
                     <CircleMarker
                         center={exact}

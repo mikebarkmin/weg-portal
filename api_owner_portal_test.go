@@ -443,3 +443,59 @@ func TestOptInMails(t *testing.T) {
 		t.Fatalf("event mail recipients: %v", to)
 	}
 }
+
+// Legal pages: public to read, editable by the Beirat only; the editor is
+// recorded by the server and the slug cannot change.
+func TestLegalPages(t *testing.T) {
+	app := setupTestApp(t)
+	defer app.Cleanup()
+	mux := serveMux(t, app)
+
+	if got := listCount(t, mux, "/api/collections/legal_pages/records", nil); got != 2 {
+		t.Fatalf("guests must read both legal pages, got %d", got)
+	}
+
+	page, err := app.FindFirstRecordByData("legal_pages", "slug", "impressum")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !page.GetBool("draft") || !strings.Contains(page.GetString("body"), "TODO(Beirat)") {
+		t.Fatal("the seeded Impressum must be the marked draft")
+	}
+	url := "/api/collections/legal_pages/records/" + page.Id
+
+	for _, who := range []string{emailResident, emailHausverwaltung} {
+		if rec := doJSON(t, mux, http.MethodPatch, url, `{"body":"x"}`, authHeader(t, who)); rec.Code == 200 {
+			t.Fatalf("%s must not edit the legal pages", who)
+		}
+	}
+	// the update rule refuses it (PocketBase answers a failed update rule with 404)
+	if rec := doJSON(t, mux, http.MethodPatch, url, `{"slug":"datenschutz"}`, authHeader(t, emailBeirat)); rec.Code < 400 {
+		t.Fatalf("changing the slug must be refused, got %d", rec.Code)
+	}
+
+	rec := doJSON(t, mux, http.MethodPatch, url,
+		`{"body":"## Angaben\n\nWEG Musterstraße 1","draft":false,"updated_by":"userresident000"}`, authHeader(t, emailBeirat))
+	if rec.Code != 200 {
+		t.Fatalf("beirat edit: %d %s", rec.Code, rec.Body.String())
+	}
+	page, _ = app.FindRecordById("legal_pages", page.Id)
+	if page.GetString("updated_by") != "userbeirat00000" || page.GetBool("draft") || page.GetString("slug") != "impressum" {
+		t.Fatalf("unexpected record after edit: %v", page.PublicExport())
+	}
+
+	for _, method := range []string{http.MethodPost, http.MethodDelete} {
+		target := "/api/collections/legal_pages/records"
+		if method == http.MethodDelete {
+			target = url
+		}
+		if rec := doJSON(t, mux, method, target, `{"slug":"impressum"}`, authHeader(t, emailBeirat)); rec.Code < 400 {
+			t.Fatalf("%s must be refused, got %d", method, rec.Code)
+		}
+	}
+
+	rec = doJSON(t, mux, http.MethodGet, "/api/portal/retention", "", nil)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"retention_issues_resolved_days":365`) {
+		t.Fatalf("retention: %d %s", rec.Code, rec.Body.String())
+	}
+}

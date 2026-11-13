@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
 import { useTranslation } from "react-i18next";
 
 import { isWithinIssueBounds } from "../lib/validation";
 import { issueLatLngBounds } from "../lib/issueBounds";
+import OsmTileLayer from "./OsmTileLayer";
 import "leaflet/dist/leaflet.css";
 
 // Map location picker for the issue report form (plan.md: Leaflet +
@@ -128,15 +129,7 @@ export default function MapPicker({ lat, lng, onPick }: MapPickerProps) {
                 maxBoundsViscosity={1.0}
                 className="map-canvas"
             >
-                {/* {s}: OSM's official a/b/c tile subdomains. The served
-                    CSP allows only https://*.tile.openstreetmap.org, and a
-                    subdomain URL matches it (the bare tile.openstreetmap
-                    org host would be blocked by img-src) */}
-                <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    subdomains="abc"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
-                />
+                <OsmTileLayer />
                 <MinZoomBounds bounds={bounds} />
                 <ClickPicker onPick={onPick} />
                 {position && (

@@ -108,6 +108,7 @@ export default function Layout() {
               { to: "/moderation", icon: "ri-inbox-2-line", label: t("nav.moderation") },
               { to: "/users", icon: "ri-group-line", label: t("nav.users") },
               { to: "/notes", icon: "ri-sticky-note-line", label: t("nav.notes") },
+              { to: "/rechtstexte", icon: "ri-scales-3-line", label: t("nav.legal") },
           ]
         : [];
     const groupButtons = [

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import L from "leaflet";
-import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, Tooltip, useMap } from "react-leaflet";
 
 import { pb } from "../lib/pbClient";
 import { useAuth } from "../lib/auth";
@@ -17,6 +17,7 @@ import VisibilityChip from "../components/VisibilityChip";
 import ProtectedPhotos from "../components/ProtectedPhotos";
 import { issueLatLngBounds } from "../lib/issueBounds";
 import { MenuButton, Page, PageHeading, SidebarMenu } from "../components/Page";
+import OsmTileLayer from "../components/OsmTileLayer";
 import "leaflet/dist/leaflet.css";
 
 // The issue board (M9): list + map of EXACTLY the issues the server
@@ -256,11 +257,7 @@ export default function IssueBoard() {
                     <div className="board-map map-canvas" aria-label={t("board.map.label")}>
                         <MapContainer bounds={issueLatLngBounds()} maxZoom={19} className="board-map-canvas">
                             <FitToMarkers positions={positions} />
-                            <TileLayer
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                subdomains="abc"
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
-                            />
+                            <OsmTileLayer />
                             {filtered.map((issue, index) => (
                                 <CircleMarker
                                     key={issue.id}

@@ -70,8 +70,19 @@
     position-try-fallbacks: flip-block;
 }
 
+/* BugStage sizes dropdowns to their anchor (anchor-size(width)), which is
+   just the small avatar/menu button here: size these to their content */
+.account-dropdown,
+.header-dropdown {
+    width: max-content;
+    max-width: min(340px, calc(100vw - 2 * var(--xsSpacing)));
+    .dropdown-item {
+        white-space: nowrap;
+    }
+}
+
 .account-dropdown {
-    min-width: 200px;
+    min-width: 220px;
     .dropdown-section-title {
         overflow: hidden;
         text-overflow: ellipsis;
@@ -89,9 +100,6 @@
     }
 }
 
-.header-dropdown {
-    min-width: 220px;
-}
 
 .project-menu.dropdown .menu-group {
     display: flex;
@@ -1340,4 +1348,24 @@ a.post.announcement-teaser {
 
 .header-group {
     display: inline-flex;
+}
+
+/* legal pages editor */
+.legal-textarea {
+    min-height: 420px;
+    max-height: none !important;
+}
+
+.legal-preview {
+    padding: 4px 2px;
+}
+
+code.legal-placeholder {
+    display: inline-block;
+    margin: 2px 4px 0 0;
+    font-size: 12px;
+}
+
+.post .tabs-header {
+    margin-top: -4px;
 }
