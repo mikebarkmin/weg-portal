@@ -30,3 +30,6 @@
 # local runtime artifacts (backup drills etc.)
 *.zip
 /.env
+
+test_pb_data/data.db-wal
+test_pb_data/data.db-shm
