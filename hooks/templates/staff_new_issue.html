@@ -1,0 +1,23 @@
+{{ define "body" }}
+    <p>Hallo,</p>
+
+    <p>der Beirat hat eine neue Meldung angenommen, die bearbeitet werden sollte:</p>
+
+    <blockquote>
+        <p><strong>{{ .Title }}</strong></p>
+        {{ if .Category }}<p>Kategorie: {{ .Category }}</p>{{ end }}
+        <p>Sichtbarkeit: {{ if eq .Visibility "private" }}intern (nur Beirat/Hausverwaltung){{ else }}&ouml;ffentlich{{ end }}</p>
+        <p>Position (gerundet): {{ .Lat }}, {{ .Lng }}</p>
+    </blockquote>
+
+    <p>
+        Die Meldung kann im Portal bearbeitet und als erledigt markiert werden:<br />
+        <a href="/">{{ .AppName }}</a>
+    </p>
+
+    <hr />
+
+    <small>
+        Dies ist eine automatische Nachricht des WEG-Portals. Melden Sie sich beim Beirat, wenn Sie keine solchen Benachrichtigungen mehr erhalten m&ouml;chten.
+    </small>
+{{ end }}

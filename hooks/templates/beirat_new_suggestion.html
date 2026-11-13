@@ -1,0 +1,23 @@
+{{ define "body" }}
+    <p>Hallo,</p>
+
+    <p>im WEG-Portal liegt ein neuer Kalendervorschlag zur Pr&uuml;fung bereit:</p>
+
+    <blockquote>
+        <p><strong>{{ .Title }}</strong></p>
+        {{ if .DateStart }}<p>Beginn: {{ .DateStart }}</p>{{ end }}
+        {{ if .Location }}<p>Ort: {{ .Location }}</p>{{ end }}
+        {{ if .Category }}<p>Kategorie: {{ .Category }}</p>{{ end }}
+        {{ if .Description }}<p>{{ .Description }}</p>{{ end }}
+        <p>E-Mail des Einreichers: {{ .Email }}</p>
+    </blockquote>
+
+    <p>
+        Bitte im Beiratsbereich des Portals annehmen oder ablehnen:<br />
+        <a href="/">{{ .AppName }}</a>
+    </p>
+
+    <hr />
+
+    <small>Dies ist eine automatische Nachricht des WEG-Portals.</small>
+{{ end }}

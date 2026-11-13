@@ -1,0 +1,21 @@
+{{ define "body" }}
+    <p>Hallo,</p>
+
+    <p>im WEG-Portal wurde &uuml;ber das &ouml;ffentliche Formular eine neue Meldung eingereicht:</p>
+
+    <blockquote>
+        <p><strong>{{ .Title }}</strong></p>
+        {{ if .Category }}<p>Kategorie: {{ .Category }}</p>{{ end }}
+        <p>Position (gerundet): {{ .Lat }}, {{ .Lng }}</p>
+        {{ if .Description }}<p>{{ .Description }}</p>{{ end }}
+    </blockquote>
+
+    <p>
+        Bitte im Beiratsbereich des Portals annehmen (mit Sichtbarkeit) oder ablehnen:<br />
+        <a href="/">{{ .AppName }}</a>
+    </p>
+
+    <hr />
+
+    <small>Dies ist eine automatische Nachricht des WEG-Portals.</small>
+{{ end }}

@@ -68,4 +68,7 @@ func bindAppHooks(app core.App) {
 	hooks.SubmitIssue(app)
 	hooks.SuggestionCreate(app)
 	hooks.UsersCreate(app)
+	hooks.IssueWorkflow(app)
+	hooks.SuggestionWorkflow(app)
+	hooks.Mail(app)
 }

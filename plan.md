@@ -133,7 +133,18 @@ pending ──accept (beirat, must set visibility)──► open ──► in_pr
    └──reject (beirat)──► rejected
 ```
 
-Disallowed transitions return 400. The hook sets `decided_at` / `resolved_at`.
+Disallowed transitions return 400 — for beirat/superusers too. Submitting the
+**same** status as the stored one is rejected as well (M4 review decision: a
+repeated accept is a client error, not a no-op; `status` must only be sent
+when it actually changes), while updates that do not send `status` at all
+(beirat content edits) remain allowed. The hook sets `decided_at` /
+`resolved_at` and they are **hook-owned**: the stored values are restored on
+every update before the transition is applied, so a client can never forge
+them (the beirat update rule is otherwise unrestricted). The same moderation
+semantics apply to suggestions via `hooks/suggestionWorkflow.go`
+(`pending → accepted|rejected` only, same-status rejection, hook-owned
+`decided_at`); on accept the `events` record is created in the same
+transaction as the suggestion update.
 
 ### Roles matrix (`users.role`)
 
