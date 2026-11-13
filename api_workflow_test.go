@@ -247,6 +247,17 @@ func TestIssueWorkflowTransitions(t *testing.T) {
 			ExpectedStatus:  400,
 			ExpectedContent: []string{`"status":400`},
 		},
+		{
+			// submitting the same status is a client error, not a no-op
+			Name:            "beirat repeat accept (same status submitted)",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"status":"open","visibility":"community"}`),
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  400,
+			ExpectedContent: []string{`"status":400`},
+		},
 	}
 
 	for _, scenario := range scenarios {
@@ -313,6 +324,98 @@ func TestIssueWorkflowTimestamps(t *testing.T) {
 	if issue.GetString("resolved_at") != "" {
 		t.Fatal("expected resolved_at to stay empty on reject")
 	}
+}
+
+const forgedTimestamp = "2000-01-01 00:00:00.000Z"
+
+// TestWorkflowTimestampsOwnedByHook checks that decided_at/resolved_at are
+// written by the hook alone: client-submitted values are ignored on
+// transitions AND on non-status edits (the beirat update rule is otherwise
+// unrestricted, so the hook is the only guard).
+func TestWorkflowTimestampsOwnedByHook(t *testing.T) {
+	t.Run("issue transition with forged timestamps", func(t *testing.T) {
+		app := setupTestApp(t)
+		defer app.Cleanup()
+
+		mux := serveMux(t, app)
+
+		rec := doJSON(t, mux, http.MethodPatch, "/api/collections/issues/records/issuepcom000001",
+			`{"status":"rejected","decided_at":"2000-01-01 00:00:00.000Z","resolved_at":"2000-01-01 00:00:00.000Z"}`, authHeader(t, emailBeirat))
+		if rec.Code != 200 {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+
+		issue, err := app.FindRecordById("issues", "issuepcom000001")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if issue.GetString("decided_at") == "" || issue.GetString("decided_at") == forgedTimestamp {
+			t.Fatalf("expected the hook-set decided_at, got %q", issue.GetString("decided_at"))
+		}
+		if issue.GetString("resolved_at") != "" {
+			t.Fatalf("expected resolved_at to stay empty on reject, got %q", issue.GetString("resolved_at"))
+		}
+	})
+
+	t.Run("issue non-status edit cannot change the timestamps", func(t *testing.T) {
+		app := setupTestApp(t)
+		defer app.Cleanup()
+
+		mux := serveMux(t, app)
+
+		rec := doJSON(t, mux, http.MethodPatch, "/api/collections/issues/records/issueocom000001",
+			`{"title":"Neuer Titel","decided_at":"2000-01-01 00:00:00.000Z"}`, authHeader(t, emailBeirat))
+		if rec.Code != 200 {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+
+		issue, err := app.FindRecordById("issues", "issueocom000001")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if issue.GetString("title") != "Neuer Titel" {
+			t.Fatalf("expected the edited title, got %q", issue.GetString("title"))
+		}
+		if issue.GetString("decided_at") != "2026-11-01 10:00:00.000Z" {
+			t.Fatalf("expected decided_at to keep its stored value, got %q", issue.GetString("decided_at"))
+		}
+
+		// the resolved_at of a resolved issue must not be forgeable either
+		rec = doJSON(t, mux, http.MethodPatch, "/api/collections/issues/records/issuercom000001",
+			`{"description":"Ergaenzt","resolved_at":"2000-01-01 00:00:00.000Z"}`, authHeader(t, emailBeirat))
+		if rec.Code != 200 {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+
+		issue, err = app.FindRecordById("issues", "issuercom000001")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if issue.GetString("resolved_at") != "2026-11-10 12:00:00.000Z" {
+			t.Fatalf("expected resolved_at to keep its stored value, got %q", issue.GetString("resolved_at"))
+		}
+	})
+
+	t.Run("suggestion accept ignores a forged decided_at", func(t *testing.T) {
+		app := setupTestApp(t)
+		defer app.Cleanup()
+
+		mux := serveMux(t, app)
+
+		rec := doJSON(t, mux, http.MethodPatch, "/api/collections/suggestions/records/suggpending0001",
+			`{"status":"accepted","decided_at":"2000-01-01 00:00:00.000Z"}`, authHeader(t, emailBeirat))
+		if rec.Code != 200 {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+
+		suggestion, err := app.FindRecordById("suggestions", "suggpending0001")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if suggestion.GetString("decided_at") == "" || suggestion.GetString("decided_at") == forgedTimestamp {
+			t.Fatalf("expected the hook-set decided_at, got %q", suggestion.GetString("decided_at"))
+		}
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -393,6 +496,17 @@ func TestSuggestionWorkflowTransitions(t *testing.T) {
 			ExpectedStatus:  400,
 			ExpectedContent: []string{`"status":400`},
 		},
+		{
+			// submitting the same status is a client error, not a no-op
+			Name:            "beirat repeat accept (same status submitted)",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/suggestions/records/suggaccepted001",
+			Body:            strings.NewReader(`{"status":"accepted"}`),
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  400,
+			ExpectedContent: []string{`"status":400`},
+		},
 	}
 
 	for _, scenario := range scenarios {
@@ -451,11 +565,12 @@ func TestSuggestionAcceptEvent(t *testing.T) {
 		t.Fatal("expected decided_at to be set on accept")
 	}
 
-	// 2. repeating the accept is a status no-op: allowed, no second event
+	// 2. repeating the accept is rejected (submitting the same status is
+	//    a client error, not a no-op): no second event
 	rec = doJSON(t, mux, http.MethodPatch, "/api/collections/suggestions/records/suggpending0001",
 		`{"status":"accepted"}`, authHeader(t, emailBeirat))
-	if rec.Code != 200 {
-		t.Fatalf("expected 200 (same status = no transition), got %d", rec.Code)
+	if rec.Code != 400 {
+		t.Fatalf("expected 400 (same status submitted = no valid transition), got %d", rec.Code)
 	}
 	if got := countRecords(t, app, "events"); got != eventsBefore+1 {
 		t.Fatalf("expected %d events after the repeated accept, got %d", eventsBefore+1, got)

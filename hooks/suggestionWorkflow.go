@@ -15,7 +15,10 @@ import (
 //	pending --> rejected (sets decided_at)
 //
 // Any other status change (e.g. accepted -> pending, accepted -> rejected,
-// rejected -> ...) is rejected with 400.
+// rejected -> ...) is rejected with 400; submitting the SAME status as the
+// stored one is rejected as well (M4 review decision: a repeated accept is
+// a client error, not a no-op). decided_at is owned by the hook alone: the
+// stored value is restored on every update, so a client can never forge it.
 //
 // The events record is created in the SAME transaction as the suggestion
 // update: OnRecordUpdateExecute wraps the persist and the event insert in a
@@ -26,8 +29,23 @@ func SuggestionWorkflow(app core.App) {
 		oldStatus := e.Record.Original().GetString("status")
 		newStatus := e.Record.GetString("status")
 
-		// no status change -> a beirat edit of the suggestion fields, allowed
+		// decided_at is hook-owned: restore the stored value, the
+		// transition branches below set it when appropriate
+		e.Record.Set("decided_at", e.Record.Original().Get("decided_at"))
+
 		if oldStatus == newStatus {
+			info, err := e.RequestInfo()
+			if err != nil {
+				return e.BadRequestError("Failed to read the submitted data.", err)
+			}
+
+			// the same status is not a transition: submitting it anyway
+			// is a client error (e.g. a double-clicked accept)
+			if _, statusSubmitted := info.Body["status"]; statusSubmitted {
+				return e.BadRequestError("The suggestion is already in the status \""+oldStatus+"\". The status must only be submitted when it changes.", nil)
+			}
+
+			// no status submitted -> a beirat edit of the suggestion fields, allowed
 			return e.Next()
 		}
 

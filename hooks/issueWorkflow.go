@@ -12,20 +12,42 @@ import (
 //	   \--reject (beirat)--> rejected
 //
 // Anything else (e.g. resolved -> pending or a direct open -> resolved jump)
-// is rejected with 400. The collection rules (beirat/HM whitelists) are the
-// first gate; this hook is the second one.
+// is rejected with 400. Submitting the SAME status as the stored one is also
+// rejected (M4 review decision: a repeated accept is a client error, not a
+// no-op). The collection rules (beirat/HM whitelists) are the first gate;
+// this hook is the second one.
+//
+// decided_at / resolved_at are owned by the hook alone: the stored values
+// are restored on every update, so a client can never forge them (the
+// beirat update rule is far more permissive than the hausmeister one).
 //
 // OnRecordUpdateRequest fires before the save, so the record can still be
-// amended: the hooks sets decided_at on accept/reject and resolved_at on
-// resolve. Updates without a status change (beirat edits of accepted issues)
-// are not blocked.
+// amended: the hook sets decided_at on accept/reject and resolved_at on
+// resolve. Updates that do not submit a status (beirat edits of accepted
+// issues) are not blocked.
 func IssueWorkflow(app core.App) {
 	app.OnRecordUpdateRequest("issues").BindFunc(func(e *core.RecordRequestEvent) error {
 		oldStatus := e.Record.Original().GetString("status")
 		newStatus := e.Record.GetString("status")
 
-		// no status change -> a beirat edit of the issue fields, allowed
+		// timestamp fields are hook-owned: restore the stored values,
+		// the transition branches below set them when appropriate
+		e.Record.Set("decided_at", e.Record.Original().Get("decided_at"))
+		e.Record.Set("resolved_at", e.Record.Original().Get("resolved_at"))
+
 		if oldStatus == newStatus {
+			info, err := e.RequestInfo()
+			if err != nil {
+				return e.BadRequestError("Failed to read the submitted data.", err)
+			}
+
+			// the same status is not a transition: submitting it anyway
+			// is a client error (e.g. a double-clicked accept)
+			if _, statusSubmitted := info.Body["status"]; statusSubmitted {
+				return e.BadRequestError("The report is already in the status \""+oldStatus+"\". The status must only be submitted when it changes.", nil)
+			}
+
+			// no status submitted -> a beirat edit of the issue fields, allowed
 			return e.Next()
 		}
 
