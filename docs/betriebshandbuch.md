@@ -7,36 +7,55 @@ PocketBase-Administration `/_/` — Superuser nur dort, wo unten genannt.
 
 ## Aufgaben des Beirats
 
-### 1. Bewohnerkonten freigeben (`/users`)
-- Neue Bewohner registrieren sich selbst; nach Bestätigung ihrer
+### 1. Eigentümerkonten freigeben (`/users`)
+- Konten sind **nur für Eigentümer**. Mieter nutzen die öffentlichen
+  Seiten (Aktuelles, Kalender, Kontakte, öffentliche Dokumente, Melden)
+  ohne Konto.
+- Eigentümer registrieren sich selbst; nach Bestätigung ihrer
   E-Mail-Adresse erscheinen sie unter „Warten auf Freigabe“.
-- Prüfen (gehört die Person zur Gemeinschaft?), dann **Freigeben**.
-  Erst freigegebene Konten sehen die Pinnwand.
-- **Auszug**: Freigabe **zurückziehen** — wirkt sofort, das Konto
-  verliert den Zugriff (Rolle „Bewohner“ bleibt für einen möglichen
-  Wiedereinzug erhalten, Name/E-Mail bleiben unverändert).
+- Prüfen (Eigentümer der Anlage?), dann **Freigeben**. Erst freigegebene
+  Konten sehen Pinnwand, Inhalte „Nur Eigentümer“ und „Mitreden“.
+- **Verkauf**: Freigabe **zurückziehen** — wirkt sofort. Eigentümer
+  können ihr Konto im Profil auch selbst löschen.
 
-### 2. Terminvorschläge bearbeiten (`/moderation`)
-- Vorschläge **annehmen** oder **ablehnen**; eine kurze Begründung
-  (Entscheidungsnotiz) wird dem Einreichenden per E-Mail mitgeteilt.
-- Angenommene Vorschläge erscheinen automatisch im öffentlichen Kalender.
+### 2. Moderation (`/moderation`)
+- **Vorschläge** (Termine): bei Bedarf **Bearbeiten** (Tippfehler,
+  Uhrzeit), **Kalender wählen** (Öffentlich, Eigentümer, Beirat), dann
+  annehmen oder ablehnen. Die Anmerkung geht per E-Mail an den Absender.
+- **Meldungen**: bei Bedarf bearbeiten, dann annehmen (Sichtbarkeit
+  wählen: Gemeinschaft oder nur intern) oder ablehnen.
+- **Themen** für die Eigentümerversammlung: aufnehmen oder nicht
+  aufnehmen; der Eigentümer erhält die Entscheidung per E-Mail.
+  Aufgenommene Themen an die Verwaltung weitergeben.
 
 ### 3. Meldungen bearbeiten (`/issues`)
-- Jede Meldung **annehmen** (dabei Sichtbarkeit wählen:
-  „für die Gemeinschaft sichtbar“ oder „nur intern (privat)“) oder
-  **ablehnen**. Die Entscheidung geht per E-Mail an die hinterlegte
-  Adresse.
-- Status pflegen: offen → in Arbeit → erledigt (Beirat und Hausmeister).
-  Auch hier erhalten die Einreichenden automatisch eine E-Mail.
-- Bei Meldungen mit Fotos gilt: Foto-Einwilligung wurde beim Einreichen
-  eingeholt.
+- Status pflegen: angenommen → in Bearbeitung → erledigt (Beirat und
+  Hausmeister). Die Einreichenden erhalten automatisch eine E-Mail.
+- **Verlauf und Notizen** (nur Beirat, Hausmeister, Hausverwaltung):
+  jede Statusänderung wird protokolliert; interne Notizen festhalten,
+  z. B. „Firma beauftragt, Termin am …“. Notizen gehen nie an
+  Eigentümer oder Einreichende.
 
-### 4. Interne Notizen (`/notes`)
-- Notizen für den Beirat anlegen, anpinnen, bearbeiten, löschen. Nur der
-  Beirat sieht diesen Bereich.
+### 4. Inhalte pflegen
+- **Aktuelles** (`/aktuelles`): Aushänge öffentlich oder „Nur
+  Eigentümer“ veröffentlichen, optional anheften oder mit Ablaufdatum.
+  Eigentümer mit aktivierter Benachrichtigung erhalten eine E-Mail.
+- **Kalender** (`/kalender`): drei Kalender — Öffentlich, Eigentümer,
+  Beirat. Termine über „Neuer Termin“ anlegen, auch wiederkehrend.
+- **Dokumente** (`/dokumente`): Hausordnung öffentlich, Protokolle,
+  Beschlüsse, Abrechnungen „Nur Eigentümer“. Die verbindliche
+  Beschluss-Sammlung (§ 24 WEG) führt weiterhin die Verwaltung.
+- **Kontakte** (`/kontakte`): Notdienste, Beirat, Verwaltung,
+  Hausmeister. Vor dem Eintragen von Personen deren Einverständnis
+  einholen.
+- **Umfragen** (`/mitreden`): nur **unverbindliche** Meinungsbilder;
+  Beschlüsse fasst ausschließlich die Eigentümerversammlung. Antworten
+  können nach der ersten Stimme nicht mehr geändert werden. Einzelne
+  Stimmen sieht niemand, nur das Gesamtergebnis.
+- **Interne Notizen** (`/notes`): nur für den Beirat.
 
 ### 5. Wer kontaktiert wen?
-- Bewohner mit Fragen (Termin nicht sichtbar, Meldung, Zugangsprobleme)
+- Eigentümer und Mieter mit Fragen (Termin nicht sichtbar, Meldung, Zugangsprobleme)
   → **Beirat** (TODO(Beirat): E-Mail-Adresse des Beirats eintragen).
 - Beirat bei technischen Problemen, Rollenänderungen
   (Hausmeister/Hausverwaltung/Beirat) oder Löschfristen → **Superuser**

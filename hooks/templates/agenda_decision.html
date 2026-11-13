@@ -1,0 +1,19 @@
+{{ define "body" }}
+    <p>Hallo,</p>
+
+    {{ if eq .Decision "accepted" }}
+    <p>der Beirat hat Ihr Thema &bdquo;{{ .Title }}&ldquo; für die nächste Eigentümerversammlung <strong>angenommen</strong> und gibt es an die Verwaltung weiter.</p>
+    {{ else }}
+    <p>der Beirat hat Ihr Thema &bdquo;{{ .Title }}&ldquo; <strong>nicht</strong> für die nächste Eigentümerversammlung aufgenommen.</p>
+    {{ end }}
+
+    {{ if .DecisionNote }}
+    <blockquote>Anmerkung des Beirats: {{ .DecisionNote }}</blockquote>
+    {{ end }}
+
+    <p><a href="{{ .Link }}">Im Portal ansehen</a></p>
+
+    <hr />
+
+    <small>Dies ist eine automatische Nachricht des WEG-Portals. Bitte antworten Sie nicht auf diese E-Mail.</small>
+{{ end }}

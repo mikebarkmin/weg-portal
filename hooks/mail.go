@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/mail"
+	"strings"
+	"time"
 
 	"ganigeorgiev.com/pocketbase/dbx"
 	"ganigeorgiev.com/pocketbase/pocketbase/apis"
@@ -36,7 +38,7 @@ func Mail(app core.App) {
 	app.OnRecordAfterCreateSuccess("suggestions").BindFunc(func(e *core.RecordEvent) error {
 		title := e.Record.GetString("title")
 		description := e.Record.GetString("description")
-		dateStart := e.Record.GetString("date_start")
+		dateStart := formatMailDate(e.Record.GetDateTime("date_start").Time(), e.Record.GetBool("all_day"))
 		location := e.Record.GetString("location")
 		category := e.Record.GetString("category")
 		email := e.Record.GetString("email")
@@ -44,6 +46,7 @@ func Mail(app core.App) {
 		notifyAsync(app, func() {
 			data := mailBeiratSuggestionData{
 				AppName:     app.Settings().Meta.AppName,
+				Link:        portalLink(app, "/moderation"),
 				Title:       title,
 				Description: description,
 				DateStart:   dateStart,
@@ -79,6 +82,7 @@ func Mail(app core.App) {
 		notifyAsync(app, func() {
 			data := mailBeiratIssueData{
 				AppName:     app.Settings().Meta.AppName,
+				Link:        portalLink(app, "/moderation"),
 				Title:       title,
 				Description: description,
 				Category:    category,
@@ -120,6 +124,7 @@ func Mail(app core.App) {
 		notifyAsync(app, func() {
 			data := mailSubmitterData{
 				AppName:      app.Settings().Meta.AppName,
+				Link:         portalLink(app, "/"),
 				Decision:     newStatus,
 				DecisionNote: decisionNote,
 			}
@@ -187,6 +192,7 @@ func Mail(app core.App) {
 			if submitter != "" {
 				data := mailSubmitterData{
 					AppName:  app.Settings().Meta.AppName,
+					Link:     portalLink(app, "/"),
 					Decision: issueSubmitterDecisionKey(oldStatus, newStatus),
 				}
 
@@ -212,6 +218,7 @@ func Mail(app core.App) {
 
 			data := mailStaffIssueData{
 				AppName:    app.Settings().Meta.AppName,
+				Link:       portalLink(app, "/issues/"+issueId),
 				Title:      title,
 				Category:   category,
 				Visibility: visibility,
@@ -396,7 +403,28 @@ func issueSubmitterSubject(newStatus string) string {
 		return "Ihre Meldung im WEG-Portal wurde erledigt"
 	}
 
-	return "Ihre Meldung im WEG-Portal: Statusaenderung"
+	return "Ihre Meldung im WEG-Portal: Statusänderung"
+}
+
+// portalLink returns the absolute URL of an SPA path. Mail clients cannot
+// resolve relative links, so every link is built from the configured
+// application URL (Settings > Application URL, see docs/deploy.md).
+func portalLink(app core.App, path string) string {
+	return strings.TrimRight(app.Settings().Meta.AppURL, "/") + path
+}
+
+// formatMailDate renders a stored date for German readers: all-day values
+// are calendar dates (stored as UTC midnight, see hooks/ical.go allDayDate),
+// timed values are converted to the portal time zone (hooks/timezone.go).
+func formatMailDate(t time.Time, allDay bool) string {
+	if t.IsZero() {
+		return ""
+	}
+	if allDay {
+		return allDayDate(t).Format("02.01.2006") + " (ganztägig)"
+	}
+	loc, _ := mustPortalLocation()
+	return t.In(loc).Format("02.01.2006, 15:04") + " Uhr"
 }
 
 // --------------------------------------------------------------------
@@ -408,6 +436,7 @@ func issueSubmitterSubject(newStatus string) string {
 // trustworthy Beirat decision_note. No user-supplied content!
 type mailSubmitterData struct {
 	AppName      string
+	Link         string
 	Decision     string // accepted | rejected | in_progress | resolved
 	DecisionNote string // Beirat-authored, trusted
 }
@@ -416,6 +445,7 @@ type mailSubmitterData struct {
 // (internal recipients may see the content).
 type mailBeiratSuggestionData struct {
 	AppName     string
+	Link        string
 	Title       string
 	Description string
 	DateStart   string
@@ -427,6 +457,7 @@ type mailBeiratSuggestionData struct {
 // mailBeiratIssueData is the data for the new-issue beirat mail.
 type mailBeiratIssueData struct {
 	AppName     string
+	Link        string
 	Title       string
 	Description string
 	Category    string
@@ -438,6 +469,7 @@ type mailBeiratIssueData struct {
 // (hausmeister/hausverwaltung with notify_new_issues = true).
 type mailStaffIssueData struct {
 	AppName    string
+	Link       string
 	Title      string
 	Category   string
 	Visibility string

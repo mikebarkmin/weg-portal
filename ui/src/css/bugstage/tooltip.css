@@ -1,0 +1,39 @@
+.app-tooltip {
+    position: fixed;
+    z-index: 99999;
+    max-width: 300px;
+    min-width: 30px;
+    text-align: center;
+    white-space: pre-line;
+    word-break: break-word;
+    background: var(--tooltipSurfaceColor);
+    border-radius: var(--borderRadius);
+    color: var(--tooltipTxtColor);
+    font-weight: normal;
+    font-size: var(--smFontSize);
+    line-height: var(--smLineHeight);
+    font-family: var(--baseFontFamily);
+    padding: 3px 8px;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.95);
+    transition:
+        opacity var(--slideAnimationSpeed),
+        transform var(--slideAnimationSpeed),
+        display var(--slideAnimationSpeed) allow-discrete;
+            transition-delay: 0s;
+    &:popover-open {
+        display: block;
+        opacity: 1;
+        transform: scale(1);
+        transition-delay: var(--slideAnimationSpeed);
+        /* disable the delay to avoid glitches when quick hovering on close tooltip items */
+        &[data-entered="true"] {
+            transition-delay: 0s;
+        }
+        @starting-style {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+    }
+}

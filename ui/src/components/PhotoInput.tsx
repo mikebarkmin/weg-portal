@@ -96,10 +96,11 @@ export default function PhotoInput({ photos, onChange }: PhotoInputProps) {
                             />
                             <button
                                 type="button"
-                                className="btn btn-outline photo-remove"
+                                className="btn sm secondary photo-remove"
                                 onClick={() => removePhoto(photo.id)}
                             >
-                                {t("issue.photos.remove")}
+                                <i className="ri-delete-bin-line" aria-hidden="true" />
+                                <span className="txt">{t("issue.photos.remove")}</span>
                             </button>
                         </li>
                     ))}
@@ -108,11 +109,12 @@ export default function PhotoInput({ photos, onChange }: PhotoInputProps) {
 
             <button
                 type="button"
-                className="btn btn-outline"
+                className={`btn sm secondary ${busy ? "loading" : ""}`}
                 disabled={busy || photos.length >= MAX_PHOTOS}
                 onClick={() => inputRef.current?.click()}
             >
-                {busy ? t("issue.photos.processing") : t("issue.photos.add")}
+                <i className="ri-camera-line" aria-hidden="true" />
+                <span className="txt">{busy ? t("issue.photos.processing") : t("issue.photos.add")}</span>
             </button>
             {/* the native picker reports HEIC files as image/heic; the
                 accept list filters them where the OS honors it */}
@@ -128,8 +130,8 @@ export default function PhotoInput({ photos, onChange }: PhotoInputProps) {
                     event.target.value = ""; // allow re-adding the same file
                 }}
             />
-            <p className="hint">{t("issue.photos.hint", { count: MAX_PHOTOS })}</p>
-            {message && <p className="field-error">{message}</p>}
+            <div className="field-help">{t("issue.photos.hint", { count: MAX_PHOTOS })}</div>
+            {message && <div className="field-help error" role="alert">{message}</div>}
         </div>
     );
 }

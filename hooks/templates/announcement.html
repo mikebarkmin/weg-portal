@@ -1,0 +1,19 @@
+{{ define "body" }}
+    <p>Hallo,</p>
+
+    <p>im WEG-Portal gibt es einen neuen Aushang:</p>
+
+    <blockquote>
+        <p><strong>{{ .Title }}</strong></p>
+        <p style="white-space: pre-wrap">{{ .Body }}</p>
+    </blockquote>
+
+    <p><a href="{{ .Link }}">Im Portal lesen</a></p>
+
+    <hr />
+
+    <small>
+        Sie erhalten diese Nachricht, weil Sie Benachrichtigungen zu Aushängen aktiviert haben.
+        Sie können sie im Portal unter &bdquo;Profil&ldquo; abschalten.
+    </small>
+{{ end }}

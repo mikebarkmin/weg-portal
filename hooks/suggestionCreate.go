@@ -30,8 +30,17 @@ func SuggestionCreate(app core.App) {
 			return e.BadRequestError("Failed to submit the suggestion.", nil)
 		}
 
+		// the submitting account (if logged in) is set by the server only;
+		// the target calendar is the Beirat's decision (public by default)
+		e.Record.Set("user", "")
+		if e.Auth != nil && e.Auth.Collection().Name == "users" {
+			e.Record.Set("user", e.Auth.Id)
+		}
+		e.Record.Set("calendar", "")
+
 		// never echo the submitter email back in the create response
 		e.Record.Hide("email")
+		e.Record.Hide("user")
 
 		return e.Next()
 	})

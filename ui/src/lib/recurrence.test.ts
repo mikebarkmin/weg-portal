@@ -108,7 +108,9 @@ describe("expandOccurrences", () => {
     });
 
     it("shows recurring events that started long before the range", () => {
-        // weekly Mondays, first occurrence 2025-06-02 (a Monday)
+        // weekly Mondays, first occurrence 2025-06-02 (a Monday) at
+        // 20:00 CEST; the series keeps 20:00 Berlin time, which is
+        // 19:00Z in February (CET)
         const event = makeEvent({
             date_start: "2025-06-02 18:00:00.000Z",
             rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO",
@@ -117,10 +119,10 @@ describe("expandOccurrences", () => {
         expect(
             occurrences.map((o) => o.start.toISOString()),
         ).toEqual([
-            "2026-02-02T18:00:00.000Z",
-            "2026-02-09T18:00:00.000Z",
-            "2026-02-16T18:00:00.000Z",
-            "2026-02-23T18:00:00.000Z",
+            "2026-02-02T19:00:00.000Z",
+            "2026-02-09T19:00:00.000Z",
+            "2026-02-16T19:00:00.000Z",
+            "2026-02-23T19:00:00.000Z",
         ]);
     });
 
@@ -188,11 +190,12 @@ describe("expandOccurrences", () => {
         });
         const occurrences = expandOccurrences(event, rangeStart, rangeEnd);
         expect(occurrences).toHaveLength(4);
+        // 20:00-22:00 Berlin time, in February = 19:00Z-21:00Z
         expect(occurrences[0]!.start.toISOString()).toBe(
-            "2026-02-02T18:00:00.000Z",
+            "2026-02-02T19:00:00.000Z",
         );
         expect(occurrences[0]!.end?.toISOString()).toBe(
-            "2026-02-02T20:00:00.000Z",
+            "2026-02-02T21:00:00.000Z",
         );
     });
 });
@@ -283,5 +286,99 @@ describe("parseRule", () => {
         const monthly = parseRule("FREQ=MONTHLY;UNTIL=20260601T000000Z");
         expect(monthly?.until?.toISOString()).toBe("2026-06-01T00:00:00.000Z");
         expect(parseRule("FREQ=DAILY")?.freq).toBe("DAILY");
+    });
+});
+
+describe("all-day events", () => {
+    const dec = { start: new Date(2026, 11, 1), end: new Date(2027, 0, 1) };
+
+    it("places an all-day event on its calendar date in local time", () => {
+        const event = makeEvent({ all_day: true, date_start: "2026-12-24 00:00:00.000Z" });
+        const byDay = expandAll([event], dec.start, dec.end);
+        expect([...byDay.keys()]).toEqual(["2026-12-24"]);
+    });
+
+    it("maps legacy local-midnight values (23:00Z of the previous day) to the intended date", () => {
+        const event = makeEvent({ all_day: true, date_start: "2026-12-23 23:00:00.000Z" });
+        const byDay = expandAll([event], dec.start, dec.end);
+        expect([...byDay.keys()]).toEqual(["2026-12-24"]);
+    });
+
+    it("covers every day of a multi-day all-day event", () => {
+        const event = makeEvent({
+            all_day: true,
+            date_start: "2026-12-24 00:00:00.000Z",
+            date_end: "2026-12-26 00:00:00.000Z",
+        });
+        const byDay = expandAll([event], dec.start, dec.end);
+        expect([...byDay.keys()]).toEqual(["2026-12-24", "2026-12-25", "2026-12-26"]);
+    });
+
+    it("keeps recurring all-day occurrences on their dates across DST", () => {
+        // weekly on Sundays from the summer into the winter
+        const event = makeEvent({
+            all_day: true,
+            date_start: "2026-10-18 00:00:00.000Z",
+            rrule: "FREQ=WEEKLY;COUNT=4",
+        });
+        const byDay = expandAll([event], new Date(2026, 9, 1), new Date(2026, 11, 1));
+        expect([...byDay.keys()]).toEqual(["2026-10-18", "2026-10-25", "2026-11-01", "2026-11-08"]);
+    });
+});
+
+describe("recurring timed events in the portal time zone", () => {
+    const berlinTime = (date: Date) =>
+        new Intl.DateTimeFormat("de-DE", {
+            timeZone: "Europe/Berlin",
+            hour: "2-digit",
+            minute: "2-digit",
+        }).format(date);
+
+    it("keeps the local time across the autumn DST change", () => {
+        // Tuesdays 18:30 CEST, 4 times: 20 Oct, 27 Oct (CET), 3 Nov, 10 Nov
+        const event = makeEvent({
+            date_start: "2026-10-20 16:30:00.000Z",
+            date_end: "2026-10-20 17:30:00.000Z",
+            rrule: "FREQ=WEEKLY;COUNT=4",
+        });
+        const occurrences = expandOccurrences(event, new Date("2026-10-01T00:00:00Z"), new Date("2026-12-01T00:00:00Z"));
+        expect(occurrences.map((o) => o.start.toISOString())).toEqual([
+            "2026-10-20T16:30:00.000Z",
+            "2026-10-27T17:30:00.000Z",
+            "2026-11-03T17:30:00.000Z",
+            "2026-11-10T17:30:00.000Z",
+        ]);
+        expect(occurrences.map((o) => berlinTime(o.start))).toEqual(["18:30", "18:30", "18:30", "18:30"]);
+        expect(occurrences.map((o) => berlinTime(o.end!))).toEqual(["19:30", "19:30", "19:30", "19:30"]);
+    });
+
+    it("keeps the local time across the spring DST change", () => {
+        const event = makeEvent({
+            date_start: "2027-03-20 18:00:00.000Z", // Sat 19:00 CET
+            rrule: "FREQ=DAILY;COUNT=10",
+        });
+        const occurrences = expandOccurrences(event, new Date("2027-03-01T00:00:00Z"), new Date("2027-04-01T00:00:00Z"));
+        expect(occurrences).toHaveLength(10);
+        expect(new Set(occurrences.map((o) => berlinTime(o.start)))).toEqual(new Set(["19:00"]));
+        expect(occurrences[9]!.start.toISOString()).toBe("2027-03-29T17:00:00.000Z");
+    });
+
+    it("honours an UNTIL at the end of the last local day", () => {
+        const event = makeEvent({
+            date_start: "2026-11-03 17:30:00.000Z",
+            rrule: "FREQ=WEEKLY;UNTIL=20261117T235959Z",
+        });
+        const occurrences = expandOccurrences(event, new Date("2026-11-01T00:00:00Z"), new Date("2026-12-01T00:00:00Z"));
+        expect(occurrences.map((o) => o.start.toISOString())).toEqual([
+            "2026-11-03T17:30:00.000Z",
+            "2026-11-10T17:30:00.000Z",
+            "2026-11-17T17:30:00.000Z",
+        ]);
+    });
+
+    it("leaves single timed events untouched", () => {
+        const event = makeEvent({ date_start: "2026-07-01 18:00:00.000Z" });
+        const [occurrence] = expandOccurrences(event, new Date("2026-07-01T00:00:00Z"), new Date("2026-07-02T00:00:00Z"));
+        expect(occurrence!.start.toISOString()).toBe("2026-07-01T18:00:00.000Z");
     });
 });

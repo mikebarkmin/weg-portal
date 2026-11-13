@@ -12,7 +12,13 @@ import {
     pbDateLiteral,
     weekdayLabels,
 } from "../lib/dates";
-import { expandAll, type Occurrence } from "../lib/recurrence";
+import { expandAll, parseRule, type Occurrence } from "../lib/recurrence";
+import { canShow, useAuth, useOwnerAccount } from "../lib/auth";
+import { CALENDARS, calendarOf, visibleCalendars } from "../lib/calendars";
+import type { CalendarId } from "../types";
+import PersonalFeed from "../components/PersonalFeed";
+import { MenuLink, Page, PageHeading, SidebarMenu } from "../components/Page";
+import CalendarBadge from "../components/CalendarBadge";
 import type { PortalEvent } from "../types";
 
 interface MonthState {
@@ -35,6 +41,13 @@ function occurrenceDayLink(occurrence: Occurrence): string {
 export default function PublicCalendar() {
     const { t, i18n } = useTranslation();
     const locale = i18n.language;
+    const auth = useAuth();
+    const isOwner = useOwnerAccount();
+    const [showPast, setShowPast] = useState(false);
+    const calendars = visibleCalendars(auth.role, isOwner);
+    const [hidden, setHidden] = useState<CalendarId[]>([]);
+    const toggleCalendar = (id: CalendarId) =>
+        setHidden((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
 
     const [month, setMonth] = useState(() => {
         const now = new Date();
@@ -97,11 +110,16 @@ export default function PublicCalendar() {
         return () => {
             active = false;
         };
-    }, [range.startLiteral, range.endLiteral]);
+    }, [range.startLiteral, range.endLiteral, auth.isAuthenticated, auth.role]);
+
+    const shownEvents = useMemo(
+        () => state.events.filter((event) => !hidden.includes(calendarOf(event))),
+        [state.events, hidden],
+    );
 
     const byDay = useMemo(
-        () => expandAll(state.events, range.start, range.end),
-        [state.events, range.start, range.end],
+        () => expandAll(shownEvents, range.start, range.end),
+        [shownEvents, range.start, range.end],
     );
 
     // grid cells: 6 weeks starting on the Monday before the 1st
@@ -119,6 +137,15 @@ export default function PublicCalendar() {
     const weekdays = weekdayLabels(locale);
     const todayKey = dayKeyOf(new Date());
 
+    // The list below the grid: in the current month it starts today
+    // (earlier days can be shown on request); a recurring series appears
+    // only once - on its first day in the list - with its rule summary,
+    // instead of flooding the list with every repetition.
+    const isCurrentMonth = useMemo(() => {
+        const now = new Date();
+        return now.getFullYear() === month.getFullYear() && now.getMonth() === month.getMonth();
+    }, [month]);
+
     const monthList = useMemo(() => {
         const days: string[] = [];
         const cursor = new Date(range.start);
@@ -126,16 +153,59 @@ export default function PublicCalendar() {
             days.push(dayKeyOf(cursor));
             cursor.setDate(cursor.getDate() + 1);
         }
-        return days
-            .map((key) => ({ key, occurrences: byDay.get(key) ?? [] }))
-            .filter((day) => day.occurrences.length > 0);
-    }, [byDay, range.start, range.end]);
+        const fromKey = isCurrentMonth && !showPast ? todayKey : "";
+        const seenSeries = new Set<string>();
+        let hiddenPast = 0;
+        const list: { key: string; date: Date; occurrences: Occurrence[] }[] = [];
+        for (const key of days) {
+            const all = byDay.get(key) ?? [];
+            if (key < fromKey) {
+                hiddenPast += all.length > 0 ? 1 : 0;
+                continue;
+            }
+            const occurrences = all.filter((occurrence) => {
+                const event = occurrence.event;
+                if (!event.rrule) {
+                    // multi-day single events are listed on their first visible day only
+                    const id = `single:${event.id}`;
+                    if (seenSeries.has(id)) return false;
+                    seenSeries.add(id);
+                    return true;
+                }
+                if (seenSeries.has(event.id)) return false;
+                seenSeries.add(event.id);
+                return true;
+            });
+            if (occurrences.length > 0) {
+                const [y, m, d] = key.split("-").map(Number);
+                list.push({ key, date: new Date(y!, m! - 1, d!), occurrences });
+            }
+        }
+        return { list, hiddenPast };
+    }, [byDay, range.start, range.end, isCurrentMonth, showPast, todayKey]);
+
+    const ruleText = (event: PortalEvent): string => {
+        const summary = parseRule(event.rrule);
+        if (!summary) return "";
+        if (summary.interval > 1) {
+            const keys: Record<string, string> = {
+                DAILY: "recurrence.intervalDays",
+                WEEKLY: "recurrence.intervalWeeks",
+                MONTHLY: "recurrence.intervalMonths",
+                YEARLY: "recurrence.intervalYears",
+            };
+            return t(keys[summary.freq]!, { count: summary.interval });
+        }
+        return t(`recurrence.${summary.freq.toLowerCase()}`);
+    };
 
     const shiftMonth = (delta: number) => {
+        setShowPast(false);
         setMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
     };
 
     const goToday = () => {
+        setShowPast(false);
         const now = new Date();
         setMonth(new Date(now.getFullYear(), now.getMonth(), 1));
     };
@@ -151,45 +221,82 @@ export default function PublicCalendar() {
     };
 
     return (
-        <>
-            <div className="cal-toolbar">
-                <h1 className="cal-title">{formatMonthTitle(month, locale)}</h1>
-                <div className="cal-actions">
-                    <button
-                        type="button"
-                        className="btn btn-outline"
-                        aria-label={t("calendar.previousMonth")}
-                        onClick={() => shiftMonth(-1)}
-                    >
-                        ‹
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={goToday}
-                    >
-                        {t("calendar.currentMonth")}
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-outline"
-                        aria-label={t("calendar.nextMonth")}
-                        onClick={() => shiftMonth(1)}
-                    >
-                        ›
-                    </button>
-                    <a className="btn" href={buildIcalUrl()}>
-                        {t("calendar.subscribe")}
-                    </a>
-                </div>
-            </div>
-            <p className="hint" aria-live="polite">
-                {state.loading
-                    ? t("calendar.loading")
-                    : state.error
-                      ? t("calendar.error")
-                      : t("calendar.subscribeHint")}
-            </p>
+        <Page
+            sidebar={
+                <>
+                    {calendars.length > 1 && (
+                        <SidebarMenu title={t("calendars.label")}>
+                            {CALENDARS.filter((c) => calendars.includes(c.id)).map((c) => (
+                                <button
+                                    key={c.id}
+                                    type="button"
+                                    className={`menu-item calendar-toggle calendar-${c.id} ${hidden.includes(c.id) ? "off" : "active"}`}
+                                    aria-pressed={!hidden.includes(c.id)}
+                                    onClick={() => toggleCalendar(c.id)}
+                                >
+                                    <span className="calendar-swatch" aria-hidden="true" />
+                                    <span className="txt">{t(`calendars.${c.id}`)}</span>
+                                </button>
+                            ))}
+                        </SidebarMenu>
+                    )}
+                    <SidebarMenu>
+                        <MenuLink to="/suggestions/new" icon="ri-calendar-event-line">
+                            {t("nav.newSuggestion")}
+                        </MenuLink>
+                        {canShow(auth.role) && (
+                            <MenuLink to="/events/new" icon="ri-add-line">
+                                {t("calendar.newEvent")}
+                            </MenuLink>
+                        )}
+                    </SidebarMenu>
+                    <SidebarMenu title={t("calendar.subscribeTitle")} secondary>
+                        {auth.isAuthenticated ? (
+                            <PersonalFeed />
+                        ) : (
+                            <>
+                                <a className="menu-item" href={buildIcalUrl()}>
+                                    <i className="ri-rss-line" aria-hidden="true" />
+                                    <span className="txt">{t("calendar.subscribe")}</span>
+                                </a>
+                                <p className="txt-hint txt-sm m-0">{t("calendar.subscribeHint")}</p>
+                            </>
+                        )}
+                    </SidebarMenu>
+                </>
+            }
+        >
+            <PageHeading title={formatMonthTitle(month, locale)}>
+                <button
+                    type="button"
+                    className="btn sm circle secondary"
+                    aria-label={t("calendar.previousMonth")}
+                    onClick={() => shiftMonth(-1)}
+                >
+                    <i className="ri-arrow-left-s-line" aria-hidden="true" />
+                </button>
+                <button
+                    type="button"
+                    className="btn sm secondary"
+                    disabled={isCurrentMonth}
+                    onClick={goToday}
+                >
+                    {t("calendar.currentMonth")}
+                </button>
+                <button
+                    type="button"
+                    className="btn sm circle secondary"
+                    aria-label={t("calendar.nextMonth")}
+                    onClick={() => shiftMonth(1)}
+                >
+                    <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                </button>
+            </PageHeading>
+
+            {state.loading && (
+                <p className="txt-hint" aria-live="polite">{t("calendar.loading")}</p>
+            )}
+            {state.error && <div className="alert danger m-b-sm">{t("calendar.error")}</div>}
 
             <div className="cal-grid">
                 {weekdays.map((label, i) => (
@@ -207,21 +314,17 @@ export default function PublicCalendar() {
                             key={key}
                             className={[
                                 "cal-cell",
-                                date.getMonth() !== month.getMonth()
-                                    ? "other"
-                                    : "",
+                                date.getMonth() !== month.getMonth() ? "other" : "",
                                 key === todayKey ? "today" : "",
                             ]
                                 .join(" ")
                                 .trim()}
                         >
-                            <span className="cal-cell-num">
-                                {date.getDate()}
-                            </span>
+                            <span className="cal-cell-num">{date.getDate()}</span>
                             {visible.map((occurrence, i) => (
                                 <Link
                                     key={i}
-                                    className="cal-chip"
+                                    className={`cal-chip calendar-${calendarOf(occurrence.event)}`}
                                     to={occurrenceDayLink(occurrence)}
                                     title={occurrence.event.title}
                                 >
@@ -233,42 +336,98 @@ export default function PublicCalendar() {
                                     {t("calendar.more", { count: hidden })}
                                 </span>
                             )}
+                            {/* phones: dots instead of cut-off titles */}
+                            {occurrences.length > 0 && (
+                                <span
+                                    className="cal-dots"
+                                    aria-label={t("calendar.eventCount", { count: occurrences.length })}
+                                >
+                                    {occurrences.slice(0, 3).map((o, i) => (
+                                        <span key={i} className={`cal-dot calendar-${calendarOf(o.event)}`} />
+                                    ))}
+                                </span>
+                            )}
                         </div>
                     );
                 })}
             </div>
 
             <section className="month-events" aria-label={t("calendar.monthEvents")}>
-                <h2>{t("calendar.monthEvents")}</h2>
-                {monthList.map(({ key, occurrences }) => (
-                    <div key={key} className="event-day">
-                        <h3 className="event-day-title">
-                            {formatShortDate(occurrences[0]!.start, locale)}
-                        </h3>
-                        {occurrences.map((occurrence, i) => (
-                            <div key={i} className="event-item">
-                                <span className="event-time">
-                                    {occurrenceLabel(occurrence)}
+                <header className="page-heading">
+                    <h2 className="title">{t("calendar.monthEvents")}</h2>
+                    {monthList.hiddenPast > 0 && (
+                        <>
+                            <div className="flex-fill" />
+                            <button
+                                type="button"
+                                className="btn sm secondary transparent"
+                                onClick={() => setShowPast(true)}
+                            >
+                                <i className="ri-history-line" aria-hidden="true" />
+                                <span className="txt">
+                                    {t("calendar.showPast", { count: monthList.hiddenPast })}
                                 </span>
+                            </button>
+                        </>
+                    )}
+                </header>
+                {monthList.list.length > 0 && (
+                    <div className="list event-list">
+                        {monthList.list.map(({ key, date, occurrences }) =>
+                            occurrences.map((occurrence, i) => (
                                 <Link
-                                    className="event-title"
+                                    key={`${key}-${i}`}
+                                    className="list-item next event-row"
                                     to={occurrenceDayLink(occurrence)}
                                 >
-                                    {occurrence.event.title}
-                                </Link>
-                                {occurrence.event.category && (
-                                    <span className="event-category">
-                                        {occurrence.event.category}
+                                    <span className={`event-date calendar-${calendarOf(occurrence.event)} ${key === todayKey ? "today" : ""}`}>
+                                        <span className="event-date-day">{date.getDate()}</span>
+                                        <span className="event-date-weekday">
+                                            {key === todayKey
+                                                ? t("calendar.today")
+                                                : formatShortDate(date, locale).split(",")[0]}
+                                        </span>
                                     </span>
-                                )}
-                            </div>
-                        ))}
+                                    <span className="content">
+                                        <span className="event-title">{occurrence.event.title}</span>
+                                        <span className="meta">
+                                            <span className="meta-item">
+                                                <i className="ri-time-line" aria-hidden="true" />
+                                                {occurrenceLabel(occurrence)}
+                                            </span>
+                                            {occurrence.event.rrule && (
+                                                <span className="meta-item">
+                                                    <i className="ri-repeat-line" aria-hidden="true" />
+                                                    {ruleText(occurrence.event)}
+                                                </span>
+                                            )}
+                                            {occurrence.event.location && (
+                                                <span className="meta-item">
+                                                    <i className="ri-map-pin-line" aria-hidden="true" />
+                                                    {occurrence.event.location}
+                                                </span>
+                                            )}
+                                            {calendarOf(occurrence.event) !== "public" && (
+                                                <CalendarBadge calendar={calendarOf(occurrence.event)} />
+                                            )}
+                                            {occurrence.event.category && (
+                                                <span className="label sm">{occurrence.event.category}</span>
+                                            )}
+                                        </span>
+                                    </span>
+                                </Link>
+                            )),
+                        )}
                     </div>
-                ))}
-                {!state.loading &&
-                    !state.error &&
-                    monthList.length === 0 && <p>{t("calendar.noEvents")}</p>}
+                )}
+                {!state.loading && !state.error && monthList.list.length === 0 && (
+                    <div className="alert">
+                        {monthList.hiddenPast > 0
+                            ? t("calendar.noUpcomingEvents")
+                            : t("calendar.noEvents")}
+                    </div>
+                )}
             </section>
-        </>
+        </Page>
     );
 }

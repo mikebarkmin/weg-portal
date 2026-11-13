@@ -277,9 +277,56 @@ Calendar loading: query non-recurring events by date range, plus **all** events
 with a non-empty `rrule` (a range query would miss series that started earlier),
 then expand recurrences client-side.
 
+Dates and time zones (replaces the M6 review decision "UTC wall-clock
+semantics"):
+
+- Timed values are stored as UTC instants; the SPA converts form input from
+  the viewer's local time.
+- All-day values are calendar **dates**, stored as UTC midnight of that date
+  (`2026-12-24 00:00:00.000Z`) and exported as `VALUE=DATE`. Legacy values
+  holding local midnight in UTC are rounded to the nearest date.
+- Recurring **timed** events repeat at the same local wall time in the portal
+  time zone (`PORTAL_TIMEZONE`, IANA name, default `Europe/Berlin`, delivered
+  to the SPA by `GET /api/portal/config`). The SPA expands them in that zone;
+  the iCal export writes them as `DTSTART;TZID=<zone>:<local time>` plus a
+  generated `VTIMEZONE`. Single timed events stay `DTSTART:...Z`.
+- Mails show dates in the portal time zone.
+
+## Owner portal (post-M12 extension)
+
+Accounts are for **owners only**; tenants use the public pages without an
+account. "Owners" visibility therefore means *any approved, verified
+account* (owners, Beirat, Hausmeister, Hausverwaltung). Migration
+`1795000105_owner_portal.go`, hooks `ownerPortal.go` / `ownerMail.go`,
+tests `api_owner_portal_test.go`.
+
+| Collection | Purpose | Read | Write |
+|---|---|---|---|
+| `events.calendar` | three calendars: `public`, `owners`, `beirat` | public: all; owners: approved; beirat: B | B |
+| `announcements` | Aushänge (markdown, pinned, expiry) | public or owners, expired hidden (B sees all) | B, author = self, author immutable |
+| `contacts` | emergency services, Beirat, Verwaltung, Hausmeister | public or owners | B |
+| `documents` | protected file; view rule gates download (public docs need no token) | public or owners | B |
+| `issue_events` | status history (server-written) + internal notes | B, or staff for accepted issues | notes only: B/staff, actor = self |
+| `agenda_items` | topics for the owners' meeting, Beirat accepts/rejects | B; owners: own + accepted | owners create (pending, self); B decides |
+| `polls`, `poll_votes` | non-binding opinion polls; one vote per account | polls: approved; votes: own only | B creates polls; owners vote while open |
+
+- Results of polls only as aggregates (`GET /api/portal/polls/{id}/results`).
+- Logged-in submissions are linked (`issue_metas.user`, `suggestions.user`,
+  Beirat-only) and listed via `GET /api/portal/my-submissions`.
+- Personal iCal feed: `POST /api/portal/calendar-token` creates/renews a
+  secret; `calendar.ics?token=…` includes the calendars the account may see
+  *at request time*; `&calendar=` narrows it. Non-public events: `CLASS:PRIVATE`.
+- Opt-in mails (`notify_announcements`, `notify_events`) go to verified
+  accounts that can see the content, one mail per recipient.
+- Owners delete their own account; Beirat/staff accounts stay
+  superuser-managed. Optional references are cleared, votes deleted.
+- Polls are explicitly not resolutions (§ 23 WEG); the binding
+  Beschluss-Sammlung (§ 24 WEG) stays with the Verwaltung.
+
 ## Other planned items
 
-1. Recurring events: `rrule` string, expanded client-side; iCal export emits it as-is.
+1. Recurring events: `rrule` string, expanded client-side in the portal time
+   zone; iCal export emits it as-is (see "Dates and time zones").
 2. Beirat/staff notifications on new suggestions/issues (hooks).
 3. Email deliverability: SPF/DKIM/DMARC, SMTP provider.
 4. Legal: Impressum, Datenschutzerklärung, photo-consent checkbox.

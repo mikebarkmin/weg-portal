@@ -10,7 +10,13 @@ export interface PortalEvent {
     location: string;
     category: string;
     rrule: string;
+    // which of the three calendars the event belongs to (migration
+    // 1795000105); older API responses may lack it -> public
+    calendar?: CalendarId;
 }
+
+export type CalendarId = "public" | "owners" | "beirat";
+export type Visibility = "public" | "owners";
 
 // Calendar categories used for coloring chips (no styling yet, scaffold).
 export const EVENT_CATEGORIES = [
@@ -35,6 +41,8 @@ export interface PortalSuggestion {
     email: string;
     status: "pending" | "accepted" | "rejected";
     decision_note: string;
+    created?: string;
+    calendar?: CalendarId | "";
 }
 
 // Shared client-side view of the PocketBase `issues` records as shown on
@@ -42,9 +50,7 @@ export interface PortalSuggestion {
 // unhidden for beirat/hausmeister/hausverwaltung (enrich hook, M2) -
 // residents' records have no lat_exact/lng_exact and the rounded
 // lat/lng are used instead. `photos` holds the protected file names
-// (viewable only with a file token, plan.md "Files"). NOTE: the
-// collection has NO autodate fields (M1) - decided_at/resolved_at (set
-// by the workflow hook) are the only timestamps.
+// (viewable only with a file token, plan.md "Files").
 export interface PortalIssue {
     id: string;
     title: string;
@@ -57,6 +63,9 @@ export interface PortalIssue {
     photos: string[];
     decided_at: string;
     resolved_at: string;
+    // autodate, set by the server on create (migration 1795000104;
+    // empty for records created before it)
+    created?: string;
     lat_exact?: number;
     lng_exact?: number;
 }
@@ -92,4 +101,92 @@ export interface PortalNote {
             name: string;
         };
     };
+}
+
+export interface PortalAnnouncement {
+    id: string;
+    title: string;
+    body: string; // markdown
+    visibility: Visibility;
+    pinned: boolean;
+    expires_at: string;
+    author: string;
+    created: string;
+    updated: string;
+    expand?: { author?: { id: string; name: string } };
+}
+
+export type ContactCategory = "beirat" | "verwaltung" | "hausmeister" | "notdienst" | "sonstiges";
+
+export interface PortalContact {
+    id: string;
+    name: string;
+    function: string;
+    category: ContactCategory;
+    phone: string;
+    email: string;
+    note: string;
+    sort: number;
+    visibility: Visibility;
+}
+
+export type DocumentCategory =
+    | "hausordnung"
+    | "protokoll"
+    | "beschluss"
+    | "wirtschaftsplan"
+    | "abrechnung"
+    | "vertrag"
+    | "sonstiges";
+
+export interface PortalDocument {
+    id: string;
+    title: string;
+    description: string;
+    category: DocumentCategory;
+    file: string;
+    visibility: Visibility;
+    document_date: string;
+    created: string;
+}
+
+export interface IssueEvent {
+    id: string;
+    issue: string;
+    actor: string;
+    type: "status" | "note";
+    from_status: string;
+    to_status: string;
+    note: string;
+    created: string;
+    expand?: { actor?: { id: string; name: string } };
+}
+
+export interface AgendaItem {
+    id: string;
+    title: string;
+    description: string;
+    author: string;
+    status: "pending" | "accepted" | "rejected";
+    decision_note: string;
+    decided_at: string;
+    created: string;
+    expand?: { author?: { id: string; name: string } };
+}
+
+export interface Poll {
+    id: string;
+    question: string;
+    description: string;
+    options: string[];
+    closes_at: string;
+    created_by: string;
+    created: string;
+}
+
+export interface PollVote {
+    id: string;
+    poll: string;
+    user: string;
+    option: number;
 }

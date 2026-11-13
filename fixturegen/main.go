@@ -127,6 +127,7 @@ func run() error {
 
 	eventSimple := core.NewRecord(events)
 	eventSimple.Set("id", "eventsimple0001")
+	eventSimple.Set("calendar", "public")
 	eventSimple.Set("title", "Herbstputz")
 	eventSimple.Set("description", "Putzen des gemeinsamen Kellerflurs.")
 	eventSimple.Set("date_start", "2026-12-01 18:00:00.000Z")
@@ -139,6 +140,7 @@ func run() error {
 
 	eventRecurring := core.NewRecord(events)
 	eventRecurring.Set("id", "eventrecurring1")
+	eventRecurring.Set("calendar", "public")
 	eventRecurring.Set("title", "Muellplan leer?")
 	eventRecurring.Set("description", "Taegliche Kontrolle der Muelltonnen.")
 	eventRecurring.Set("date_start", "2026-11-01 08:00:00.000Z")
@@ -153,6 +155,7 @@ func run() error {
 	// no DTEND)
 	eventAllDaySingle := core.NewRecord(events)
 	eventAllDaySingle.Set("id", "eventallday0001")
+	eventAllDaySingle.Set("calendar", "public")
 	eventAllDaySingle.Set("title", "Gartenfest")
 	eventAllDaySingle.Set("description", "Gemeinsames Fest im Garten.")
 	eventAllDaySingle.Set("date_start", "2026-07-04 00:00:00.000Z")
@@ -168,6 +171,7 @@ func run() error {
 	// display of the SPA)
 	eventAllDayMulti := core.NewRecord(events)
 	eventAllDayMulti.Set("id", "eventallday0002")
+	eventAllDayMulti.Set("calendar", "public")
 	eventAllDayMulti.Set("title", "Fassadenreinigung")
 	eventAllDayMulti.Set("description", "Geruest steht, Zugaenge begrenzt.")
 	eventAllDayMulti.Set("date_start", "2026-08-14 00:00:00.000Z")
@@ -183,6 +187,7 @@ func run() error {
 	// backslash, newline) and a long description (iCal line folding)
 	eventEscaping := core.NewRecord(events)
 	eventEscaping.Set("id", "eventescapes001")
+	eventEscaping.Set("calendar", "public")
 	eventEscaping.Set("title", "Keller, Waschkeller; 2. OG")
 	eventEscaping.Set("description", "Der Keller, die Waschkueche sowie das 2. OG muessen geputzt werden. Beachtet die Hinweise am schwarzen Brett, den Plan im Ordner \\Gemeinschaft; Muelleimer vorher ausleeren.\nFragen an den Beirat.")
 	eventEscaping.Set("date_start", "2026-09-12 09:00:00.000Z")
@@ -354,7 +359,7 @@ func run() error {
 		return err
 	}
 
-	return nil
+	return seedOwnerPortal(app, events, "userresident000", beirat.Id)
 }
 
 func createUser(app core.App, users *core.Collection, id, email, role string, approved bool) *core.Record {

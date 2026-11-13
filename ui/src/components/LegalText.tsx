@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
 
+import { PageHeading, Wrapper } from "./Page";
+
 // Shared renderer for the two legal pages (M12). The legal TEXT lives
 // in the locale files (de.json); en.json carries the same German text
 // (legal texts are single-language) plus an English preface note that
@@ -16,22 +18,24 @@ export default function LegalText({ prefix }: { prefix: string }) {
     const blocks = t(`${prefix}.blocks`, { returnObjects: true }) as unknown as LegalBlock[];
 
     return (
-        <article className="card legal-text">
-            <p className="legal-draft" role="note">
+        <Wrapper>
+            <PageHeading title={t(`${prefix}.title`)} />
+            <div className="alert warning m-b-sm" role="note">
                 {t("legal.draftNotice")}
-            </p>
-            {i18n.language === "en" && (
-                <p className="legal-english-note">{t("legal.englishNote")}</p>
+            </div>
+            {i18n.language === "en" && t("legal.englishNote") && (
+                <div className="alert info m-b-sm">{t("legal.englishNote")}</div>
             )}
-            <h1>{t(`${prefix}.title`)}</h1>
-            {blocks.map((block) => (
-                <section className="legal-section" key={block.heading}>
-                    <h2>{block.heading}</h2>
-                    {block.paragraphs.map((paragraph, index) => (
-                        <p key={index}>{paragraph}</p>
-                    ))}
-                </section>
-            ))}
-        </article>
+            <article className="post legal-text markdown-preview">
+                {blocks.map((block) => (
+                    <section className="legal-section" key={block.heading}>
+                        <h2>{block.heading}</h2>
+                        {block.paragraphs.map((paragraph, index) => (
+                            <p key={index}>{paragraph}</p>
+                        ))}
+                    </section>
+                ))}
+            </article>
+        </Wrapper>
     );
 }

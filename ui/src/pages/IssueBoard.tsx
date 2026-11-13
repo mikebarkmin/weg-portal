@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
+import L from "leaflet";
+import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap } from "react-leaflet";
 
 import { pb } from "../lib/pbClient";
 import { useAuth } from "../lib/auth";
-import { ISSUE_STATUSES, ISSUE_BOUNDS, type IssueStatus } from "../lib/validation";
+import { ISSUE_STATUSES, type IssueStatus } from "../lib/validation";
+import { ACTIVE_ISSUE_STATUSES, positionOf, STATUS_ICONS } from "../lib/issues";
+import { formatShortDate } from "../lib/dates";
+import { parsePBDate } from "../lib/recurrence";
+import { cssColor } from "../lib/cssColor";
 import type { PortalIssue } from "../types";
 import StatusBadge from "../components/StatusBadge";
 import VisibilityChip from "../components/VisibilityChip";
+import ProtectedPhotos from "../components/ProtectedPhotos";
+import { issueLatLngBounds } from "../lib/issueBounds";
+import { MenuButton, Page, PageHeading, SidebarMenu } from "../components/Page";
 import "leaflet/dist/leaflet.css";
 
 // The issue board (M9): list + map of EXACTLY the issues the server
@@ -19,34 +27,31 @@ import "leaflet/dist/leaflet.css";
 // client-side beyond what arrives; the status/category filters below are
 // pure display filters (kept client-side so filter changes are instant
 // and the realtime subscription keeps ONE authoritative list).
-const STATUS_COLORS: Record<IssueStatus, string> = {
-    pending: "var(--surfaceAlt5Color)",
-    open: "var(--infoColor)",
-    in_progress: "var(--warningColor)",
-    resolved: "var(--successColor)",
-    rejected: "var(--dangerColor)",
+
+const STATUS_COLOR_VARS: Record<IssueStatus, string> = {
+    pending: "--surfaceAlt5Color",
+    open: "--infoColor",
+    in_progress: "--warningColor",
+    resolved: "--successColor",
+    rejected: "--dangerColor",
 };
 
-// Markers sit on the exact coordinates for viewers whose role may see them
-// (lat_exact/lng_exact are unhidden for beirat/HM/HV by the enrich hook) and
-// on the rounded ones otherwise. The role is checked EXPLICITLY: even if the
-// API ever shipped exact fields to a resident, no rendering path here would
-// place a marker on them (defense in depth on top of the enrich hook).
-export const SEES_EXACT_COORDS: ReadonlySet<string> = new Set([
-    "beirat",
-    "hausmeister",
-    "hausverwaltung",
-]);
+type StatusFilter = IssueStatus | "all" | "active";
 
-function positionOf(issue: PortalIssue, seesExact: boolean): [number, number] {
-    const useExact =
-        seesExact &&
-        typeof issue.lat_exact === "number" &&
-        typeof issue.lng_exact === "number";
-    return [
-        useExact ? (issue.lat_exact as number) : issue.lat,
-        useExact ? (issue.lng_exact as number) : issue.lng,
-    ];
+// Fits the map to the visible markers whenever the filtered set changes
+// (falls back to the community box when there is nothing to show).
+function FitToMarkers({ positions }: { positions: [number, number][] }) {
+    const map = useMap();
+    const key = positions.map((p) => p.join(",")).join(";");
+    useEffect(() => {
+        if (positions.length === 0) {
+            map.fitBounds(issueLatLngBounds(), { padding: [16, 16] });
+        } else {
+            map.fitBounds(L.latLngBounds(positions), { padding: [32, 32], maxZoom: 17 });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the positions' content
+    }, [map, key]);
+    return null;
 }
 
 // Board order: pending issues first (they wait for a Beirat decision),
@@ -68,13 +73,14 @@ export default function IssueBoard() {
     const navigate = useNavigate();
     const auth = useAuth();
     const isBeirat = auth.role === "beirat";
-    const seesExactCoords = SEES_EXACT_COORDS.has(auth.role);
+    const locale = useTranslation().i18n.language;
 
     const [items, setItems] = useState<PortalIssue[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const [statusFilter, setStatusFilter] = useState<IssueStatus | "all">("all");
+    // default: only what still needs attention (pending/open/in progress)
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
     const [categoryFilter, setCategoryFilter] = useState("");
 
     // ---- initial load (plus manual retry) ----
@@ -145,98 +151,125 @@ export default function IssueBoard() {
     const filtered = useMemo(() => {
         const needle = categoryFilter.trim().toLowerCase();
         return items.filter((item) => {
-            if (statusFilter !== "all" && item.status !== statusFilter) return false;
-            if (needle !== "" && !item.category.toLowerCase().includes(needle)) {
+            if (statusFilter === "active" && !ACTIVE_ISSUE_STATUSES.has(item.status)) return false;
+            if (
+                statusFilter !== "all" &&
+                statusFilter !== "active" &&
+                item.status !== statusFilter
+            ) {
+                return false;
+            }
+            if (
+                needle !== "" &&
+                ![item.title, item.category, item.description].some((text) =>
+                    text.toLowerCase().includes(needle),
+                )
+            ) {
                 return false;
             }
             return true;
         });
     }, [items, statusFilter, categoryFilter]);
 
-    return (
-        <>
-            <h1>{t("board.heading")}</h1>
-            <p className="hint">{t("board.intro")}</p>
+    const counts = useMemo(() => {
+        const result: Record<string, number> = { all: items.length, active: 0 };
+        for (const item of items) {
+            result[item.status] = (result[item.status] ?? 0) + 1;
+            if (ACTIVE_ISSUE_STATUSES.has(item.status)) result.active! += 1;
+        }
+        return result;
+    }, [items]);
 
-            <div className="board-filters">
-                <div className="field">
-                    <label htmlFor="board-status-filter">
-                        {t("board.filters.status")}
-                    </label>
-                    <select
-                        id="board-status-filter"
-                        value={statusFilter}
-                        onChange={(e) =>
-                            setStatusFilter(e.target.value as IssueStatus | "all")
-                        }
-                    >
-                        <option value="all">{t("board.filters.all")}</option>
-                        {ISSUE_STATUSES.map((status) => (
-                            <option key={status} value={status}>
-                                {t(`issueStatus.${status}`)}
-                            </option>
+    const positions = useMemo(
+        () => filtered.map((issue) => positionOf(issue, auth.role)),
+        [filtered, auth.role],
+    );
+
+    const filterOptions: { value: StatusFilter; icon: string; label: string }[] = [
+        { value: "active", icon: "ri-inbox-line", label: t("board.filters.active") },
+        ...ISSUE_STATUSES.filter((status) => (counts[status] ?? 0) > 0).map((status) => ({
+            value: status as StatusFilter,
+            icon: STATUS_ICONS[status],
+            label: t(`issueStatus.${status}`),
+        })),
+        { value: "all", icon: "ri-list-check", label: t("board.filters.all") },
+    ];
+
+    return (
+        <Page
+            sidebar={
+                <>
+                    <SidebarMenu title={t("board.filters.status")}>
+                        {filterOptions.map((option) => (
+                            <MenuButton
+                                key={option.value}
+                                icon={option.icon}
+                                active={statusFilter === option.value}
+                                count={counts[option.value] ?? 0}
+                                onClick={() => setStatusFilter(option.value)}
+                            >
+                                {option.label}
+                            </MenuButton>
                         ))}
-                    </select>
-                </div>
-                <div className="field">
-                    <label htmlFor="board-category-filter">
-                        {t("board.filters.category")}
+                    </SidebarMenu>
+                    <SidebarMenu secondary>
+                        <Link className="menu-item" to="/issues/new">
+                            <i className="ri-error-warning-line" aria-hidden="true" />
+                            <span className="txt">{t("nav.newIssue")}</span>
+                        </Link>
+                    </SidebarMenu>
+                    <p className="txt-hint sidebar-text">{t("board.intro")}</p>
+                </>
+            }
+        >
+            <PageHeading title={t("board.heading")} />
+
+            <div className="searchbar m-b-sm">
+                <div className="fields">
+                    <label className="addon" htmlFor="board-search" aria-label={t("board.filters.search")}>
+                        <i className="ri-search-line" aria-hidden="true" />
                     </label>
-                    <input
-                        id="board-category-filter"
-                        type="search"
-                        placeholder={t("board.filters.categoryPlaceholder")}
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                    />
+                    <div className="field search-field">
+                        <input
+                            id="board-search"
+                            type="search"
+                            placeholder={t("board.filters.searchPlaceholder")}
+                            value={categoryFilter}
+                            onChange={(e) => setCategoryFilter(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
 
-            {loading && <p className="state">{t("board.loading")}</p>}
+            {loading && <p className="txt-hint">{t("board.loading")}</p>}
             {error && (
-                <>
-                    <p className="state state-error">{t("board.error")}</p>
-                    <div className="btn-row">
-                        <button type="button" className="btn" onClick={() => void load()}>
-                            {t("board.retry")}
-                        </button>
-                    </div>
-                </>
+                <div className="alert danger flex gap-sm">
+                    <span className="flex-fill">{t("board.error")}</span>
+                    <button type="button" className="btn sm secondary" onClick={() => void load()}>
+                        {t("board.retry")}
+                    </button>
+                </div>
             )}
 
             {!loading && !error && (
-                <>
-                    <p className="hint">
-                        {t("board.count", { count: filtered.length })}
-                    </p>
-
-                    <div
-                        className="board-map map-canvas"
-                        aria-label={t("board.map.label")}
-                    >
-                        <MapContainer
-                            center={[
-                                (ISSUE_BOUNDS.minLat + ISSUE_BOUNDS.maxLat) / 2,
-                                (ISSUE_BOUNDS.minLng + ISSUE_BOUNDS.maxLng) / 2,
-                            ]}
-                            zoom={12}
-                            maxZoom={18}
-                            className="board-map-canvas"
-                        >
+                <div className="flex-column gap-sm">
+                    <div className="board-map map-canvas" aria-label={t("board.map.label")}>
+                        <MapContainer bounds={issueLatLngBounds()} maxZoom={19} className="board-map-canvas">
+                            <FitToMarkers positions={positions} />
                             <TileLayer
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                 subdomains="abc"
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
                             />
-                            {filtered.map((issue) => (
+                            {filtered.map((issue, index) => (
                                 <CircleMarker
                                     key={issue.id}
-                                    center={positionOf(issue, seesExactCoords)}
+                                    center={positions[index]!}
                                     radius={8}
                                     pathOptions={{
                                         color: "#fff",
                                         weight: 2,
-                                        fillColor: STATUS_COLORS[issue.status],
+                                        fillColor: cssColor(STATUS_COLOR_VARS[issue.status], "#888"),
                                         fillOpacity: 0.9,
                                     }}
                                     eventHandlers={{
@@ -253,33 +286,63 @@ export default function IssueBoard() {
                         </MapContainer>
                     </div>
 
+                    <p className="txt-hint txt-sm m-0">{t("board.count", { count: filtered.length })}</p>
+
                     {filtered.length === 0 ? (
-                        <p className="state">{t("board.empty")}</p>
+                        <div className="alert">{t("board.empty")}</div>
                     ) : (
-                        <ul className="board-list">
-                            {filtered.map((issue) => (
-                                <li key={issue.id} className="card board-item">
-                                    <Link
-                                        className="board-item-title"
-                                        to={`/issues/${issue.id}`}
-                                    >
-                                        {issue.title}
-                                    </Link>
-                                    <div className="board-item-badges">
-                                        <StatusBadge status={issue.status} />
-                                        {isBeirat && (
-                                            <VisibilityChip visibility={issue.visibility} />
+                        <div className="list board-list">
+                            {filtered.map((issue) => {
+                                const created = parsePBDate(issue.created);
+                                return (
+                                    <Link key={issue.id} className="list-item next board-item" to={`/issues/${issue.id}`}>
+                                        <span className={`status-icon status-${issue.status}`} aria-hidden="true">
+                                            <i className={STATUS_ICONS[issue.status]} />
+                                        </span>
+                                        <span className="content">
+                                            <span className="board-item-title">{issue.title}</span>
+                                            <span className="meta">
+                                                <StatusBadge status={issue.status} />
+                                                {isBeirat && <VisibilityChip visibility={issue.visibility} />}
+                                                {issue.category && (
+                                                    <span className="meta-item">
+                                                        <i className="ri-price-tag-3-line" aria-hidden="true" />
+                                                        {issue.category}
+                                                    </span>
+                                                )}
+                                                {created && (
+                                                    <span className="meta-item">
+                                                        <i className="ri-calendar-line" aria-hidden="true" />
+                                                        {formatShortDate(created, locale)}
+                                                    </span>
+                                                )}
+                                                {issue.photos.length > 0 && (
+                                                    <span className="meta-item">
+                                                        <i className="ri-image-line" aria-hidden="true" />
+                                                        {issue.photos.length}
+                                                    </span>
+                                                )}
+                                            </span>
+                                            {issue.description && (
+                                                <span className="board-item-excerpt">{issue.description}</span>
+                                            )}
+                                        </span>
+                                        {issue.photos.length > 0 && (
+                                            <ProtectedPhotos
+                                                recordId={issue.id}
+                                                photos={issue.photos.slice(0, 1)}
+                                                thumb="100x100"
+                                                className="board-item-thumb"
+                                                linkFull={false}
+                                            />
                                         )}
-                                    </div>
-                                    {issue.category && (
-                                        <p className="hint">{issue.category}</p>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
+                                    </Link>
+                                );
+                            })}
+                        </div>
                     )}
-                </>
+                </div>
             )}
-        </>
+        </Page>
     );
 }

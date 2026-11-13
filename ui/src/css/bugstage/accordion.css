@@ -1,0 +1,152 @@
+details {
+    --siblingSpacing: var(--smSpacing);
+    --contentPadding: var(--smSpacing);
+
+    position: relative;
+    display: block;
+    width: 100%;
+    color: var(--surfaceTxtColor);
+    border-radius: var(--borderRadius);
+    background: var(--surfaceAlt1Color);
+    border: var(--borderWidth) solid var(--borderColor);
+    transition:
+        box-shadow var(--slideAnimationSpeed),
+        border var(--slideAnimationSpeed),
+        border-radius var(--slideAnimationSpeed),
+        margin var(--slideAnimationSpeed);
+    will-change: border, border-radius, margin;
+
+    summary {
+        position: relative;
+        display: block;
+        width: 100%;
+        align-content: center;
+        min-height: var(--btnHeight);
+        cursor: pointer;
+        padding: 10px var(--smSpacing);
+        padding-right: calc(var(--smSpacing) + 30px);
+        background: var(--surfaceColor);
+        border-radius: var(--borderRadius);
+        user-select: none;
+        transition:
+            background var(--animationSpeed),
+            border-radius var(--slideAnimationSpeed);
+        &::marker {
+            content: "";
+            display: none;
+        }
+        &::before {
+            position: absolute;
+            right: calc(var(--smSpacing) - 3px);
+            top: 50%;
+            margin-top: -10px;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            align-content: center;
+            content: "\EA4E";
+            display: block;
+            flex-shrink: 0;
+            font-size: 1.3rem;
+            font-weight: normal;
+            font-family: var(--iconFontFamily);
+            color: var(--surfaceTxtHintColor);
+            transition: color var(--animationSpeed);
+        }
+        &:hover,
+        &:focus-visible {
+            outline: 0;
+            background: var(--surfaceAlt1Color);
+            &::before {
+                color: var(--surfaceTxtColor);
+            }
+        }
+    }
+    summary + * {
+        margin-top: 0;
+    }
+    &::details-content {
+        height: 0;
+        overflow: clip;
+        padding: 0 var(--contentPadding);
+        border-bottom-left-radius: var(--borderRadius);
+        border-bottom-right-radius: var(--borderRadius);
+        box-shadow: inset 0px var(--borderWidth) 0px 0px var(--borderColor);
+        transition:
+            height var(--slideAnimationSpeed),
+            padding var(--slideAnimationSpeed),
+            content-visibility var(--slideAnimationSpeed),
+            overflow var(--slideAnimationSpeed) step-start;
+        transition-behavior: allow-discrete;
+        will-change: height, padding, overflow;
+    }
+    &:has(+ details) {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        summary {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+    }
+    &:not([open]):has(+ details[open]) {
+        border-bottom-left-radius: var(--borderRadius);
+        border-bottom-right-radius: var(--borderRadius);
+        border-bottom-width: var(--borderWidth);
+        summary {
+            border-bottom-left-radius: var(--borderRadius);
+            border-bottom-right-radius: var(--borderRadius);
+        }
+    }
+    + details {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        border-top-width: 0;
+        summary {
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+        }
+    }
+    & + details[open] {
+        margin-top: var(--siblingSpacing);
+    }
+    &[open] {
+        border-width: var(--borderWidth);
+        border-radius: var(--borderRadius);
+        box-shadow: var(--boxShadow);
+        summary {
+            background: var(--surfaceAlt1Color);
+            border-radius: var(--borderRadius) var(--borderRadius) 0 0;
+            &::before {
+                content: "\EA78";
+            }
+        }
+        &::details-content {
+            padding-top: var(--contentPadding);
+            padding-bottom: var(--contentPadding);
+            height: auto;
+            overflow: visible;
+             /*same transition but with step-end overflow */
+            transition:
+                height var(--slideAnimationSpeed),
+                padding var(--slideAnimationSpeed),
+                content-visibility var(--slideAnimationSpeed),
+                overflow var(--slideAnimationSpeed) step-end;
+            transition-behavior: allow-discrete;
+        }
+        & + details {
+            border-top-width: var(--borderWidth);
+            margin-top: var(--siblingSpacing);
+            border-top-left-radius: var(--borderRadius);
+            border-top-right-radius: var(--borderRadius);
+            summary {
+                border-top-left-radius: var(--borderRadius);
+                border-top-right-radius: var(--borderRadius);
+            }
+        }
+    }
+    &.noanimation {
+        &::details-content {
+            transition: none !important;
+        }
+    }
+}

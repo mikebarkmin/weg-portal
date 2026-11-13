@@ -3,15 +3,17 @@
 
     {{ if eq .Decision "accepted" }}
     <p>vielen Dank f&uuml;r Ihren Kalendervorschlag.</p>
-    <p><strong>Ihr Vorschlag wurde vom Beirat <strong>angenommen</strong> und in den Veranstaltungskalender aufgenommen.</strong></p>
+    <p>Ihr Vorschlag wurde vom Beirat <strong>angenommen</strong> und in den Veranstaltungskalender aufgenommen.</p>
     {{ else }}
     <p>vielen Dank f&uuml;r Ihren Kalendervorschlag.</p>
-    <p><strong>Der Beirat hat Ihren Vorschlag leider <strong>abgelehnt</strong>.</strong></p>
+    <p>Der Beirat hat Ihren Vorschlag leider <strong>abgelehnt</strong>.</p>
     {{ end }}
 
     {{ if .DecisionNote }}
     <blockquote>Anmerkung des Beirats: {{ .DecisionNote }}</blockquote>
     {{ end }}
+
+    <p><a href="{{ .Link }}">{{ .AppName }}</a></p>
 
     <hr />
 

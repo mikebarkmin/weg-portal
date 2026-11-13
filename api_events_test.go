@@ -9,6 +9,9 @@ import (
 )
 
 // events role-matrix tests (public calendar: write beirat, read everyone)
+// Three calendars (migration 1795000105): public for everyone, owners for
+// approved accounts, beirat for the Beirat only. The fixture has 5 public
+// events plus one in each of the other calendars.
 func TestEventsList(t *testing.T) {
 	t.Parallel()
 
@@ -37,7 +40,7 @@ func TestEventsList(t *testing.T) {
 			Headers:         authHeader(t, emailResident),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":5`},
+			ExpectedContent: []string{`"totalItems":6`},
 		},
 		{
 			Name:            "beirat",
@@ -46,7 +49,7 @@ func TestEventsList(t *testing.T) {
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":5`},
+			ExpectedContent: []string{`"totalItems":7`},
 		},
 		{
 			Name:            "hausmeister",
@@ -55,7 +58,7 @@ func TestEventsList(t *testing.T) {
 			Headers:         authHeader(t, emailHausmeister),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":5`},
+			ExpectedContent: []string{`"totalItems":6`},
 		},
 		{
 			Name:            "hausverwaltung",
@@ -64,7 +67,7 @@ func TestEventsList(t *testing.T) {
 			Headers:         authHeader(t, emailHausverwaltung),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":5`},
+			ExpectedContent: []string{`"totalItems":6`},
 		},
 	}
 

@@ -13,7 +13,17 @@
         "newIssue": "Meldung",
         "board": "Pinnwand",
         "profile": "Profil",
-        "signup": "Registrieren"
+        "signup": "Registrieren",
+        "menu": "Menü",
+        "home": "Startseite",
+        "account": "Konto",
+        "announcements": "Aktuelles",
+        "contacts": "Kontakte",
+        "documents": "Dokumente",
+        "participate": "Mitreden",
+        "report": "Melden",
+        "beirat": "Beirat",
+        "mySubmissions": "Meine Einreichungen"
     },
     "calendar": {
         "heading": "Terminkalender",
@@ -27,7 +37,19 @@
         "retry": "Erneut versuchen",
         "noEvents": "Keine Termine in diesem Monat.",
         "monthEvents": "Termine im Monat",
-        "more": "+{{count}} weitere"
+        "more": "+{{count}} weitere",
+        "newEvent": "Neuer Termin",
+        "eventCount": "{{count}} Termin(e)",
+        "showPast": "Frühere Termine anzeigen ({{count}})",
+        "today": "Heute",
+        "noUpcomingEvents": "Keine weiteren Termine in diesem Monat.",
+        "subscribeTitle": "Abonnieren",
+        "personalFeed": "Persönlicher Kalender-Link",
+        "personalFeedHint": "Enthält alle Kalender, die Sie sehen dürfen. Den Link nicht weitergeben – er funktioniert ohne Anmeldung.",
+        "copy": "Link kopieren",
+        "copied": "Kopiert",
+        "renewFeed": "Neuen Link erzeugen",
+        "feedError": "Der Link konnte nicht erzeugt werden."
     },
     "event": {
         "back": "Zurück zum Kalender",
@@ -41,7 +63,8 @@
         "description": "Beschreibung",
         "recurrence": "Wiederholung",
         "firstOccurrence": "Erster Termin",
-        "seriesHint": "Dieser Termin ist Teil einer Serie."
+        "seriesHint": "Dieser Termin ist Teil einer Serie.",
+        "actions": "Aktionen"
     },
     "recurrence": {
         "none": "Einmalig",
@@ -132,7 +155,8 @@
         "heading": "Moderation",
         "tab": {
             "suggestions": "Vorschläge",
-            "issues": "Meldungen"
+            "issues": "Meldungen",
+            "agenda": "Themen"
         },
         "loading": "Wird geladen …",
         "error": {
@@ -144,7 +168,8 @@
         },
         "empty": {
             "suggestions": "Keine offenen Vorschläge.",
-            "issues": "Keine offenen Meldungen."
+            "issues": "Keine offenen Meldungen.",
+            "agenda": "Keine neuen Themen für die Versammlung."
         },
         "submitter": "Absender",
         "date": "Termin",
@@ -157,8 +182,16 @@
             "label": "Sichtbarkeit",
             "community": "Für die Gemeinschaft sichtbar",
             "private": "Nur intern (privat)",
-            "hint": "Beim Annehmen muss gewählt werden, ob die Meldung für die Gemeinschaft sichtbar ist."
-        }
+            "hint": "Beim Annehmen muss gewählt werden, ob die Meldung für die Gemeinschaft sichtbar ist.",
+            "choose": "Bitte wählen …"
+        },
+        "submitted": "Eingereicht am",
+        "intro": "Neue Vorschläge und Meldungen werden erst nach Ihrer Entscheidung sichtbar. Die Absender erhalten das Ergebnis per E-Mail.",
+        "decisionNoteHint": "Wird dem Absender mit der Entscheidung geschickt.",
+        "edit": "Bearbeiten",
+        "targetCalendar": "In welchen Kalender?",
+        "acceptTopic": "Aufnehmen",
+        "agendaNoteHint": "Wird dem Eigentümer mit der Entscheidung geschickt."
     },
     "users": {
         "heading": "Benutzer",
@@ -180,13 +213,14 @@
         "email": "E-Mail-Adresse",
         "role": "Rolle",
         "roleValues": {
-            "resident": "Bewohner",
+            "resident": "Eigentümer",
             "beirat": "Beirat",
             "hausmeister": "Hausmeister",
             "hausverwaltung": "Hausverwaltung"
         },
         "approve": "Freigeben",
-        "revoke": "Freigabe zurückziehen"
+        "revoke": "Freigabe zurückziehen",
+        "intro": "Eigentümer sehen die Pinnwand und Inhalte für Eigentümer erst nach Ihrer Freigabe. Nach einem Verkauf die Freigabe wieder entziehen."
     },
     "notes": {
         "heading": "Interne Notizen",
@@ -216,7 +250,11 @@
         "editAction": "Bearbeiten",
         "delete": "Löschen",
         "confirmDelete": "Soll diese Notiz wirklich gelöscht werden?",
-        "hint": "Der Text kann mit Markdown formatiert werden, z. B. **fett**, Listen und Links."
+        "hint": "Der Text kann mit Markdown formatiert werden, z. B. **fett**, Listen und Links.",
+        "overview": "Übersicht",
+        "count": "{{count}} Notiz(en)",
+        "pinnedCount": "{{count}} angeheftet",
+        "intro": "Interne Notizen des Beirats, nur für Beiratsmitglieder sichtbar. Markdown wird unterstützt."
     },
     "issue": {
         "heading": "Problem melden",
@@ -265,7 +303,7 @@
     },
     "signup": {
         "heading": "Konto erstellen",
-        "intro": "Mit einem Konto sehen Sie die angenommenen Meldungen aus der Gemeinschaftsanlage. Nach der Registrierung bestätigen Sie Ihre E-Mail-Adresse; anschließend schaltet der Beirat Ihr Konto frei.",
+        "intro": "Konten sind für Eigentümer der Wohnanlage. Nach der Registrierung bestätigen Sie Ihre E-Mail-Adresse; anschließend schaltet der Beirat Ihr Konto frei. Mieter nutzen die öffentlichen Seiten ohne Konto.",
         "name": "Name",
         "email": "E-Mail-Adresse",
         "emailHint": "An diese Adresse wird die Bestätigungs-E-Mail geschickt.",
@@ -324,13 +362,40 @@
             "save": "Die Änderung konnte nicht gespeichert werden.",
             "rateLimited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen es dann erneut.",
             "emailInvalid": "Bitte eine gültige neue E-Mail-Adresse eingeben.",
-            "emailChange": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte später erneut versuchen."
+            "emailChange": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte später erneut versuchen.",
+            "generic": "Das hat nicht geklappt. Bitte später erneut versuchen."
+        },
+        "role": "Rolle",
+        "status": {
+            "unverified": "E-Mail nicht bestätigt"
+        },
+        "notifications": {
+            "heading": "Benachrichtigungen",
+            "intro": "Wählen Sie, worüber wir Sie per E-Mail informieren.",
+            "announcements": "Neue Aushänge",
+            "announcementsHint": "Eine E-Mail für jeden neuen Aushang, den Sie sehen dürfen.",
+            "events": "Neue Termine",
+            "eventsHint": "Eine E-Mail für jeden neuen Termin in den Kalendern, die Sie sehen dürfen."
+        },
+        "calendar": {
+            "heading": "Kalender-Abo",
+            "intro": "Abonnieren Sie die Termine in Ihrer Kalender-App (Google, Apple, Outlook, Thunderbird). Fügen Sie dazu den Link als Internet-Kalender hinzu."
+        },
+        "delete": {
+            "heading": "Konto löschen",
+            "warning": "Das Löschen kann nicht rückgängig gemacht werden.",
+            "effectAccount": "Ihr Konto, Ihr Name und Ihre E-Mail-Adresse werden gelöscht.",
+            "effectSubmissions": "Ihre Meldungen und Themen bleiben erhalten, aber ohne Bezug zu Ihrem Konto.",
+            "effectVotes": "Ihre Stimmen in Umfragen werden gelöscht.",
+            "confirmLabel": "Zur Bestätigung Ihre E-Mail-Adresse ({{email}})",
+            "submit": "Konto endgültig löschen",
+            "error": "Das Konto konnte nicht gelöscht werden. Bitte wenden Sie sich an den Beirat."
         }
     },
     "gate": {
         "anonymous": {
             "title": "Anmeldung erforderlich",
-            "text": "Die Pinnwand ist für Bewohner mit freigegebenem Konto zugänglich. Bitte melden Sie sich an.",
+            "text": "Dieser Bereich ist für Eigentümer mit freigegebenem Konto. Bitte melden Sie sich an.",
             "login": "Anmelden",
             "signup": "Konto erstellen"
         },
@@ -341,13 +406,17 @@
         },
         "waiting": {
             "title": "Warten auf Freigabe",
-            "text": "Ihr Konto wartet auf die Freigabe durch den Beirat. Sie werden per E-Mail benachrichtigt, sobald Entscheidungen zu Ihren Meldungen fallen.",
+            "text": "Ihr Konto wartet auf die Freigabe durch den Beirat. Sobald es freigegeben ist, sehen Sie hier die Pinnwand der Gemeinschaft. Bei Fragen wenden Sie sich an den Beirat.",
             "profile": "Zum Profil"
+        },
+        "login": {
+            "title": "Anmeldung erforderlich",
+            "text": "Bitte melden Sie sich an, um diese Seite zu sehen."
         }
     },
     "board": {
         "heading": "Pinnwand",
-        "intro": "Angenommene Meldungen aus der Gemeinschaftsanlage mit Lage auf der Karte. Positionen sind aus Sicht der Bewohner auf ca. 100 m gerundet.",
+        "intro": "Angenommene Meldungen aus der Gemeinschaftsanlage mit Lage auf der Karte. Für Eigentümer sind die Positionen auf ca. 100 m gerundet.",
         "loading": "Meldungen werden geladen …",
         "error": "Meldungen konnten nicht geladen werden. Bitte später erneut versuchen.",
         "retry": "Erneut versuchen",
@@ -360,8 +429,12 @@
             "all": "Alle",
             "status": "Status",
             "category": "Kategorie",
-            "categoryPlaceholder": "Kategorie suchen …"
-        }
+            "categoryPlaceholder": "Kategorie suchen …",
+            "active": "Offen",
+            "search": "Suchen",
+            "searchPlaceholder": "Titel, Kategorie oder Beschreibung …"
+        },
+        "photoCount": "{{count}} Foto(s)"
     },
     "issueStatus": {
         "pending": "Neu",
@@ -373,11 +446,11 @@
     "issueVisibility": {
         "community": {
             "label": "Gemeinschaft",
-            "hint": "Für die Gemeinschaft sichtbar"
+            "hint": "Alle freigegebenen Eigentümer sehen die Meldung auf der Pinnwand, der Ort ist auf ca. 100 m gerundet."
         },
         "private": {
             "label": "Privat",
-            "hint": "Nur intern (privat)"
+            "hint": "Nur Beirat, Hausmeister und Hausverwaltung sehen die Meldung."
         }
     },
     "issueDetail": {
@@ -405,7 +478,15 @@
             "transition": "Die Aktion wurde vom Server abgelehnt",
             "generic": "Die Aktion ist fehlgeschlagen. Bitte später erneut versuchen.",
             "visibilityRequired": "Bitte die Sichtbarkeit wählen, bevor Sie annehmen."
-        }
+        },
+        "created": "Eingereicht am",
+        "locationExact": "Ort (genau)",
+        "roundedHint": "auf ca. 100 m gerundet",
+        "mapLabel": "Karte mit dem Ort der Meldung",
+        "reporter": "Gemeldet von",
+        "reporterUnavailable": "Kontaktdaten nicht verfügbar",
+        "status": "Status",
+        "noDescription": "Keine Beschreibung angegeben."
     },
     "legal": {
         "footer": {
@@ -434,7 +515,7 @@
                 {
                     "heading": "Zweck des Portals",
                     "paragraphs": [
-                        "Dieses Portal dient ausschließlich der internen Kommunikation und Organisation innerhalb der Wohnungseigentümergemeinschaft (Terminkalender, Terminvorschläge, Mängelmeldungen und Freigabe von Bewohnerkonten). Es werden keine kommerziellen Dienste angeboten."
+                        "Dieses Portal dient ausschließlich der internen Kommunikation und Organisation innerhalb der Wohnungseigentümergemeinschaft (Terminkalender, Terminvorschläge, Mängelmeldungen und Freigabe von Eigentümerkonten). Es werden keine kommerziellen Dienste angeboten."
                     ]
                 }
             ]
@@ -453,9 +534,15 @@
                     "paragraphs": [
                         "Terminkalender: Die veröffentlichten Termine (Titel, Beschreibung, Termin, Ort, Kategorie) sind öffentlich einsehbar. Sie werden vom Beirat gepflegt.",
                         "Terminvorschläge: Bei einem Terminvorschlag werden Titel, Beschreibung, Termin, Ort und Kategorie sowie Ihre E-Mail-Adresse gespeichert. Die E-Mail-Adresse dient ausschließlich dazu, Ihnen die Entscheidung (Annahme oder Ablehnung samt Begründung) mitzuteilen; sie ist nur für den Beirat einsehbar.",
-                        "Mängelmeldungen: Bei einer Meldung werden Titel, Beschreibung, Kategorie und die von Ihnen markierte Örtlichkeit gespeichert. Konto-basierte Nutzer (Bewohner, Hausmeister, Hausverwaltung) sehen ausschließlich grob gerundete Koordinaten (ca. 100 m Genauigkeit); die genaue Position ist nur für den Beirat sowie Hausmeister und Hausverwaltung einsehbar. Angehängte Fotos werden vor dem Hochladen auf Ihrem Gerät neu codiert, wobei Aufnahme-Metadaten (u. a. GPS) entfernt werden. Ihre E-Mail-Adresse (und ein freiwillig angegebener Name) werden zur Rückmeldung getrennt von der Meldung gespeichert und sind nur für den Beirat einsehbar.",
-                        "Benutzerkonten: Für Konten werden Name, E-Mail-Adresse, Rolle (Bewohner/in, Beirat, Hausmeister, Hausverwaltung) und der Freigabestatus verarbeitet. Neue Konten sind erst nach Bestätigung der E-Mail-Adresse und Freigabe durch den Beirat nutzbar. Hausmeister und Hausverwaltung können optional Benachrichtigungen zu neuen Meldungen erhalten (Einwilligung, jederzeit widerrufbar).",
-                        "Interne Notizen: Der Beirat kann interne Notizen (Titel, Text, Verfasser/in) anlegen. Diese sind ausschließlich für Beiratsmitglieder zugänglich."
+                        "Mängelmeldungen: Bei einer Meldung werden Titel, Beschreibung, Kategorie und die von Ihnen markierte Örtlichkeit gespeichert. Konto-basierte Nutzer (Eigentümer, Hausmeister, Hausverwaltung) sehen ausschließlich grob gerundete Koordinaten (ca. 100 m Genauigkeit); die genaue Position ist nur für den Beirat sowie Hausmeister und Hausverwaltung einsehbar. Angehängte Fotos werden vor dem Hochladen auf Ihrem Gerät neu codiert, wobei Aufnahme-Metadaten (u. a. GPS) entfernt werden. Ihre E-Mail-Adresse (und ein freiwillig angegebener Name) werden zur Rückmeldung getrennt von der Meldung gespeichert und sind nur für den Beirat einsehbar.",
+                        "Benutzerkonten: Für Konten werden Name, E-Mail-Adresse, Rolle (Eigentümer/in, Beirat, Hausmeister, Hausverwaltung) und der Freigabestatus verarbeitet. Neue Konten sind erst nach Bestätigung der E-Mail-Adresse und Freigabe durch den Beirat nutzbar. Hausmeister und Hausverwaltung können optional Benachrichtigungen zu neuen Meldungen erhalten (Einwilligung, jederzeit widerrufbar).",
+                        "Interne Notizen: Der Beirat kann interne Notizen (Titel, Text, Verfasser/in) anlegen. Diese sind ausschließlich für Beiratsmitglieder zugänglich.",
+                        "Konten für Eigentümer: Konten sind ausschließlich für Eigentümerinnen und Eigentümer der Wohnanlage vorgesehen (sowie für Beirat, Hausmeister und Hausverwaltung). Zusätzlich gespeichert werden Ihre Einstellungen zu E-Mail-Benachrichtigungen (Aushänge, Termine) und – falls Sie ihn erzeugen – ein geheimer Schlüssel für Ihren persönlichen Kalender-Link.",
+                        "Einreichungen mit Konto: Senden Sie eine Meldung oder einen Terminvorschlag angemeldet ab, wird die Einreichung mit Ihrem Konto verknüpft, damit Sie sie unter „Meine Einreichungen“ sehen. Die Verknüpfung ist nur für Sie und den Beirat sichtbar.",
+                        "Verlauf von Meldungen: Statusänderungen einer Meldung werden mit Zeitpunkt und handelndem Konto protokolliert. Beirat, Hausmeister und Hausverwaltung können interne Notizen zu Meldungen erfassen; Verlauf und Notizen sind nur für diese Personen sichtbar.",
+                        "Aushänge, Kontakte und Dokumente: Der Beirat veröffentlicht Aushänge (mit Verfasser/in), eine Kontaktliste (Name, Funktion, Telefon, E-Mail) und Dokumente (z. B. Hausordnung, Protokolle). Inhalte sind entweder öffentlich oder nur für angemeldete Eigentümer sichtbar. TODO(Beirat): Einwilligung der in der Kontaktliste genannten Personen einholen.",
+                        "Themen für die Eigentümerversammlung: Eingereichte Themen werden mit Titel, Beschreibung und Ihrem Konto gespeichert. Angenommene Themen sehen alle angemeldeten Eigentümer – ohne Namen der Einreichenden.",
+                        "Umfragen: Bei unverbindlichen Umfragen wird Ihre Stimme mit Ihrem Konto gespeichert, damit Sie nur einmal abstimmen und Ihre Stimme ändern können. Andere Eigentümer und der Beirat sehen nur das Gesamtergebnis, nicht Ihre einzelne Stimme."
                     ]
                 },
                 {
@@ -475,7 +562,8 @@
                         "Abgelehnte Meldungen (einschließlich Fotos und hinterlegter E-Mail-Adresse) werden 90 Tage nach der Entscheidung gelöscht.",
                         "Erledigte Meldungen (einschließlich Fotos und hinterlegter E-Mail-Adresse) werden 365 Tage nach Erledigung gelöscht.",
                         "Noch nicht abschließend bearbeitete (offene) Vorschläge und Meldungen werden nicht automatisch gelöscht.",
-                        "Benutzerkonten werden bis zum Auszug geführt; danach entzieht der Beirat die Freigabe. Auf Wunsch werden Kontaktdaten gelöscht (siehe „Ihre Rechte“).",
+                        "Benutzerkonten können Sie jederzeit selbst im Profil löschen. Dabei werden Konto, Name, E-Mail-Adresse, Benachrichtigungseinstellungen und Ihre Umfragestimmen gelöscht; Meldungen und eingereichte Themen bleiben ohne Bezug zu Ihrem Konto erhalten. Nach einem Verkauf entzieht der Beirat die Freigabe.",
+                        "Verlauf und interne Notizen einer Meldung werden zusammen mit der Meldung gelöscht (siehe oben). Aushänge, Kontakte, Dokumente, Themen und Umfragen löscht der Beirat, sobald sie nicht mehr benötigt werden. TODO(Beirat): feste Fristen für Themen und Umfragen festlegen.",
                         "Hinweis: Die genannten Fristen entsprechen den aktuellen Portaleinstellungen (Pflege durch die Superuser der Anwendung). Bei jeder Änderung der Fristen in den Portaleinstellungen muss dieser Abschnitt der Datenschutzerklärung angepasst werden."
                     ]
                 },
@@ -489,5 +577,224 @@
                 }
             ]
         }
+    },
+    "form": {
+        "requiredLegend": "Pflichtfeld"
+    },
+    "eventEditor": {
+        "headingNew": "Neuer Termin",
+        "headingEdit": "Termin bearbeiten",
+        "backToEvent": "Zurück zum Termin",
+        "edit": "Bearbeiten",
+        "save": "Speichern",
+        "saving": "Wird gespeichert …",
+        "delete": "Löschen",
+        "confirmDelete": "Endgültig löschen",
+        "cancel": "Abbrechen",
+        "deleteHint": "Der Termin (bei Serien: alle Wiederholungen) wird für alle entfernt, auch aus abonnierten Kalendern.",
+        "repeat": "Wiederholen",
+        "interval": "Intervall (alle n …)",
+        "weekdays": "An Wochentagen",
+        "weekdaysHint": "Ohne Auswahl: am Wochentag des ersten Termins.",
+        "ends": "Endet",
+        "endsNever": "Nie",
+        "endsUntil": "Am Datum",
+        "endsCount": "Nach Anzahl",
+        "untilDate": "Letzter Tag",
+        "countLabel": "Anzahl Termine",
+        "customRuleHint": "Diese Wiederholungsregel kann nicht im Formular dargestellt werden und bleibt unverändert (RFC-5545-RRULE).",
+        "replaceCustomRule": "Regel durch Formular ersetzen",
+        "error": {
+            "interval": "Bitte eine Zahl von 1 bis 99 angeben.",
+            "untilBeforeStart": "Der letzte Tag liegt vor dem Beginn.",
+            "count": "Bitte eine Zahl von 1 bis 999 angeben.",
+            "customRule": "Die Wiederholungsregel ist ungültig.",
+            "save": "Der Termin konnte nicht gespeichert werden. Bitte später erneut versuchen.",
+            "delete": "Der Termin konnte nicht gelöscht werden. Bitte später erneut versuchen."
+        },
+        "intro": "Termine erscheinen sofort im Kalender und im iCal-Abo."
+    },
+    "footer": {
+        "theme": "Darstellung",
+        "scheme": {
+            "light": "Hell",
+            "dark": "Dunkel"
+        }
+    },
+    "home": {
+        "heading": "Willkommen",
+        "quickLinks": "Schnellzugriff",
+        "ownerHint": "Eigentümer sehen nach der Anmeldung zusätzlich Aushänge, Termine und Dokumente nur für Eigentümer, die Pinnwand und Umfragen.",
+        "allAnnouncements": "Alle Aushänge",
+        "upcoming": "Nächste Termine",
+        "toCalendar": "Zum Kalender",
+        "noUpcoming": "In den nächsten Wochen stehen keine Termine an.",
+        "allContacts": "Alle Kontakte",
+        "beiratHint": "Neuigkeiten für die Gemeinschaft? Veröffentlichen Sie einen Aushang.",
+        "back": "Zur Startseite",
+        "recurring": "wiederkehrend"
+    },
+    "announcements": {
+        "heading": "Aktuelles",
+        "new": "Neuer Aushang",
+        "edit": "Aushang bearbeiten",
+        "body": "Text",
+        "pinned": "Angeheftet",
+        "pinOnTop": "Oben anheften",
+        "expires": "Sichtbar bis (optional)",
+        "expiresHint": "Danach sehen nur noch Beiratsmitglieder den Aushang.",
+        "expiresOn": "bis {{date}}",
+        "expiredOn": "abgelaufen am {{date}}",
+        "showExpired": "Abgelaufene anzeigen ({{count}})",
+        "hideExpired": "Abgelaufene ausblenden",
+        "publish": "Veröffentlichen",
+        "mailHint": "Eigentümer, die Benachrichtigungen zu Aushängen aktiviert haben, erhalten den Aushang per E-Mail.",
+        "confirmDelete": "Aushang endgültig löschen?",
+        "empty": "Zurzeit gibt es keine Aushänge.",
+        "loadError": "Die Aushänge konnten nicht geladen werden.",
+        "saveError": "Der Aushang konnte nicht gespeichert werden.",
+        "introGuest": "Öffentliche Aushänge des Beirats. Eigentümer sehen nach der Anmeldung weitere Aushänge.",
+        "introOwner": "Aushänge des Beirats für die Gemeinschaft und für Eigentümer."
+    },
+    "visibility": {
+        "label": "Sichtbar für",
+        "public": "Öffentlich",
+        "owners": "Nur Eigentümer",
+        "publicHint": "Alle, auch Mieter und Besucher ohne Konto.",
+        "ownersHint": "Nur angemeldete Eigentümer mit freigegebenem Konto (sowie Beirat, Hausmeister und Hausverwaltung)."
+    },
+    "calendars": {
+        "label": "Kalender",
+        "public": "Öffentlich",
+        "owners": "Eigentümer",
+        "beirat": "Beirat",
+        "publicHint": "Für alle sichtbar, auch ohne Konto.",
+        "ownersHint": "Nur für angemeldete Eigentümer (und Verwaltung, Hausmeister).",
+        "beiratHint": "Nur für Beiratsmitglieder."
+    },
+    "contacts": {
+        "heading": "Kontakte",
+        "new": "Neuer Kontakt",
+        "name": "Name",
+        "function": "Funktion",
+        "categoryLabel": "Kategorie",
+        "phone": "Telefon",
+        "email": "E-Mail",
+        "note": "Hinweis",
+        "sort": "Reihenfolge",
+        "sortHint": "Kleinere Zahlen stehen weiter oben.",
+        "noDetails": "Keine Kontaktdaten hinterlegt.",
+        "empty": "Es sind noch keine Kontakte eingetragen.",
+        "loadError": "Die Kontakte konnten nicht geladen werden.",
+        "saveError": "Der Kontakt konnte nicht gespeichert werden.",
+        "guestHint": "Weitere Kontakte sehen Eigentümer nach der Anmeldung.",
+        "category": {
+            "notdienst": "Notdienste",
+            "beirat": "Beirat",
+            "verwaltung": "Hausverwaltung",
+            "hausmeister": "Hausmeister",
+            "sonstiges": "Weitere Kontakte"
+        }
+    },
+    "documents": {
+        "heading": "Dokumente",
+        "categories": "Kategorien",
+        "all": "Alle Dokumente",
+        "categoryLabel": "Kategorie",
+        "date": "Datum des Dokuments",
+        "file": "Datei",
+        "fileHint": "PDF, Bild oder Office-Dokument, max. 20 MB.",
+        "upload": "Dokument hochladen",
+        "uploadSubmit": "Hochladen",
+        "open": "Öffnen",
+        "missing": "Bitte Titel und Datei angeben.",
+        "empty": "In dieser Kategorie gibt es keine Dokumente.",
+        "loadError": "Die Dokumente konnten nicht geladen werden.",
+        "saveError": "Das Dokument konnte nicht hochgeladen werden.",
+        "introGuest": "Öffentliche Dokumente wie die Hausordnung. Protokolle, Beschlüsse und Abrechnungen sehen Eigentümer nach der Anmeldung.",
+        "introOwner": "Hausordnung, Protokolle, Beschlüsse, Wirtschaftspläne und Abrechnungen. Maßgeblich bleibt die Beschluss-Sammlung der Verwaltung.",
+        "category": {
+            "hausordnung": "Hausordnung",
+            "protokoll": "Protokolle",
+            "beschluss": "Beschlüsse",
+            "wirtschaftsplan": "Wirtschaftspläne",
+            "abrechnung": "Abrechnungen",
+            "vertrag": "Verträge",
+            "sonstiges": "Sonstiges"
+        }
+    },
+    "participate": {
+        "heading": "Mitreden",
+        "polls": "Umfragen",
+        "agenda": "Themen für die Versammlung",
+        "pollsIntro": "Meinungsbilder des Beirats. Ihre Stimme ist für andere nicht sichtbar, angezeigt wird nur das Gesamtergebnis.",
+        "agendaIntro": "Schlagen Sie Themen für die nächste Eigentümerversammlung vor. Der Beirat sammelt sie und gibt sie an die Verwaltung weiter.",
+        "nonBinding": "Umfragen sind unverbindliche Meinungsbilder. Beschlüsse fasst ausschließlich die Eigentümerversammlung.",
+        "newPoll": "Neue Umfrage",
+        "question": "Frage",
+        "options": "Antworten",
+        "optionsHint": "Eine Antwort pro Zeile, 2 bis 10 Antworten.",
+        "closesAt": "Endet am (optional)",
+        "closesAtHint": "Ohne Datum bleibt die Umfrage offen, bis Sie sie löschen.",
+        "startPoll": "Umfrage starten",
+        "pollInvalid": "Bitte eine Frage und 2 bis 10 Antworten angeben.",
+        "open": "Offen",
+        "closed": "Beendet",
+        "closesOn": "endet am {{date}}",
+        "closedOn": "beendet am {{date}}",
+        "voteCount": "{{count}} Stimme(n)",
+        "vote": "Abstimmen",
+        "changeVote": "Stimme ändern",
+        "voteError": "Die Stimme konnte nicht gespeichert werden.",
+        "closedPolls": "Beendete Umfragen",
+        "noPolls": "Zurzeit gibt es keine Umfragen.",
+        "confirmDeletePoll": "Umfrage mit allen Stimmen löschen?",
+        "newTopic": "Thema vorschlagen",
+        "topicDescription": "Worum geht es?",
+        "topicHint": "Kurz beschreiben, was die Versammlung besprechen oder beschließen soll.",
+        "submitTopic": "Thema einreichen",
+        "topicSent": "Danke! Der Beirat prüft Ihr Thema und informiert Sie per E-Mail.",
+        "acceptedTopics": "Angenommene Themen",
+        "noAcceptedTopics": "Noch keine angenommenen Themen.",
+        "myTopics": "Meine Themen",
+        "withdraw": "Zurückziehen",
+        "beiratNote": "Anmerkung des Beirats",
+        "loadError": "Die Daten konnten nicht geladen werden.",
+        "saveError": "Das konnte nicht gespeichert werden.",
+        "topicStatus": {
+            "pending": "Wird geprüft",
+            "accepted": "Angenommen",
+            "rejected": "Nicht aufgenommen"
+        }
+    },
+    "mySubmissions": {
+        "heading": "Meine Einreichungen",
+        "intro": "Meldungen und Terminvorschläge, die Sie angemeldet abgeschickt haben.",
+        "issues": "Meldungen",
+        "suggestions": "Terminvorschläge",
+        "noIssues": "Sie haben noch keine Meldungen abgeschickt.",
+        "noSuggestions": "Sie haben noch keine Termine vorgeschlagen.",
+        "submittedOn": "eingereicht am {{date}}",
+        "private": "Nur intern sichtbar",
+        "loadError": "Ihre Einreichungen konnten nicht geladen werden.",
+        "anonymousHint": "Ohne Anmeldung abgeschickte Meldungen erscheinen hier nicht; Sie erhalten dazu weiterhin E-Mails.",
+        "suggestionStatus": {
+            "pending": "Wird geprüft",
+            "accepted": "Angenommen",
+            "rejected": "Abgelehnt"
+        }
+    },
+    "history": {
+        "heading": "Verlauf und Notizen",
+        "internal": "Intern",
+        "submitted": "Meldung eingegangen",
+        "statusChange": "Status: {{from}} → {{to}}",
+        "someone": "Ehemaliges Konto",
+        "system": "System",
+        "empty": "Noch keine Einträge.",
+        "addNote": "Notiz hinzufügen",
+        "noteHint": "Nur für Beirat, Hausmeister und Hausverwaltung sichtbar – z. B. „Firma beauftragt, Termin am 12.3.“",
+        "saveNote": "Notiz speichern",
+        "saveError": "Die Notiz konnte nicht gespeichert werden."
     }
 }

@@ -3,7 +3,8 @@ import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { useTranslation } from "react-i18next";
 
-import { isWithinIssueBounds, ISSUE_BOUNDS } from "../lib/validation";
+import { isWithinIssueBounds } from "../lib/validation";
+import { issueLatLngBounds } from "../lib/issueBounds";
 import "leaflet/dist/leaflet.css";
 
 // Map location picker for the issue report form (plan.md: Leaflet +
@@ -40,14 +41,9 @@ function pinIcon(): L.DivIcon {
     });
 }
 
-const bounds = L.latLngBounds(
-    [ISSUE_BOUNDS.minLat, ISSUE_BOUNDS.minLng],
-    [ISSUE_BOUNDS.maxLat, ISSUE_BOUNDS.maxLng],
-);
-
 // Keeps the whole community box visible by never allowing zoom levels at
 // which the pan-limited viewport would show area outside the box.
-function MinZoomBounds() {
+function MinZoomBounds({ bounds }: { bounds: L.LatLngBounds }) {
     const map = useMap();
     useEffect(() => {
         const update = () => {
@@ -58,7 +54,7 @@ function MinZoomBounds() {
         return () => {
             map.off("resize", update);
         };
-    }, [map]);
+    }, [map, bounds]);
     return null;
 }
 
@@ -76,6 +72,7 @@ export default function MapPicker({ lat, lng, onPick }: MapPickerProps) {
     const { t } = useTranslation();
     const mapRef = useRef<L.Map | null>(null);
     const icon = useMemo(pinIcon, []);
+    const bounds = useMemo(issueLatLngBounds, []);
     const [locating, setLocating] = useState(false);
     const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -120,12 +117,12 @@ export default function MapPicker({ lat, lng, onPick }: MapPickerProps) {
 
     return (
         <div className="map-picker">
-            {/* bounds/maxBounds: pan/zoom stay inside the community box
-                (TODO: keep in sync with the server env, see validation.ts) */}
+            {/* bounds: the map opens fitted to the community box (the
+                deployment's PORTAL_* env values); maxBounds: pan/zoom stay
+                inside it */}
             <MapContainer
                 ref={mapRef}
-                center={[(ISSUE_BOUNDS.minLat + ISSUE_BOUNDS.maxLat) / 2, (ISSUE_BOUNDS.minLng + ISSUE_BOUNDS.maxLng) / 2]}
-                zoom={12}
+                bounds={bounds}
                 maxZoom={18}
                 maxBounds={bounds}
                 maxBoundsViscosity={1.0}
@@ -140,7 +137,7 @@ export default function MapPicker({ lat, lng, onPick }: MapPickerProps) {
                     subdomains="abc"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
                 />
-                <MinZoomBounds />
+                <MinZoomBounds bounds={bounds} />
                 <ClickPicker onPick={onPick} />
                 {position && (
                     <Marker
@@ -160,15 +157,18 @@ export default function MapPicker({ lat, lng, onPick }: MapPickerProps) {
             <div className="map-toolbar">
                 <button
                     type="button"
-                    className="btn btn-outline"
+                    className={`btn sm secondary ${locating ? "loading" : ""}`}
                     onClick={useMyLocation}
                     disabled={locating}
                 >
-                    {locating ? t("issue.location.searching") : t("issue.location.useMyLocation")}
+                    <i className="ri-crosshair-2-line" aria-hidden="true" />
+                    <span className="txt">
+                        {locating ? t("issue.location.searching") : t("issue.location.useMyLocation")}
+                    </span>
                 </button>
+                {!position && <span className="txt-hint txt-sm">{t("issue.location.hint")}</span>}
             </div>
-            {!position && <p className="hint">{t("issue.location.hint")}</p>}
-            {locationError && <p className="field-error">{locationError}</p>}
+            {locationError && <div className="field-help error" role="alert">{locationError}</div>}
         </div>
     );
 }

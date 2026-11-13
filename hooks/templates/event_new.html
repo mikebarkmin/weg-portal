@@ -1,0 +1,20 @@
+{{ define "body" }}
+    <p>Hallo,</p>
+
+    <p>im Kalender &bdquo;{{ .Calendar }}&ldquo; des WEG-Portals gibt es einen neuen Termin:</p>
+
+    <blockquote>
+        <p><strong>{{ .Title }}</strong></p>
+        <p>{{ .Date }}</p>
+        {{ if .Location }}<p>Ort: {{ .Location }}</p>{{ end }}
+    </blockquote>
+
+    <p><a href="{{ .Link }}">Termin im Portal ansehen</a></p>
+
+    <hr />
+
+    <small>
+        Sie erhalten diese Nachricht, weil Sie Benachrichtigungen zu neuen Terminen aktiviert haben.
+        Sie können sie im Portal unter &bdquo;Profil&ldquo; abschalten.
+    </small>
+{{ end }}

@@ -1,0 +1,75 @@
+table {
+    --tableSpacing: var(--xsSpacing);
+
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    max-width: 100%;
+
+    td,
+    th {
+        padding: 10px max(var(--tableSpacing), 10px);
+        vertical-align: middle;
+        text-align: left;
+        height: var(--smBtnHeight);
+        background: var(--surfaceColor);
+        border: var(--borderWidth) solid var(--borderColor);
+        border-bottom-width: 0;
+        &:not(:last-child) {
+            border-right: 0;
+        }
+    }
+    > :first-child > tr:first-child {
+        > :first-child {
+            border-top-left-radius: var(--borderRadius);
+        }
+        > :last-child {
+            border-top-right-radius: var(--borderRadius);
+        }
+    }
+    > :last-child > tr:last-child {
+        > :first-child {
+            border-bottom-left-radius: var(--borderRadius);
+        }
+        > :last-child {
+            border-bottom-right-radius: var(--borderRadius);
+        }
+        > td,
+        > th {
+            border-width: var(--borderWidth);
+        }
+    }
+    th {
+        font-weight: bold;
+        font-size: 0.97em;
+        color: var(--surfaceTxtHintColor);
+        background: var(--surfaceAlt1Color);
+    }
+    td,
+    th {
+        &.min-width {
+            width: 1% !important;
+            min-width: 0 !important;
+            white-space: nowrap;
+        }
+    }
+
+    tr:focus-visible td,
+    tr:hover td {
+        background: var(--surfaceAlt1Color);
+    }
+
+    /* performance optimizations for large tables */
+    &.optimize {
+        td,
+        th,
+        .col-bulk-select label::before,
+        .col-bulk-select label::after,
+        .col-meta i {
+            transition: none !important;
+        }
+        .col-meta i {
+            transform: none !important;
+        }
+    }
+}

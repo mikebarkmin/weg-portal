@@ -3,6 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+
+import { Wrapper } from "../components/Page";
+import FormField from "../components/FormField";
+import Notice from "../components/Notice";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
@@ -69,111 +73,87 @@ export default function Signup() {
 
     if (submitted) {
         return (
-            <section className="card state-success">
-                <h1>{t("signup.success.title")}</h1>
-                <p>{t("signup.success.stepEmail")}</p>
-                <p>
-                    {verificationRequested
-                        ? t("signup.success.stepEmailSent")
-                        : t("signup.success.stepEmailMaybe")}
-                </p>
-                <p>{t("signup.success.stepApproval")}</p>
-                <div className="btn-row">
-                    <button
-                        type="button"
-                        className="btn"
-                        onClick={() => navigate("/login")}
-                    >
-                        {t("signup.success.toLogin")}
-                    </button>
-                    <Link className="btn btn-outline" to="/">
-                        {t("signup.success.back")}
-                    </Link>
-                </div>
-            </section>
+            <Wrapper size="sm">
+                <Notice
+                    icon="ri-mail-check-line"
+                    tone="success"
+                    title={t("signup.success.title")}
+                    actions={
+                        <>
+                            <Link className="btn secondary" to="/">
+                                {t("signup.success.back")}
+                            </Link>
+                            <button type="button" className="btn" onClick={() => navigate("/login")}>
+                                {t("signup.success.toLogin")}
+                            </button>
+                        </>
+                    }
+                >
+                    <ol className="steps-list">
+                        <li>
+                            {t("signup.success.stepEmail")}{" "}
+                            {verificationRequested
+                                ? t("signup.success.stepEmailSent")
+                                : t("signup.success.stepEmailMaybe")}
+                        </li>
+                        <li>{t("signup.success.stepApproval")}</li>
+                    </ol>
+                </Notice>
+            </Wrapper>
         );
     }
 
+    const err = (message?: string) => (message ? t(message) : null);
+
     return (
-        <>
-            <h1>{t("signup.heading")}</h1>
-            <p className="hint">{t("signup.intro")}</p>
-            <form className="card form" onSubmit={submit} noValidate>
-                <div className="field">
-                    <label htmlFor="signup-name">{t("signup.name")}</label>
-                    <input
-                        id="signup-name"
-                        type="text"
-                        maxLength={200}
-                        autoComplete="name"
-                        {...register("name")}
-                    />
-                    {errors.name && (
-                        <p className="field-error">{t(errors.name.message ?? "")}</p>
-                    )}
-                </div>
-
-                <div className="field">
-                    <label htmlFor="signup-email">{t("signup.email")}</label>
-                    <input
+        <Wrapper size="sm">
+            <form className="post auth-form" onSubmit={submit} noValidate>
+                <header className="auth-form-header">
+                    <h1 className="title">{t("signup.heading")}</h1>
+                    <p className="txt-hint">{t("signup.intro")}</p>
+                </header>
+                <div className="grid sm">
+                    <FormField id="signup-name" label={t("signup.name")} required error={err(errors.name?.message)}>
+                        <input id="signup-name" type="text" maxLength={200} autoComplete="name" {...register("name")} />
+                    </FormField>
+                    <FormField
                         id="signup-email"
-                        type="email"
-                        inputMode="email"
-                        autoComplete="email"
-                        {...register("email")}
-                    />
-                    <p className="hint">{t("signup.emailHint")}</p>
-                    {errors.email && (
-                        <p className="field-error">{t(errors.email.message ?? "")}</p>
-                    )}
-                </div>
-
-                <div className="field">
-                    <label htmlFor="signup-password">{t("signup.password")}</label>
-                    <input
-                        id="signup-password"
-                        type="password"
-                        autoComplete="new-password"
-                        {...register("password")}
-                    />
-                    {errors.password && (
-                        <p className="field-error">{t(errors.password.message ?? "")}</p>
-                    )}
-                </div>
-
-                <div className="field">
-                    <label htmlFor="signup-password-confirm">
-                        {t("signup.passwordConfirm")}
-                    </label>
-                    <input
+                        label={t("signup.email")}
+                        required
+                        hint={t("signup.emailHint")}
+                        error={err(errors.email?.message)}
+                    >
+                        <input id="signup-email" type="email" inputMode="email" autoComplete="email" {...register("email")} />
+                    </FormField>
+                    <FormField id="signup-password" label={t("signup.password")} required error={err(errors.password?.message)}>
+                        <input id="signup-password" type="password" autoComplete="new-password" {...register("password")} />
+                    </FormField>
+                    <FormField
                         id="signup-password-confirm"
-                        type="password"
-                        autoComplete="new-password"
-                        {...register("passwordConfirm")}
-                    />
-                    {errors.passwordConfirm && (
-                        <p className="field-error">
-                            {t(errors.passwordConfirm.message ?? "")}
-                        </p>
+                        label={t("signup.passwordConfirm")}
+                        required
+                        error={err(errors.passwordConfirm?.message)}
+                    >
+                        <input id="signup-password-confirm" type="password" autoComplete="new-password" {...register("passwordConfirm")} />
+                    </FormField>
+                    {serverError && (
+                        <div className="col-12">
+                            <div className="alert danger">
+                                {t(serverError)}
+                                {serverDetail && ` (${serverDetail})`}
+                            </div>
+                        </div>
                     )}
-                </div>
-
-                {serverError && (
-                    <div className="form-error">
-                        {t(serverError)}
-                        {serverDetail && ` (${serverDetail})`}
+                    <div className="col-12">
+                        <button type="submit" className={`btn full-width ${isSubmitting ? "loading" : ""}`} disabled={isSubmitting}>
+                            <span className="txt">{isSubmitting ? t("signup.submitting") : t("signup.submit")}</span>
+                        </button>
                     </div>
-                )}
-
-                <div className="btn-row">
-                    <button type="submit" className="btn" disabled={isSubmitting}>
-                        {isSubmitting ? t("signup.submitting") : t("signup.submit")}
-                    </button>
                 </div>
             </form>
-            <p className="hint">
+            <p className="auth-links txt-hint">
                 <Link to="/login">{t("signup.toLogin")}</Link>
             </p>
-        </>
+        </Wrapper>
     );
 }

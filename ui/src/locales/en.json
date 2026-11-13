@@ -13,7 +13,17 @@
         "newIssue": "Report issue",
         "board": "Issues",
         "profile": "Profile",
-        "signup": "Sign up"
+        "signup": "Sign up",
+        "menu": "Menu",
+        "home": "Home",
+        "account": "Account",
+        "announcements": "News",
+        "contacts": "Contacts",
+        "documents": "Documents",
+        "participate": "Have your say",
+        "report": "Report",
+        "beirat": "Beirat",
+        "mySubmissions": "My submissions"
     },
     "calendar": {
         "heading": "Community calendar",
@@ -27,7 +37,19 @@
         "retry": "Try again",
         "noEvents": "No events this month.",
         "monthEvents": "Events this month",
-        "more": "+{{count}} more"
+        "more": "+{{count}} more",
+        "newEvent": "New event",
+        "eventCount": "{{count}} event(s)",
+        "showPast": "Show earlier events ({{count}})",
+        "today": "Today",
+        "noUpcomingEvents": "No more events this month.",
+        "subscribeTitle": "Subscribe",
+        "personalFeed": "Personal calendar link",
+        "personalFeedHint": "Contains every calendar you may see. Do not share the link – it works without logging in.",
+        "copy": "Copy link",
+        "copied": "Copied",
+        "renewFeed": "Create a new link",
+        "feedError": "The link could not be created."
     },
     "event": {
         "back": "Back to the calendar",
@@ -41,7 +63,8 @@
         "description": "Description",
         "recurrence": "Recurrence",
         "firstOccurrence": "First occurrence",
-        "seriesHint": "This event is part of a series."
+        "seriesHint": "This event is part of a series.",
+        "actions": "Actions"
     },
     "recurrence": {
         "none": "One-time",
@@ -132,7 +155,8 @@
         "heading": "Moderation",
         "tab": {
             "suggestions": "Suggestions",
-            "issues": "Reports"
+            "issues": "Reports",
+            "agenda": "Topics"
         },
         "loading": "Loading …",
         "error": {
@@ -144,7 +168,8 @@
         },
         "empty": {
             "suggestions": "No open suggestions.",
-            "issues": "No open reports."
+            "issues": "No open reports.",
+            "agenda": "No new topics for the meeting."
         },
         "submitter": "Submitter",
         "date": "Event",
@@ -157,8 +182,16 @@
             "label": "Visibility",
             "community": "Visible to the community",
             "private": "Internal only (private)",
-            "hint": "When accepting, you must choose whether the report is visible to the community."
-        }
+            "hint": "When accepting, you must choose whether the report is visible to the community.",
+            "choose": "Please choose …"
+        },
+        "submitted": "Submitted on",
+        "intro": "New suggestions and reports only become visible after your decision. Submitters receive the result by email.",
+        "decisionNoteHint": "Sent to the submitter together with the decision.",
+        "edit": "Edit",
+        "targetCalendar": "Which calendar?",
+        "acceptTopic": "Include",
+        "agendaNoteHint": "Sent to the owner together with the decision."
     },
     "users": {
         "heading": "Users",
@@ -180,13 +213,14 @@
         "email": "Email address",
         "role": "Role",
         "roleValues": {
-            "resident": "Resident",
+            "resident": "Owner",
             "beirat": "Advisory board",
             "hausmeister": "Janitor",
             "hausverwaltung": "Property management"
         },
         "approve": "Approve",
-        "revoke": "Revoke approval"
+        "revoke": "Revoke approval",
+        "intro": "Owners only see the board and owner content after your approval. Revoke the approval after a sale."
     },
     "notes": {
         "heading": "Internal notes",
@@ -216,7 +250,11 @@
         "editAction": "Edit",
         "delete": "Delete",
         "confirmDelete": "Really delete this note?",
-        "hint": "The text supports Markdown formatting, e.g. **bold**, lists and links."
+        "hint": "The text supports Markdown formatting, e.g. **bold**, lists and links.",
+        "overview": "Overview",
+        "count": "{{count}} note(s)",
+        "pinnedCount": "{{count}} pinned",
+        "intro": "Internal notes of the Beirat, visible to Beirat members only. Markdown is supported."
     },
     "issue": {
         "heading": "Report an issue",
@@ -265,7 +303,7 @@
     },
     "signup": {
         "heading": "Create account",
-        "intro": "With an account you can see the accepted community issues. After signing up you confirm your email address; the Beirat then approves your account.",
+        "intro": "Accounts are for owners of the property. After signing up, confirm your email address; the Beirat then approves your account. Tenants use the public pages without an account.",
         "name": "Name",
         "email": "Email address",
         "emailHint": "The confirmation email is sent to this address.",
@@ -324,13 +362,40 @@
             "save": "The change could not be saved.",
             "rateLimited": "Too many requests. Please wait a moment and try again.",
             "emailInvalid": "Please enter a valid new email address.",
-            "emailChange": "The confirmation email could not be sent. Please try again later."
+            "emailChange": "The confirmation email could not be sent. Please try again later.",
+            "generic": "That did not work. Please try again later."
+        },
+        "role": "Role",
+        "status": {
+            "unverified": "Email not confirmed"
+        },
+        "notifications": {
+            "heading": "Notifications",
+            "intro": "Choose what we inform you about by email.",
+            "announcements": "New announcements",
+            "announcementsHint": "One email for every new announcement you may see.",
+            "events": "New events",
+            "eventsHint": "One email for every new event in the calendars you may see."
+        },
+        "calendar": {
+            "heading": "Calendar subscription",
+            "intro": "Subscribe to the events in your calendar app (Google, Apple, Outlook, Thunderbird) by adding the link as an internet calendar."
+        },
+        "delete": {
+            "heading": "Delete account",
+            "warning": "Deleting cannot be undone.",
+            "effectAccount": "Your account, name and email address are deleted.",
+            "effectSubmissions": "Your reports and topics remain, but without a link to your account.",
+            "effectVotes": "Your poll votes are deleted.",
+            "confirmLabel": "To confirm, enter your email address ({{email}})",
+            "submit": "Delete account permanently",
+            "error": "The account could not be deleted. Please contact the Beirat."
         }
     },
     "gate": {
         "anonymous": {
             "title": "Login required",
-            "text": "The issue board is available to residents with an approved account. Please log in.",
+            "text": "This area is for owners with an approved account. Please log in.",
             "login": "Log in",
             "signup": "Create account"
         },
@@ -341,13 +406,17 @@
         },
         "waiting": {
             "title": "Waiting for approval",
-            "text": "Your account is waiting for the Beirat's approval. You will be notified by email whenever a decision about your reports is made.",
+            "text": "Your account is waiting for the Beirat's approval. Once it is approved, you will see the community board here. If you have questions, contact the Beirat.",
             "profile": "To the profile"
+        },
+        "login": {
+            "title": "Login required",
+            "text": "Please log in to see this page."
         }
     },
     "board": {
         "heading": "Issues",
-        "intro": "Accepted community issues with their location on the map. For residents, positions are rounded to about 100 m.",
+        "intro": "Accepted community issues with their location on the map. For owners, positions are rounded to about 100 m.",
         "loading": "Loading issues …",
         "error": "The issues could not be loaded. Please try again later.",
         "retry": "Try again",
@@ -360,8 +429,12 @@
             "all": "All",
             "status": "Status",
             "category": "Category",
-            "categoryPlaceholder": "Search category …"
-        }
+            "categoryPlaceholder": "Search category …",
+            "active": "Open",
+            "search": "Search",
+            "searchPlaceholder": "Title, category or description …"
+        },
+        "photoCount": "{{count}} photo(s)"
     },
     "issueStatus": {
         "pending": "New",
@@ -373,11 +446,11 @@
     "issueVisibility": {
         "community": {
             "label": "Community",
-            "hint": "Visible for the community"
+            "hint": "All approved owners see the report on the board; the location is rounded to about 100 m."
         },
         "private": {
             "label": "Private",
-            "hint": "Internal only (private)"
+            "hint": "Only the Beirat, caretaker and property management see the report."
         }
     },
     "issueDetail": {
@@ -405,7 +478,15 @@
             "transition": "The action was rejected by the server",
             "generic": "The action failed. Please try again later.",
             "visibilityRequired": "Please choose the visibility before accepting."
-        }
+        },
+        "created": "Submitted on",
+        "locationExact": "Location (exact)",
+        "roundedHint": "rounded to about 100 m",
+        "mapLabel": "Map with the location of the report",
+        "reporter": "Reported by",
+        "reporterUnavailable": "Contact details unavailable",
+        "status": "Status",
+        "noDescription": "No description given."
     },
     "legal": {
         "footer": {
@@ -434,7 +515,7 @@
                 {
                     "heading": "Zweck des Portals",
                     "paragraphs": [
-                        "Dieses Portal dient ausschließlich der internen Kommunikation und Organisation innerhalb der Wohnungseigentümergemeinschaft (Terminkalender, Terminvorschläge, Mängelmeldungen und Freigabe von Bewohnerkonten). Es werden keine kommerziellen Dienste angeboten."
+                        "Dieses Portal dient ausschließlich der internen Kommunikation und Organisation innerhalb der Wohnungseigentümergemeinschaft (Terminkalender, Terminvorschläge, Mängelmeldungen und Freigabe von Eigentümerkonten). Es werden keine kommerziellen Dienste angeboten."
                     ]
                 }
             ]
@@ -453,9 +534,15 @@
                     "paragraphs": [
                         "Terminkalender: Die veröffentlichten Termine (Titel, Beschreibung, Termin, Ort, Kategorie) sind öffentlich einsehbar. Sie werden vom Beirat gepflegt.",
                         "Terminvorschläge: Bei einem Terminvorschlag werden Titel, Beschreibung, Termin, Ort und Kategorie sowie Ihre E-Mail-Adresse gespeichert. Die E-Mail-Adresse dient ausschließlich dazu, Ihnen die Entscheidung (Annahme oder Ablehnung samt Begründung) mitzuteilen; sie ist nur für den Beirat einsehbar.",
-                        "Mängelmeldungen: Bei einer Meldung werden Titel, Beschreibung, Kategorie und die von Ihnen markierte Örtlichkeit gespeichert. Konto-basierte Nutzer (Bewohner, Hausmeister, Hausverwaltung) sehen ausschließlich grob gerundete Koordinaten (ca. 100 m Genauigkeit); die genaue Position ist nur für den Beirat sowie Hausmeister und Hausverwaltung einsehbar. Angehängte Fotos werden vor dem Hochladen auf Ihrem Gerät neu codiert, wobei Aufnahme-Metadaten (u. a. GPS) entfernt werden. Ihre E-Mail-Adresse (und ein freiwillig angegebener Name) werden zur Rückmeldung getrennt von der Meldung gespeichert und sind nur für den Beirat einsehbar.",
-                        "Benutzerkonten: Für Konten werden Name, E-Mail-Adresse, Rolle (Bewohner/in, Beirat, Hausmeister, Hausverwaltung) und der Freigabestatus verarbeitet. Neue Konten sind erst nach Bestätigung der E-Mail-Adresse und Freigabe durch den Beirat nutzbar. Hausmeister und Hausverwaltung können optional Benachrichtigungen zu neuen Meldungen erhalten (Einwilligung, jederzeit widerrufbar).",
-                        "Interne Notizen: Der Beirat kann interne Notizen (Titel, Text, Verfasser/in) anlegen. Diese sind ausschließlich für Beiratsmitglieder zugänglich."
+                        "Mängelmeldungen: Bei einer Meldung werden Titel, Beschreibung, Kategorie und die von Ihnen markierte Örtlichkeit gespeichert. Konto-basierte Nutzer (Eigentümer, Hausmeister, Hausverwaltung) sehen ausschließlich grob gerundete Koordinaten (ca. 100 m Genauigkeit); die genaue Position ist nur für den Beirat sowie Hausmeister und Hausverwaltung einsehbar. Angehängte Fotos werden vor dem Hochladen auf Ihrem Gerät neu codiert, wobei Aufnahme-Metadaten (u. a. GPS) entfernt werden. Ihre E-Mail-Adresse (und ein freiwillig angegebener Name) werden zur Rückmeldung getrennt von der Meldung gespeichert und sind nur für den Beirat einsehbar.",
+                        "Benutzerkonten: Für Konten werden Name, E-Mail-Adresse, Rolle (Eigentümer/in, Beirat, Hausmeister, Hausverwaltung) und der Freigabestatus verarbeitet. Neue Konten sind erst nach Bestätigung der E-Mail-Adresse und Freigabe durch den Beirat nutzbar. Hausmeister und Hausverwaltung können optional Benachrichtigungen zu neuen Meldungen erhalten (Einwilligung, jederzeit widerrufbar).",
+                        "Interne Notizen: Der Beirat kann interne Notizen (Titel, Text, Verfasser/in) anlegen. Diese sind ausschließlich für Beiratsmitglieder zugänglich.",
+                        "Konten für Eigentümer: Konten sind ausschließlich für Eigentümerinnen und Eigentümer der Wohnanlage vorgesehen (sowie für Beirat, Hausmeister und Hausverwaltung). Zusätzlich gespeichert werden Ihre Einstellungen zu E-Mail-Benachrichtigungen (Aushänge, Termine) und – falls Sie ihn erzeugen – ein geheimer Schlüssel für Ihren persönlichen Kalender-Link.",
+                        "Einreichungen mit Konto: Senden Sie eine Meldung oder einen Terminvorschlag angemeldet ab, wird die Einreichung mit Ihrem Konto verknüpft, damit Sie sie unter „Meine Einreichungen“ sehen. Die Verknüpfung ist nur für Sie und den Beirat sichtbar.",
+                        "Verlauf von Meldungen: Statusänderungen einer Meldung werden mit Zeitpunkt und handelndem Konto protokolliert. Beirat, Hausmeister und Hausverwaltung können interne Notizen zu Meldungen erfassen; Verlauf und Notizen sind nur für diese Personen sichtbar.",
+                        "Aushänge, Kontakte und Dokumente: Der Beirat veröffentlicht Aushänge (mit Verfasser/in), eine Kontaktliste (Name, Funktion, Telefon, E-Mail) und Dokumente (z. B. Hausordnung, Protokolle). Inhalte sind entweder öffentlich oder nur für angemeldete Eigentümer sichtbar. TODO(Beirat): Einwilligung der in der Kontaktliste genannten Personen einholen.",
+                        "Themen für die Eigentümerversammlung: Eingereichte Themen werden mit Titel, Beschreibung und Ihrem Konto gespeichert. Angenommene Themen sehen alle angemeldeten Eigentümer – ohne Namen der Einreichenden.",
+                        "Umfragen: Bei unverbindlichen Umfragen wird Ihre Stimme mit Ihrem Konto gespeichert, damit Sie nur einmal abstimmen und Ihre Stimme ändern können. Andere Eigentümer und der Beirat sehen nur das Gesamtergebnis, nicht Ihre einzelne Stimme."
                     ]
                 },
                 {
@@ -475,7 +562,8 @@
                         "Abgelehnte Meldungen (einschließlich Fotos und hinterlegter E-Mail-Adresse) werden 90 Tage nach der Entscheidung gelöscht.",
                         "Erledigte Meldungen (einschließlich Fotos und hinterlegter E-Mail-Adresse) werden 365 Tage nach Erledigung gelöscht.",
                         "Noch nicht abschließend bearbeitete (offene) Vorschläge und Meldungen werden nicht automatisch gelöscht.",
-                        "Benutzerkonten werden bis zum Auszug geführt; danach entzieht der Beirat die Freigabe. Auf Wunsch werden Kontaktdaten gelöscht (siehe „Ihre Rechte“).",
+                        "Benutzerkonten können Sie jederzeit selbst im Profil löschen. Dabei werden Konto, Name, E-Mail-Adresse, Benachrichtigungseinstellungen und Ihre Umfragestimmen gelöscht; Meldungen und eingereichte Themen bleiben ohne Bezug zu Ihrem Konto erhalten. Nach einem Verkauf entzieht der Beirat die Freigabe.",
+                        "Verlauf und interne Notizen einer Meldung werden zusammen mit der Meldung gelöscht (siehe oben). Aushänge, Kontakte, Dokumente, Themen und Umfragen löscht der Beirat, sobald sie nicht mehr benötigt werden. TODO(Beirat): feste Fristen für Themen und Umfragen festlegen.",
                         "Hinweis: Die genannten Fristen entsprechen den aktuellen Portaleinstellungen (Pflege durch die Superuser der Anwendung). Bei jeder Änderung der Fristen in den Portaleinstellungen muss dieser Abschnitt der Datenschutzerklärung angepasst werden."
                     ]
                 },
@@ -489,5 +577,224 @@
                 }
             ]
         }
+    },
+    "form": {
+        "requiredLegend": "Required field"
+    },
+    "eventEditor": {
+        "headingNew": "New event",
+        "headingEdit": "Edit event",
+        "backToEvent": "Back to the event",
+        "edit": "Edit",
+        "save": "Save",
+        "saving": "Saving …",
+        "delete": "Delete",
+        "confirmDelete": "Delete permanently",
+        "cancel": "Cancel",
+        "deleteHint": "The event (for a series: every repetition) is removed for everyone, including subscribed calendars.",
+        "repeat": "Repeat",
+        "interval": "Interval (every n …)",
+        "weekdays": "On weekdays",
+        "weekdaysHint": "None selected: on the weekday of the first event.",
+        "ends": "Ends",
+        "endsNever": "Never",
+        "endsUntil": "On date",
+        "endsCount": "After a number",
+        "untilDate": "Last day",
+        "countLabel": "Number of events",
+        "customRuleHint": "This recurrence rule cannot be shown in the form and is kept unchanged (RFC 5545 RRULE).",
+        "replaceCustomRule": "Replace rule using the form",
+        "error": {
+            "interval": "Please enter a number from 1 to 99.",
+            "untilBeforeStart": "The last day is before the start.",
+            "count": "Please enter a number from 1 to 999.",
+            "customRule": "The recurrence rule is invalid.",
+            "save": "The event could not be saved. Please try again later.",
+            "delete": "The event could not be deleted. Please try again later."
+        },
+        "intro": "Events appear in the calendar and the iCal feed immediately."
+    },
+    "footer": {
+        "theme": "Theme",
+        "scheme": {
+            "light": "Light",
+            "dark": "Dark"
+        }
+    },
+    "home": {
+        "heading": "Welcome",
+        "quickLinks": "Quick links",
+        "ownerHint": "After logging in, owners also see owner-only news, events and documents, the issue board and polls.",
+        "allAnnouncements": "All news",
+        "upcoming": "Upcoming events",
+        "toCalendar": "To the calendar",
+        "noUpcoming": "No events in the coming weeks.",
+        "allContacts": "All contacts",
+        "beiratHint": "News for the community? Publish an announcement.",
+        "back": "Back to the start page",
+        "recurring": "recurring"
+    },
+    "announcements": {
+        "heading": "News",
+        "new": "New announcement",
+        "edit": "Edit announcement",
+        "body": "Text",
+        "pinned": "Pinned",
+        "pinOnTop": "Pin to the top",
+        "expires": "Visible until (optional)",
+        "expiresHint": "Afterwards only Beirat members see the announcement.",
+        "expiresOn": "until {{date}}",
+        "expiredOn": "expired on {{date}}",
+        "showExpired": "Show expired ({{count}})",
+        "hideExpired": "Hide expired",
+        "publish": "Publish",
+        "mailHint": "Owners who enabled announcement notifications receive it by email.",
+        "confirmDelete": "Delete this announcement permanently?",
+        "empty": "There are no announcements at the moment.",
+        "loadError": "The announcements could not be loaded.",
+        "saveError": "The announcement could not be saved.",
+        "introGuest": "Public announcements of the Beirat. Owners see more after logging in.",
+        "introOwner": "Announcements of the Beirat for the community and for owners."
+    },
+    "visibility": {
+        "label": "Visible to",
+        "public": "Public",
+        "owners": "Owners only",
+        "publicHint": "Everyone, including tenants and visitors without an account.",
+        "ownersHint": "Only logged-in owners with an approved account (plus Beirat, caretaker and property management)."
+    },
+    "calendars": {
+        "label": "Calendars",
+        "public": "Public",
+        "owners": "Owners",
+        "beirat": "Beirat",
+        "publicHint": "Visible to everyone, no account needed.",
+        "ownersHint": "Logged-in owners only (plus property management and caretaker).",
+        "beiratHint": "Beirat members only."
+    },
+    "contacts": {
+        "heading": "Contacts",
+        "new": "New contact",
+        "name": "Name",
+        "function": "Function",
+        "categoryLabel": "Category",
+        "phone": "Phone",
+        "email": "Email",
+        "note": "Note",
+        "sort": "Order",
+        "sortHint": "Smaller numbers come first.",
+        "noDetails": "No contact details.",
+        "empty": "No contacts yet.",
+        "loadError": "The contacts could not be loaded.",
+        "saveError": "The contact could not be saved.",
+        "guestHint": "Owners see more contacts after logging in.",
+        "category": {
+            "notdienst": "Emergency services",
+            "beirat": "Beirat",
+            "verwaltung": "Property management",
+            "hausmeister": "Caretaker",
+            "sonstiges": "Other contacts"
+        }
+    },
+    "documents": {
+        "heading": "Documents",
+        "categories": "Categories",
+        "all": "All documents",
+        "categoryLabel": "Category",
+        "date": "Document date",
+        "file": "File",
+        "fileHint": "PDF, image or office document, max. 20 MB.",
+        "upload": "Upload document",
+        "uploadSubmit": "Upload",
+        "open": "Open",
+        "missing": "Please enter a title and choose a file.",
+        "empty": "There are no documents in this category.",
+        "loadError": "The documents could not be loaded.",
+        "saveError": "The document could not be uploaded.",
+        "introGuest": "Public documents such as the house rules. Owners see minutes, resolutions and statements after logging in.",
+        "introOwner": "House rules, minutes, resolutions, budgets and statements. The binding record of resolutions remains with the property management.",
+        "category": {
+            "hausordnung": "House rules",
+            "protokoll": "Minutes",
+            "beschluss": "Resolutions",
+            "wirtschaftsplan": "Budgets",
+            "abrechnung": "Statements",
+            "vertrag": "Contracts",
+            "sonstiges": "Other"
+        }
+    },
+    "participate": {
+        "heading": "Have your say",
+        "polls": "Polls",
+        "agenda": "Topics for the meeting",
+        "pollsIntro": "Opinion polls of the Beirat. Your vote is not visible to others; only the total result is shown.",
+        "agendaIntro": "Suggest topics for the next owners' meeting. The Beirat collects them and passes them on to the property management.",
+        "nonBinding": "Polls are non-binding opinion polls. Only the owners' meeting passes resolutions.",
+        "newPoll": "New poll",
+        "question": "Question",
+        "options": "Answers",
+        "optionsHint": "One answer per line, 2 to 10 answers.",
+        "closesAt": "Ends on (optional)",
+        "closesAtHint": "Without a date the poll stays open until you delete it.",
+        "startPoll": "Start poll",
+        "pollInvalid": "Please enter a question and 2 to 10 answers.",
+        "open": "Open",
+        "closed": "Closed",
+        "closesOn": "ends on {{date}}",
+        "closedOn": "ended on {{date}}",
+        "voteCount": "{{count}} vote(s)",
+        "vote": "Vote",
+        "changeVote": "Change vote",
+        "voteError": "Your vote could not be saved.",
+        "closedPolls": "Closed polls",
+        "noPolls": "There are no polls at the moment.",
+        "confirmDeletePoll": "Delete this poll with all votes?",
+        "newTopic": "Suggest a topic",
+        "topicDescription": "What is it about?",
+        "topicHint": "Briefly describe what the meeting should discuss or decide.",
+        "submitTopic": "Submit topic",
+        "topicSent": "Thank you! The Beirat reviews your topic and informs you by email.",
+        "acceptedTopics": "Accepted topics",
+        "noAcceptedTopics": "No accepted topics yet.",
+        "myTopics": "My topics",
+        "withdraw": "Withdraw",
+        "beiratNote": "Note from the Beirat",
+        "loadError": "The data could not be loaded.",
+        "saveError": "That could not be saved.",
+        "topicStatus": {
+            "pending": "Under review",
+            "accepted": "Accepted",
+            "rejected": "Not included"
+        }
+    },
+    "mySubmissions": {
+        "heading": "My submissions",
+        "intro": "Reports and event suggestions you sent while logged in.",
+        "issues": "Reports",
+        "suggestions": "Event suggestions",
+        "noIssues": "You have not sent any reports yet.",
+        "noSuggestions": "You have not suggested any events yet.",
+        "submittedOn": "submitted on {{date}}",
+        "private": "Visible internally only",
+        "loadError": "Your submissions could not be loaded.",
+        "anonymousHint": "Reports sent without logging in do not appear here; you still receive emails about them.",
+        "suggestionStatus": {
+            "pending": "Under review",
+            "accepted": "Accepted",
+            "rejected": "Rejected"
+        }
+    },
+    "history": {
+        "heading": "History and notes",
+        "internal": "Internal",
+        "submitted": "Report received",
+        "statusChange": "Status: {{from}} → {{to}}",
+        "someone": "Former account",
+        "system": "System",
+        "empty": "No entries yet.",
+        "addNote": "Add a note",
+        "noteHint": "Visible to the Beirat, caretaker and property management only – e.g. \"Company commissioned, appointment on 12 March\".",
+        "saveNote": "Save note",
+        "saveError": "The note could not be saved."
     }
 }

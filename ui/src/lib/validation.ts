@@ -4,7 +4,7 @@ import { z } from "zod";
 // decisions. Everything sendable lives here so it is unit-testable
 // without rendering a component.
 
-const FIELD_LIMITS = {
+export const FIELD_LIMITS = {
     title: 200,
     description: 5000,
     location: 200,
@@ -26,12 +26,16 @@ function isParsableDate(value: string): boolean {
 
 // A date or datetime-local input value ("YYYY-MM-DD" for all-day
 // entries, "YYYY-MM-DDTHH:mm" otherwise) as ISO 8601 for PocketBase.
+//
+// All-day entries are calendar DATES, not instants: they are stored as
+// UTC midnight of the chosen date ("2026-12-24T00:00:00.000Z") so the
+// iCal export (VALUE=DATE) and every viewer see the same day regardless
+// of their UTC offset. Timed entries are local wall-clock -> UTC instant.
 export function toPBDateTime(value: string, allDay: boolean): string {
-    const normalized = allDay && value.includes("T")
-        ? value.slice(0, 10) // datetime value kept from before the toggle
-        : value;
-    const local = allDay ? `${normalized}T00:00` : normalized;
-    return new Date(local).toISOString();
+    if (allDay) {
+        return `${value.slice(0, 10)}T00:00:00.000Z`;
+    }
+    return new Date(value).toISOString();
 }
 
 export const suggestionSchema = z
@@ -163,18 +167,40 @@ export function buildUserApprovalPatch(approved: boolean) {
 // hooks/submitIssue.go). Both lat and lng travel as plain strings - the
 // server parses and validates them (NaN/Inf + bounding box) itself.
 
-// Bounding box the location picker and the zod schema enforce. These are
-// the same defaults as the backend (hooks/submitIssue.go issueBounds),
-// which a deployment can override with PORTAL_MIN/MAX_LAT/LNG env vars.
-// TODO(M11): deployment config must match on both sides - a single
-// source (e.g. a /api/portal/config endpoint or build-time injection)
-// is proposed in reviews/M8-handoff.md for the reviewer to decide.
-export const ISSUE_BOUNDS = {
+// Bounding box the location picker and the zod schema enforce. The
+// values below are only the fallback (same defaults as the backend's
+// hooks/submitIssue.go issueBounds): at startup lib/portalConfig.ts loads
+// the deployment's real box (PORTAL_MIN/MAX_LAT/LNG env vars) from
+// GET /api/portal/config and applies it with applyIssueBounds(), so the
+// client and the server always validate against the same area.
+export interface IssueBounds {
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+}
+
+export const ISSUE_BOUNDS: IssueBounds = {
     minLat: 51.0,
     maxLat: 51.5,
     minLng: 7.0,
     maxLng: 7.5,
-} as const;
+};
+
+// Replaces the bounding box (ignored unless it is a well-formed box).
+export function applyIssueBounds(bounds: Partial<IssueBounds> | null | undefined): boolean {
+    if (!bounds) return false;
+    const { minLat, maxLat, minLng, maxLng } = bounds;
+    const values = [minLat, maxLat, minLng, maxLng];
+    if (!values.every((v) => typeof v === "number" && Number.isFinite(v))) {
+        return false;
+    }
+    if (!(minLat! < maxLat! && minLng! < maxLng!)) {
+        return false;
+    }
+    Object.assign(ISSUE_BOUNDS, { minLat, maxLat, minLng, maxLng });
+    return true;
+}
 
 export function isWithinIssueBounds(lat: number, lng: number): boolean {
     return (

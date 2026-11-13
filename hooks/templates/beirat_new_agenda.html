@@ -1,0 +1,16 @@
+{{ define "body" }}
+    <p>Hallo,</p>
+
+    <p>ein Eigentümer hat ein Thema für die nächste Eigentümerversammlung eingereicht:</p>
+
+    <blockquote>
+        <p><strong>{{ .Title }}</strong></p>
+        {{ if .Description }}<p style="white-space: pre-wrap">{{ .Description }}</p>{{ end }}
+    </blockquote>
+
+    <p><a href="{{ .Link }}">Zur Moderation</a></p>
+
+    <hr />
+
+    <small>Dies ist eine automatische Nachricht des WEG-Portals.</small>
+{{ end }}

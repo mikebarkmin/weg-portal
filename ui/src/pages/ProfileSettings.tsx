@@ -4,6 +4,10 @@ import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
 import { useAuth } from "../lib/auth";
+import { useNavigate } from "react-router-dom";
+import PersonalFeed from "../components/PersonalFeed";
+import { MenuButton, Page, PageHeading, SidebarInfo, SidebarMenu } from "../components/Page";
+import FormField, { SwitchField } from "../components/FormField";
 import { errorStatus, serverMessage } from "../lib/pbErrors";
 import {
     buildPasswordUpdate,
@@ -30,6 +34,7 @@ export default function ProfileSettings() {
     const verified = record?.["verified"] === true;
     const recordId = typeof record?.["id"] === "string" ? record["id"] : "";
     const role = auth.role;
+    const [section, setSection] = useState<"account" | "notifications" | "calendar" | "password" | "email" | "delete">("account");
     const showNotify = role === "hausmeister" || role === "hausverwaltung";
 
     // ---- profile (name + optional notify flag) ----
@@ -78,7 +83,6 @@ export default function ProfileSettings() {
         setProfileBusy(true);
         try {
             const patch = buildProfileUpdate(parsed.data, {
-                notifyNewIssues: showNotify ? notifyNewIssues : undefined,
             });
             await pb.collection("users").update(recordId, patch);
             await updateAuthRecord();
@@ -164,162 +168,360 @@ export default function ProfileSettings() {
         }
     };
 
+    const errorAlert = (error: { key: string; detail: string } | null) =>
+        error && (
+            <div className="col-12">
+                <div className="alert danger">
+                    {t(error.key)}
+                    {error.detail ? ` (${error.detail})` : ""}
+                </div>
+            </div>
+        );
+    const successAlert = (show: boolean, key: string) =>
+        show && (
+            <div className="col-12">
+                <div className="alert success">{t(key)}</div>
+            </div>
+        );
+
     return (
-        <>
-            <h1>{t("profile.heading")}</h1>
-            <p className="hint">{t("profile.readonlyHint")}</p>
+        <Page
+            sidebar={
+                <>
+                    <SidebarMenu title={t("profile.heading")}>
+                        <MenuButton icon="ri-user-line" active={section === "account"} onClick={() => setSection("account")}>
+                            {t("profile.account")}
+                        </MenuButton>
+                        <MenuButton icon="ri-notification-3-line" active={section === "notifications"} onClick={() => setSection("notifications")}>
+                            {t("profile.notifications.heading")}
+                        </MenuButton>
+                        <MenuButton icon="ri-calendar-2-line" active={section === "calendar"} onClick={() => setSection("calendar")}>
+                            {t("profile.calendar.heading")}
+                        </MenuButton>
+                        <MenuButton icon="ri-lock-password-line" active={section === "password"} onClick={() => setSection("password")}>
+                            {t("profile.password.heading")}
+                        </MenuButton>
+                        <MenuButton icon="ri-mail-line" active={section === "email"} onClick={() => setSection("email")}>
+                            {t("profile.emailChange.heading")}
+                        </MenuButton>
+                        {role === "resident" && (
+                            <MenuButton icon="ri-delete-bin-line" active={section === "delete"} onClick={() => setSection("delete")}>
+                                {t("profile.delete.heading")}
+                            </MenuButton>
+                        )}
+                    </SidebarMenu>
+                    <SidebarInfo label={t("profile.role")}>
+                        <span className="labels-list">
+                            <span className="label sm">{t(`users.roleValues.${role}`)}</span>
+                            {!verified && <span className="label sm warning">{t("profile.status.unverified")}</span>}
+                        </span>
+                    </SidebarInfo>
+                    <p className="txt-hint sidebar-text">{t("profile.readonlyHint")}</p>
+                </>
+            }
+        >
+            {section === "account" && (
+                <>
+                    <PageHeading title={t("profile.account")} />
+                    {!verified && (
+                        <div className="alert warning m-b-sm flex gap-sm flex-wrap">
+                            <span className="flex-fill">
+                                {verifySent ? t("profile.verify.sent") : t("profile.verify.hint")}
+                            </span>
+                            <button
+                                type="button"
+                                className={`btn sm secondary ${verifyBusy ? "loading" : ""}`}
+                                onClick={resendVerification}
+                                disabled={verifyBusy}
+                            >
+                                {t("profile.verify.resend")}
+                            </button>
+                        </div>
+                    )}
+                    <form className="post" onSubmit={saveProfile}>
+                        <div className="grid sm">
+                            <FormField id="profile-name" label={t("profile.name")}>
+                                <input
+                                    id="profile-name"
+                                    type="text"
+                                    maxLength={200}
+                                    autoComplete="name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                />
+                            </FormField>
+                            <FormField id="profile-email" label={t("profile.email")} hint={t("profile.emailHint")}>
+                                <input id="profile-email" type="email" value={currentEmail} readOnly aria-readonly="true" />
+                            </FormField>
+                            {errorAlert(profileError)}
+                            {successAlert(profileSaved, "profile.saved")}
+                            <div className="col-12">
+                                <footer className="form-footer">
+                                    <button type="submit" className={`btn ${profileBusy ? "loading" : ""}`} disabled={profileBusy}>
+                                        <span className="txt">{profileBusy ? t("profile.saving") : t("profile.save")}</span>
+                                    </button>
+                                </footer>
+                            </div>
+                        </div>
+                    </form>
+                </>
+            )}
 
-            <form className="card form" onSubmit={saveProfile}>
-                <h2 className="section-title">{t("profile.account")}</h2>
-                <div className="field">
-                    <label htmlFor="profile-name">{t("profile.name")}</label>
-                    <input
-                        id="profile-name"
-                        type="text"
-                        maxLength={200}
-                        autoComplete="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+            {section === "notifications" && (
+                <>
+                    <PageHeading title={t("profile.notifications.heading")} />
+                    <NotificationSettings
+                        recordId={recordId}
+                        staff={showNotify}
+                        initial={{
+                            notify_announcements: record?.["notify_announcements"] === true,
+                            notify_events: record?.["notify_events"] === true,
+                            notify_new_issues: notifyNewIssues,
+                        }}
+                        onSaved={(values) => setNotifyNewIssues(values.notify_new_issues)}
                     />
-                </div>
-                <div className="field">
-                    <label htmlFor="profile-email">{t("profile.email")}</label>
-                    <input
-                        id="profile-email"
-                        type="email"
-                        value={currentEmail}
-                        readOnly
-                        aria-readonly="true"
+                </>
+            )}
+
+            {section === "calendar" && (
+                <>
+                    <PageHeading title={t("profile.calendar.heading")} />
+                    <div className="post">
+                        <p className="m-0">{t("profile.calendar.intro")}</p>
+                        <PersonalFeed allowRenew />
+                    </div>
+                </>
+            )}
+
+            {section === "delete" && role === "resident" && (
+                <>
+                    <PageHeading title={t("profile.delete.heading")} />
+                    <DeleteAccount recordId={recordId} email={currentEmail} />
+                </>
+            )}
+
+            {section === "password" && (
+                <>
+                    <PageHeading title={t("profile.password.heading")} />
+                    <form className="post" onSubmit={savePassword}>
+                        <div className="grid sm">
+                            <FormField id="profile-old-password" label={t("profile.password.old")} required>
+                                <input
+                                    id="profile-old-password"
+                                    type="password"
+                                    autoComplete="current-password"
+                                    value={oldPassword}
+                                    onChange={(e) => setOldPassword(e.target.value)}
+                                />
+                            </FormField>
+                            <FormField id="profile-new-password" className="col-12 col-md-6" label={t("profile.password.new")} required>
+                                <input
+                                    id="profile-new-password"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    minLength={MIN_PASSWORD_LENGTH}
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                />
+                            </FormField>
+                            <FormField id="profile-confirm-password" className="col-12 col-md-6" label={t("profile.password.confirm")} required>
+                                <input
+                                    id="profile-confirm-password"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    minLength={MIN_PASSWORD_LENGTH}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                />
+                            </FormField>
+                            {errorAlert(passwordError)}
+                            {successAlert(passwordSaved, "profile.password.saved")}
+                            <div className="col-12">
+                                <footer className="form-footer">
+                                    <button type="submit" className={`btn ${passwordBusy ? "loading" : ""}`} disabled={passwordBusy}>
+                                        <span className="txt">{passwordBusy ? t("profile.saving") : t("profile.password.submit")}</span>
+                                    </button>
+                                </footer>
+                            </div>
+                        </div>
+                    </form>
+                </>
+            )}
+
+            {section === "email" && (
+                <>
+                    <PageHeading title={t("profile.emailChange.heading")} />
+                    <form className="post" onSubmit={requestEmailChange}>
+                        <div className="grid sm">
+                            <FormField
+                                id="profile-new-email"
+                                label={t("profile.emailChange.newEmail")}
+                                required
+                                hint={t("profile.emailChange.hint")}
+                            >
+                                <input
+                                    id="profile-new-email"
+                                    type="email"
+                                    inputMode="email"
+                                    value={newEmail}
+                                    onChange={(e) => setNewEmail(e.target.value)}
+                                />
+                            </FormField>
+                            {errorAlert(emailError)}
+                            {successAlert(emailSent, "profile.emailChange.sent")}
+                            <div className="col-12">
+                                <footer className="form-footer">
+                                    <button type="submit" className={`btn ${emailBusy ? "loading" : ""}`} disabled={emailBusy}>
+                                        <span className="txt">{emailBusy ? t("profile.saving") : t("profile.emailChange.submit")}</span>
+                                    </button>
+                                </footer>
+                            </div>
+                        </div>
+                    </form>
+                </>
+            )}
+        </Page>
+    );
+}
+
+function NotificationSettings({
+    recordId,
+    staff,
+    initial,
+    onSaved,
+}: {
+    recordId: string;
+    staff: boolean;
+    initial: { notify_announcements: boolean; notify_events: boolean; notify_new_issues: boolean };
+    onSaved: (values: { notify_announcements: boolean; notify_events: boolean; notify_new_issues: boolean }) => void;
+}) {
+    const { t } = useTranslation();
+    const [values, setValues] = useState(initial);
+    const [busy, setBusy] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [error, setError] = useState(false);
+
+    const submit = async (e: { preventDefault(): void }) => {
+        e.preventDefault();
+        setBusy(true);
+        setSaved(false);
+        setError(false);
+        try {
+            await pb.collection("users").update(recordId, {
+                notify_announcements: values.notify_announcements,
+                notify_events: values.notify_events,
+                ...(staff ? { notify_new_issues: values.notify_new_issues } : {}),
+            });
+            await pb.collection("users").authRefresh();
+            setSaved(true);
+            onSaved(values);
+        } catch {
+            setError(true);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <form className="post" onSubmit={submit}>
+            <p className="m-0">{t("profile.notifications.intro")}</p>
+            <div className="grid sm">
+                <SwitchField
+                    id="notify-announcements"
+                    label={t("profile.notifications.announcements")}
+                    hint={t("profile.notifications.announcementsHint")}
+                    checked={values.notify_announcements}
+                    onChange={(e) => setValues({ ...values, notify_announcements: e.target.checked })}
+                />
+                <SwitchField
+                    id="notify-events"
+                    label={t("profile.notifications.events")}
+                    hint={t("profile.notifications.eventsHint")}
+                    checked={values.notify_events}
+                    onChange={(e) => setValues({ ...values, notify_events: e.target.checked })}
+                />
+                {staff && (
+                    <SwitchField
+                        id="profile-notify"
+                        label={t("profile.notify")}
+                        hint={t("profile.notifyHint")}
+                        checked={values.notify_new_issues}
+                        onChange={(e) => setValues({ ...values, notify_new_issues: e.target.checked })}
                     />
-                    <p className="hint">{t("profile.emailHint")}</p>
-                </div>
-                {showNotify && (
-                    <div className="field field-inline">
-                        <label>
-                            <input
-                                type="checkbox"
-                                checked={notifyNewIssues}
-                                onChange={(e) => setNotifyNewIssues(e.target.checked)}
-                            />
-                            {t("profile.notify")}
-                        </label>
-                        <p className="hint">{t("profile.notifyHint")}</p>
+                )}
+                {error && (
+                    <div className="col-12">
+                        <div className="alert danger">{t("profile.error.generic")}</div>
                     </div>
                 )}
-                {!verified && (
-                    <div className="field">
-                        <p className="hint">{t("profile.verify.hint")}</p>
-                        <button
-                            type="button"
-                            className="btn btn-outline"
-                            onClick={resendVerification}
-                            disabled={verifyBusy}
-                        >
-                            {t("profile.verify.resend")}
+                {saved && (
+                    <div className="col-12">
+                        <div className="alert success">{t("profile.saved")}</div>
+                    </div>
+                )}
+                <div className="col-12">
+                    <footer className="form-footer">
+                        <button type="submit" className={`btn ${busy ? "loading" : ""}`} disabled={busy}>
+                            <span className="txt">{t("profile.save")}</span>
                         </button>
-                        {verifySent && <p className="hint">{t("profile.verify.sent")}</p>}
-                    </div>
-                )}
-                {profileError && (
-                    <div className="form-error">
-                        {t(profileError.key)}
-                        {profileError.detail ? ` (${profileError.detail})` : ""}
-                    </div>
-                )}
-                {profileSaved && <p className="hint">{t("profile.saved")}</p>}
-                <div className="btn-row">
-                    <button type="submit" className="btn" disabled={profileBusy}>
-                        {profileBusy ? t("profile.saving") : t("profile.save")}
-                    </button>
+                    </footer>
                 </div>
-            </form>
+            </div>
+        </form>
+    );
+}
 
-            <form className="card form" onSubmit={savePassword}>
-                <h2 className="section-title">{t("profile.password.heading")}</h2>
-                <div className="field">
-                    <label htmlFor="profile-old-password">
-                        {t("profile.password.old")}
-                    </label>
-                    <input
-                        id="profile-old-password"
-                        type="password"
-                        autoComplete="current-password"
-                        value={oldPassword}
-                        onChange={(e) => setOldPassword(e.target.value)}
-                    />
-                </div>
-                <div className="field">
-                    <label htmlFor="profile-new-password">
-                        {t("profile.password.new")}
-                    </label>
-                    <input
-                        id="profile-new-password"
-                        type="password"
-                        autoComplete="new-password"
-                        minLength={MIN_PASSWORD_LENGTH}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                </div>
-                <div className="field">
-                    <label htmlFor="profile-confirm-password">
-                        {t("profile.password.confirm")}
-                    </label>
-                    <input
-                        id="profile-confirm-password"
-                        type="password"
-                        autoComplete="new-password"
-                        minLength={MIN_PASSWORD_LENGTH}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                </div>
-                {passwordError && (
-                    <div className="form-error">
-                        {t(passwordError.key)}
-                        {passwordError.detail ? ` (${passwordError.detail})` : ""}
-                    </div>
-                )}
-                {passwordSaved && <p className="hint">{t("profile.password.saved")}</p>}
-                <div className="btn-row">
-                    <button type="submit" className="btn" disabled={passwordBusy}>
-                        {passwordBusy
-                            ? t("profile.saving")
-                            : t("profile.password.submit")}
-                    </button>
-                </div>
-            </form>
+// GDPR: owners delete their own account. Their reports and topics stay
+// (without the link to the account); their poll votes are removed.
+function DeleteAccount({ recordId, email }: { recordId: string; email: string }) {
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+    const [confirmText, setConfirmText] = useState("");
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState(false);
+    const matches = confirmText.trim().toLowerCase() === email.toLowerCase();
 
-            <form className="card form" onSubmit={requestEmailChange}>
-                <h2 className="section-title">{t("profile.emailChange.heading")}</h2>
-                <div className="field">
-                    <label htmlFor="profile-new-email">
-                        {t("profile.emailChange.newEmail")}
-                    </label>
-                    <input
-                        id="profile-new-email"
-                        type="email"
-                        inputMode="email"
-                        value={newEmail}
-                        onChange={(e) => setNewEmail(e.target.value)}
-                    />
-                    <p className="hint">{t("profile.emailChange.hint")}</p>
-                </div>
-                {emailError && (
-                    <div className="form-error">
-                        {t(emailError.key)}
-                        {emailError.detail ? ` (${emailError.detail})` : ""}
+    const submit = async (e: { preventDefault(): void }) => {
+        e.preventDefault();
+        if (!matches) return;
+        setBusy(true);
+        setError(false);
+        try {
+            await pb.collection("users").delete(recordId);
+            pb.authStore.clear();
+            navigate("/?deleted=1");
+        } catch {
+            setError(true);
+            setBusy(false);
+        }
+    };
+
+    return (
+        <form className="post" onSubmit={submit} noValidate>
+            <div className="alert warning">{t("profile.delete.warning")}</div>
+            <ul className="steps-list">
+                <li>{t("profile.delete.effectAccount")}</li>
+                <li>{t("profile.delete.effectSubmissions")}</li>
+                <li>{t("profile.delete.effectVotes")}</li>
+            </ul>
+            <div className="grid sm">
+                <FormField id="delete-confirm" label={t("profile.delete.confirmLabel", { email })} required>
+                    <input id="delete-confirm" type="email" autoComplete="off" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} />
+                </FormField>
+                {error && (
+                    <div className="col-12">
+                        <div className="alert danger">{t("profile.delete.error")}</div>
                     </div>
                 )}
-                {emailSent && (
-                    <p className="hint">{t("profile.emailChange.sent")}</p>
-                )}
-                <div className="btn-row">
-                    <button type="submit" className="btn" disabled={emailBusy}>
-                        {emailBusy ? t("profile.saving") : t("profile.emailChange.submit")}
-                    </button>
+                <div className="col-12">
+                    <footer className="form-footer">
+                        <button type="submit" className={`btn danger ${busy ? "loading" : ""}`} disabled={busy || !matches}>
+                            <i className="ri-delete-bin-line" aria-hidden="true" />
+                            <span className="txt">{t("profile.delete.submit")}</span>
+                        </button>
+                    </footer>
                 </div>
-            </form>
-        </>
+            </div>
+        </form>
     );
 }

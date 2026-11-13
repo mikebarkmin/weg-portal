@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { MenuButton, Page, PageHeading, SidebarMenu } from "../components/Page";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
@@ -21,6 +23,7 @@ interface UsersState {
 // or role (enforced by the update rule; this page never sends them).
 export default function UserApproval() {
     const { t } = useTranslation();
+    const [view, setView] = useState<"pending" | "approved">("pending");
     const [state, setState] = useState<UsersState>({
         pending: [],
         approved: [],
@@ -70,55 +73,64 @@ export default function UserApproval() {
         }));
     };
 
+    const list = view === "pending" ? state.pending : state.approved;
+
     return (
-        <>
-            <h1>{t("users.heading")}</h1>
+        <Page
+            sidebar={
+                <>
+                    <SidebarMenu title={t("users.heading")}>
+                        <MenuButton
+                            icon="ri-user-add-line"
+                            active={view === "pending"}
+                            count={state.pending.length}
+                            onClick={() => setView("pending")}
+                        >
+                            {t("users.pending.heading")}
+                        </MenuButton>
+                        <MenuButton
+                            icon="ri-group-line"
+                            active={view === "approved"}
+                            count={state.approved.length}
+                            onClick={() => setView("approved")}
+                        >
+                            {t("users.approved.heading")}
+                        </MenuButton>
+                    </SidebarMenu>
+                    <p className="txt-hint sidebar-text">{t("users.intro")}</p>
+                </>
+            }
+        >
+            <PageHeading
+                title={view === "pending" ? t("users.pending.heading") : t("users.approved.heading")}
+            />
 
-            {state.loading && <p className="state">{t("users.loading")}</p>}
-            {state.error && (
-                <p className="state state-error">{t("users.error.load")}</p>
-            )}
+            {state.loading && <p className="txt-hint">{t("users.loading")}</p>}
+            {state.error && <div className="alert danger">{t("users.error.load")}</div>}
 
             {!state.loading && !state.error && (
-                <section className="queue" aria-label={t("users.pending.heading")}>
-                    <h2>{t("users.pending.heading")}</h2>
-                    {state.pending.length === 0 ? (
-                        <p className="state">{t("users.pending.empty")}</p>
-                    ) : (
-                        state.pending.map((user) => (
-                            <UserCard
+                list.length === 0 ? (
+                    <div className="alert">
+                        {view === "pending" ? t("users.pending.empty") : t("users.approved.empty")}
+                    </div>
+                ) : (
+                    <div className="list">
+                        {list.map((user) => (
+                            <UserRow
                                 key={user.id}
                                 user={user}
-                                action="approve"
+                                action={view === "pending" ? "approve" : "revoke"}
                                 onApprovedChange={onApprovedChange}
                             />
-                        ))
-                    )}
-                </section>
+                        ))}
+                    </div>
+                )
             )}
-
-            {!state.loading && !state.error && (
-                <section className="queue" aria-label={t("users.approved.heading")}>
-                    <h2>{t("users.approved.heading")}</h2>
-                    {state.approved.length === 0 ? (
-                        <p className="state">{t("users.approved.empty")}</p>
-                    ) : (
-                        state.approved.map((user) => (
-                            <UserCard
-                                key={user.id}
-                                user={user}
-                                action="revoke"
-                                onApprovedChange={onApprovedChange}
-                            />
-                        ))
-                    )}
-                </section>
-            )}
-        </>
+        </Page>
     );
 }
 
-function UserCard({
+function UserRow({
     user,
     action,
     onApprovedChange,
@@ -149,27 +161,33 @@ function UserCard({
         }
     };
 
+    const initials = (user.name || user.email).slice(0, 2).toUpperCase();
+
     return (
-        <article className="card queue-card">
-            <dl className="queue-meta">
-                <dt>{t("users.name")}</dt>
-                <dd>{user.name || t("users.noName")}</dd>
-                <dt>{t("users.email")}</dt>
-                <dd>{user.email}</dd>
-                <dt>{t("users.role")}</dt>
-                <dd>{t(`users.roleValues.${user.role}`)}</dd>
-            </dl>
-            {error && <div className="form-error">{error}</div>}
-            <div className="btn-row">
+        <div className="list-item user-row">
+            <span className="thumb circle" aria-hidden="true">{initials}</span>
+            <span className="content">
+                <span className="txt-bold">{user.name || t("users.noName")}</span>
+                <span className="meta">
+                    <span className="meta-item">
+                        <i className="ri-mail-line" aria-hidden="true" />
+                        {user.email}
+                    </span>
+                    <span className="label sm">{t(`users.roleValues.${user.role}`)}</span>
+                </span>
+                {error && <span className="field-help error">{error}</span>}
+            </span>
+            <span className="ctrls">
                 <button
                     type="button"
-                    className={action === "approve" ? "btn" : "btn btn-outline"}
+                    className={`btn sm ${action === "approve" ? "" : "secondary"} ${busy ? "loading" : ""}`}
                     disabled={busy}
                     onClick={run}
                 >
-                    {t(action === "approve" ? "users.approve" : "users.revoke")}
+                    <i className={action === "approve" ? "ri-check-line" : "ri-user-unfollow-line"} aria-hidden="true" />
+                    <span className="txt">{t(action === "approve" ? "users.approve" : "users.revoke")}</span>
                 </button>
-            </div>
-        </article>
+            </span>
+        </div>
     );
 }

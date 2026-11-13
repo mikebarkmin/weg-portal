@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+
+import { Wrapper } from "../components/Page";
+import FormField from "../components/FormField";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
@@ -45,44 +48,48 @@ export default function Login() {
     };
 
     return (
-        <section className="card form">
-            <h1>{t("login.heading")}</h1>
-            <form onSubmit={submit} noValidate>
-                <div className="field">
-                    <label htmlFor="login-email">{t("login.email")}</label>
-                    <input
-                        id="login-email"
-                        type="email"
-                        inputMode="email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                </div>
-                <div className="field">
-                    <label htmlFor="login-password">{t("login.password")}</label>
-                    <input
-                        id="login-password"
-                        type="password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
-                </div>
-                {error && <div className="form-error">{t(error)}</div>}
-                <div className="btn-row">
-                    <button type="submit" className="btn" disabled={sending}>
-                        {sending ? t("login.submitting") : t("login.submit")}
-                    </button>
+        <Wrapper size="sm">
+            <form className="post auth-form" onSubmit={submit} noValidate>
+                <header className="auth-form-header">
+                    <h1 className="title">{t("login.heading")}</h1>
+                </header>
+                <div className="grid sm">
+                    <FormField id="login-email" label={t("login.email")} required>
+                        <input
+                            id="login-email"
+                            type="email"
+                            inputMode="email"
+                            autoComplete="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </FormField>
+                    <FormField id="login-password" label={t("login.password")} required>
+                        <input
+                            id="login-password"
+                            type="password"
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </FormField>
+                    {error && (
+                        <div className="col-12">
+                            <div className="alert danger">{t(error)}</div>
+                        </div>
+                    )}
+                    <div className="col-12">
+                        <button type="submit" className={`btn full-width ${sending ? "loading" : ""}`} disabled={sending}>
+                            <span className="txt">{sending ? t("login.submitting") : t("login.submit")}</span>
+                        </button>
+                    </div>
                 </div>
             </form>
-            <p className="hint">
-                <Link to="/">{t("login.back")}</Link>
-                {" · "}
+            <p className="auth-links txt-hint">
                 <Link to="/signup">{t("login.toSignup")}</Link>
             </p>
-        </section>
+        </Wrapper>
     );
 }

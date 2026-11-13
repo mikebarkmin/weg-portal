@@ -24,6 +24,7 @@ export interface AuthState {
     isAuthenticated: boolean;
     role: string;
     name: string;
+    email: string;
 }
 
 function readState(): AuthState {
@@ -34,6 +35,10 @@ function readState(): AuthState {
         name:
             record && typeof record["name"] === "string"
                 ? record["name"]
+                : "",
+        email:
+            record && typeof record["email"] === "string"
+                ? record["email"]
                 : "",
     };
 }
@@ -86,4 +91,20 @@ export function boardAccessOf(record: unknown): BoardAccessState {
         return "waiting";
     }
     return "granted";
+}
+
+// Accounts are for owners only: an approved + verified account (or a
+// Beirat/staff account) counts as "owner" for owner-only content
+// (announcements, documents, contacts, the owners' calendar, polls and
+// meeting topics). Server rules decide; this only picks what to show.
+export function isOwnerAccount(record: unknown): boolean {
+    const role = roleOf(record);
+    if (role === "beirat") return true;
+    const data = record as Record<string, unknown> | null;
+    return flagOf(data, "approved") && flagOf(data, "verified");
+}
+
+export function useOwnerAccount(): boolean {
+    const auth = useAuth();
+    return auth.isAuthenticated && isOwnerAccount(pb.authStore.record);
 }

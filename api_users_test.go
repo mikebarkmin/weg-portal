@@ -407,6 +407,9 @@ func TestUsersUpdate(t *testing.T) {
 	}
 }
 
+// Owners may delete their own account (GDPR); nobody else's. Beirat and
+// staff accounts are superuser-managed (hook), so even their own delete
+// request is refused.
 func TestUsersDelete(t *testing.T) {
 	t.Parallel()
 
@@ -416,31 +419,65 @@ func TestUsersDelete(t *testing.T) {
 			Method:          http.MethodDelete,
 			URL:             "/api/collections/users/records/userresident000",
 			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  403,
-			ExpectedContent: []string{`"status":403`},
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
 		},
 		{
-			Name:            "resident -> own record",
+			Name:           "resident -> own record",
+			Method:         http.MethodDelete,
+			URL:            "/api/collections/users/records/userresident000",
+			Headers:        authHeader(t, emailResident),
+			TestAppFactory: setupTestApp,
+			ExpectedStatus: 204,
+			AfterTestFunc: func(t testing.TB, app *tests.TestApp, res *http.Response) {
+				if _, err := app.FindRecordById("users", "userresident000"); err == nil {
+					t.Fatal("expected the account to be deleted")
+				}
+				// the owner's agenda topic stays, without the author link
+				item, err := app.FindRecordById("agenda_items", "agendapending01")
+				if err != nil {
+					t.Fatalf("expected the agenda item to remain: %v", err)
+				}
+				if item.GetString("author") != "" {
+					t.Fatal("expected the author link to be removed")
+				}
+				// the vote is removed with the account
+				if _, err := app.FindRecordById("poll_votes", "pollvote0000001"); err == nil {
+					t.Fatal("expected the vote to be deleted with the account")
+				}
+			},
+		},
+		{
+			Name:            "resident -> other record",
 			Method:          http.MethodDelete,
-			URL:             "/api/collections/users/records/userresident000",
+			URL:             "/api/collections/users/records/userunapproved0",
 			Headers:         authHeader(t, emailResident),
 			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  403,
-			ExpectedContent: []string{`"status":403`},
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
 		},
 		{
-			Name:            "beirat",
+			Name:            "beirat -> resident",
 			Method:          http.MethodDelete,
 			URL:             "/api/collections/users/records/userresident000",
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "beirat -> own record (superuser-managed)",
+			Method:          http.MethodDelete,
+			URL:             "/api/collections/users/records/userbeirat00000",
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  403,
 			ExpectedContent: []string{`"status":403`},
 		},
 		{
-			Name:            "hausmeister",
+			Name:            "hausmeister -> own record (superuser-managed)",
 			Method:          http.MethodDelete,
-			URL:             "/api/collections/users/records/userresident000",
+			URL:             "/api/collections/users/records/userhausmeister",
 			Headers:         authHeader(t, emailHausmeister),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  403,

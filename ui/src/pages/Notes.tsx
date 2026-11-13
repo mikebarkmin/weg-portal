@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { Page, PageHeading, SidebarInfo, SidebarMenu } from "../components/Page";
+import FormField from "../components/FormField";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
@@ -35,6 +38,7 @@ export default function Notes() {
         error: false,
     });
     // id of the note currently being edited inline
+    const [creating, setCreating] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -91,10 +95,8 @@ export default function Notes() {
             .catch(() => upsertNote(note));
     };
 
+    // NoteCard asks for confirmation inline before calling this
     const onDelete = (note: PortalNote) => {
-        if (!window.confirm(t("notes.confirmDelete"))) {
-            return;
-        }
         removeNote(note.id);
         pb.collection("notes").delete(note.id).catch(() => {
             // reload so the list mirrors the server again
@@ -107,44 +109,74 @@ export default function Notes() {
         });
     };
 
+    const pinnedCount = state.notes.filter((note) => note.pinned).length;
+
     return (
-        <>
-            <h1>{t("notes.heading")}</h1>
+        <Page
+            sidebar={
+                <>
+                    <SidebarMenu title={t("notes.heading")}>
+                        <button type="button" className="menu-item" onClick={() => setCreating(true)}>
+                            <i className="ri-add-line" aria-hidden="true" />
+                            <span className="txt">{t("notes.new.heading")}</span>
+                        </button>
+                    </SidebarMenu>
+                    <SidebarInfo label={t("notes.overview")}>
+                        <span>
+                            {t("notes.count", { count: state.notes.length })}
+                            {pinnedCount > 0 && <> · {t("notes.pinnedCount", { count: pinnedCount })}</>}
+                        </span>
+                    </SidebarInfo>
+                    <p className="txt-hint sidebar-text">{t("notes.intro")}</p>
+                </>
+            }
+        >
+            <PageHeading title={t("notes.heading")}>
+                {!creating && (
+                    <button type="button" className="btn sm" onClick={() => setCreating(true)}>
+                        <i className="ri-add-line" aria-hidden="true" />
+                        <span className="txt">{t("notes.new.heading")}</span>
+                    </button>
+                )}
+            </PageHeading>
 
-            {state.loading && <p className="state">{t("notes.loading")}</p>}
-            {state.error && (
-                <p className="state state-error">{t("notes.error.load")}</p>
-            )}
+            <div className="flex-column gap-sm">
+                {creating && (
+                    <NoteForm
+                        onSaved={(note) => {
+                            onSaved(note);
+                            setCreating(false);
+                        }}
+                        onCancel={() => setCreating(false)}
+                    />
+                )}
 
-            {!state.loading && state.notes.length === 0 && !state.error && (
-                <p className="state">{t("notes.empty")}</p>
-            )}
+                {state.loading && <p className="txt-hint">{t("notes.loading")}</p>}
+                {state.error && <div className="alert danger">{t("notes.error.load")}</div>}
+                {!state.loading && state.notes.length === 0 && !state.error && !creating && (
+                    <div className="alert">{t("notes.empty")}</div>
+                )}
 
-            {state.notes.length > 0 && (
-                <section className="notes-list" aria-label={t("notes.heading")}>
-                    {state.notes.map((note) =>
-                        editingId === note.id ? (
-                            <NoteForm
-                                key={note.id}
-                                note={note}
-                                onSaved={onSaved}
-                                onCancel={() => setEditingId(null)}
-                            />
-                        ) : (
-                            <NoteCard
-                                key={note.id}
-                                note={note}
-                                onEdit={() => setEditingId(note.id)}
-                                onPinChange={onPinChange}
-                                onDelete={onDelete}
-                            />
-                        ),
-                    )}
-                </section>
-            )}
-
-            <NoteForm onSaved={onSaved} />
-        </>
+                {state.notes.map((note) =>
+                    editingId === note.id ? (
+                        <NoteForm
+                            key={note.id}
+                            note={note}
+                            onSaved={onSaved}
+                            onCancel={() => setEditingId(null)}
+                        />
+                    ) : (
+                        <NoteCard
+                            key={note.id}
+                            note={note}
+                            onEdit={() => setEditingId(note.id)}
+                            onPinChange={onPinChange}
+                            onDelete={onDelete}
+                        />
+                    ),
+                )}
+            </div>
+        </Page>
     );
 }
 
@@ -162,31 +194,53 @@ function NoteCard({
     const { t } = useTranslation();
     const author = note.expand?.author?.name || t("notes.unknownAuthor");
 
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const initials = author.slice(0, 2).toUpperCase();
+
     return (
-        <article className="card note-card">
-            <div className="note-head">
-                <h2 className="note-title">{note.title}</h2>
-                {note.pinned && <span className="chip chip-pinned">{t("notes.pinned")}</span>}
-            </div>
-            <p className="note-meta">
-                {t("notes.author")}: {author}
-            </p>
+        <article className={`post note-card ${note.pinned ? "pinned" : ""}`}>
+            <header className="post-header flex gap-10">
+                <span className="thumb circle sm" aria-hidden="true">{initials}</span>
+                <span className="author">{author}</span>
+                {note.pinned && (
+                    <span className="label sm warning">
+                        <i className="ri-pushpin-line" aria-hidden="true" />
+                        {t("notes.pinned")}
+                    </span>
+                )}
+            </header>
+            <h2 className="post-title note-title">{note.title}</h2>
             {/* raw markdown from the editor field -> rendered + sanitized */}
-            <div
-                className="note-body md-body"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(note.body) }}
-            />
-            <div className="btn-row">
-                <button type="button" className="btn btn-outline btn-sm" onClick={() => onPinChange(note, !note.pinned)}>
-                    {t(note.pinned ? "notes.unpin" : "notes.pin")}
-                </button>
-                <button type="button" className="btn btn-outline btn-sm" onClick={onEdit}>
-                    {t("notes.editAction")}
-                </button>
-                <button type="button" className="btn btn-outline btn-sm" onClick={() => onDelete(note)}>
-                    {t("notes.delete")}
-                </button>
-            </div>
+            <div className="content markdown-preview" dangerouslySetInnerHTML={{ __html: renderMarkdown(note.body) }} />
+            <footer className="post-footer note-actions">
+                {confirmDelete ? (
+                    <>
+                        <span className="txt-hint txt-sm">{t("notes.confirmDelete")}</span>
+                        <button type="button" className="btn sm secondary" onClick={() => setConfirmDelete(false)}>
+                            {t("notes.edit.cancel")}
+                        </button>
+                        <button type="button" className="btn sm danger" onClick={() => onDelete(note)}>
+                            <i className="ri-delete-bin-line" aria-hidden="true" />
+                            <span className="txt">{t("notes.delete")}</span>
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button type="button" className="btn sm secondary transparent" onClick={() => onPinChange(note, !note.pinned)}>
+                            <i className={note.pinned ? "ri-unpin-line" : "ri-pushpin-line"} aria-hidden="true" />
+                            <span className="txt">{t(note.pinned ? "notes.unpin" : "notes.pin")}</span>
+                        </button>
+                        <button type="button" className="btn sm secondary transparent" onClick={onEdit}>
+                            <i className="ri-edit-line" aria-hidden="true" />
+                            <span className="txt">{t("notes.editAction")}</span>
+                        </button>
+                        <button type="button" className="btn sm secondary transparent" onClick={() => setConfirmDelete(true)}>
+                            <i className="ri-delete-bin-line" aria-hidden="true" />
+                            <span className="txt">{t("notes.delete")}</span>
+                        </button>
+                    </>
+                )}
+            </footer>
         </article>
     );
 }
@@ -251,52 +305,49 @@ function NoteForm({
         }
     };
 
+    const idSuffix = note ? note.id : "new";
+
     return (
-        <form className="card form note-form" onSubmit={onSubmit}>
-            <h2 className="section-title">
-                {t(note ? "notes.edit.heading" : "notes.new.heading")}
-            </h2>
-            <div className="field">
-                <label htmlFor={`note-title-${note ? note.id : "new"}`}>
-                    {t("notes.new.title")}
-                </label>
-                <input
-                    id={`note-title-${note ? note.id : "new"}`}
-                    type="text"
-                    value={title}
-                    disabled={busy}
-                    onChange={(event) => setTitle(event.target.value)}
-                />
-            </div>
-            <div className="field">
-                <label htmlFor={`note-body-${note ? note.id : "new"}`}>
-                    {t("notes.new.body")}
-                </label>
-                <textarea
-                    id={`note-body-${note ? note.id : "new"}`}
-                    className="note-textarea"
-                    rows={8}
-                    value={body}
-                    disabled={busy}
-                    onChange={(event) => setBody(event.target.value)}
-                />
-                <p className="hint">{t("notes.hint")}</p>
-            </div>
-            {error && <div className="form-error">{error}</div>}
-            <div className="btn-row">
-                <button type="submit" className="btn" disabled={busy}>
-                    {t(note ? "notes.edit.submit" : "notes.new.submit")}
-                </button>
-                {note && (
-                    <button
-                        type="button"
-                        className="btn btn-outline"
+        <form className="post note-form" onSubmit={onSubmit}>
+            <h2 className="post-title">{t(note ? "notes.edit.heading" : "notes.new.heading")}</h2>
+            <div className="grid sm">
+                <FormField id={`note-title-${idSuffix}`} label={t("notes.new.title")} required>
+                    <input
+                        id={`note-title-${idSuffix}`}
+                        type="text"
+                        value={title}
                         disabled={busy}
-                        onClick={onCancel}
-                    >
-                        {t("notes.edit.cancel")}
-                    </button>
+                        autoFocus
+                        onChange={(event) => setTitle(event.target.value)}
+                    />
+                </FormField>
+                <FormField id={`note-body-${idSuffix}`} label={t("notes.new.body")} required hint={t("notes.hint")}>
+                    <textarea
+                        id={`note-body-${idSuffix}`}
+                        className="note-textarea"
+                        rows={8}
+                        value={body}
+                        disabled={busy}
+                        onChange={(event) => setBody(event.target.value)}
+                    />
+                </FormField>
+                {error && (
+                    <div className="col-12">
+                        <div className="alert danger">{error}</div>
+                    </div>
                 )}
+                <div className="col-12">
+                    <footer className="form-footer">
+                        {onCancel && (
+                            <button type="button" className="btn secondary" disabled={busy} onClick={onCancel}>
+                                {t("notes.edit.cancel")}
+                            </button>
+                        )}
+                        <button type="submit" className={`btn ${busy ? "loading" : ""}`} disabled={busy}>
+                            <span className="txt">{t(note ? "notes.edit.submit" : "notes.new.submit")}</span>
+                        </button>
+                    </footer>
+                </div>
             </div>
         </form>
     );

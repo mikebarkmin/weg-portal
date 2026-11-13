@@ -103,8 +103,10 @@ func validateICal(t testing.TB, body string) {
 		t.Errorf("expected the body to end with END:VCALENDAR")
 	}
 
+	// the fixture has no recurring TIMED event, so nothing references a
+	// time zone (see TestICalendarRecurringTimedUsesTZID for that case)
 	if strings.Contains(body, "TZID") {
-		t.Errorf("the export must not emit TZID (M6 decision: UTC wall-clock semantics)")
+		t.Errorf("unexpected TZID: only recurring timed events are exported with a time zone")
 	}
 
 	for i, line := range strings.Split(body, "\r\n") {

@@ -5,7 +5,15 @@ import RequireBeirat from "./components/RequireBeirat";
 import RequireBoardAccess from "./components/RequireBoardAccess";
 import NotFound from "./pages/NotFound";
 import PublicCalendar from "./pages/PublicCalendar";
+import Home from "./pages/Home";
+import Announcements from "./pages/Announcements";
+import Contacts from "./pages/Contacts";
+import Documents from "./pages/Documents";
+import Participate from "./pages/Participate";
+import MySubmissions from "./pages/MySubmissions";
+import RequireLogin from "./components/RequireLogin";
 import EventDetail from "./pages/EventDetail";
+import EventEditor from "./pages/EventEditor";
 import NewSuggestion from "./pages/NewSuggestion";
 import NewIssue from "./pages/NewIssue";
 import Login from "./pages/Login";
@@ -23,10 +31,46 @@ export default function App() {
     return (
         <Routes>
             <Route element={<Layout />}>
-                <Route index element={<PublicCalendar />} />
+                <Route index element={<Home />} />
+                <Route path="kalender" element={<PublicCalendar />} />
+                <Route path="aktuelles" element={<Announcements />} />
+                <Route path="kontakte" element={<Contacts />} />
+                <Route path="dokumente" element={<Documents />} />
+                <Route
+                    path="mitreden"
+                    element={
+                        <RequireBoardAccess>
+                            <Participate />
+                        </RequireBoardAccess>
+                    }
+                />
+                <Route
+                    path="meine-einreichungen"
+                    element={
+                        <RequireLogin>
+                            <MySubmissions />
+                        </RequireLogin>
+                    }
+                />
+                <Route
+                    path="events/new"
+                    element={
+                        <RequireBeirat>
+                            <EventEditor />
+                        </RequireBeirat>
+                    }
+                />
+                <Route
+                    path="events/:id/edit"
+                    element={
+                        <RequireBeirat>
+                            <EventEditor />
+                        </RequireBeirat>
+                    }
+                />
                 <Route path="events/:id" element={<EventDetail />} />
                 <Route path="events/:id/:day" element={<EventDetail />} />
-                <Route path="events" element={<Navigate to="/" replace />} />
+                <Route path="events" element={<Navigate to="/kalender" replace />} />
                 <Route path="suggestions/new" element={<NewSuggestion />} />
                 <Route path="issues/new" element={<NewIssue />} />
                 <Route path="issues" element={<RequireBoardAccess><IssueBoard /></RequireBoardAccess>} />
@@ -40,7 +84,14 @@ export default function App() {
                 />
                 <Route path="login" element={<Login />} />
                 <Route path="signup" element={<Signup />} />
-                <Route path="profile" element={<ProfileSettings />} />
+                <Route
+                    path="profile"
+                    element={
+                        <RequireLogin>
+                            <ProfileSettings />
+                        </RequireLogin>
+                    }
+                />
                 <Route
                     path="moderation"
                     element={

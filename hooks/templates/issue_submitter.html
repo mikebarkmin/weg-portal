@@ -4,14 +4,16 @@
     <p>vielen Dank f&uuml;r Ihre Meldung an das WEG-Portal.</p>
 
     {{ if eq .Decision "accepted" }}
-    <p><strong>Der Beirat hat Ihre Meldung <strong>angenommen</strong>.</strong> Sie wird bearbeitet und erscheint je nach Sichtbarkeit auf der Pinnwand der Gemeinschaft.</p>
+    <p>Der Beirat hat Ihre Meldung <strong>angenommen</strong>. Sie wird bearbeitet und erscheint je nach Sichtbarkeit auf der Pinnwand der Gemeinschaft.</p>
     {{ else if eq .Decision "rejected" }}
-    <p><strong>Der Beirat hat Ihre Meldung <strong>abgelehnt</strong>.</strong></p>
+    <p>Der Beirat hat Ihre Meldung <strong>abgelehnt</strong>.</p>
     {{ else if eq .Decision "in_progress" }}
-    <p><strong>Ihre Meldung wird <strong>bearbeitet</strong>.</strong></p>
+    <p>Ihre Meldung wird <strong>bearbeitet</strong>.</p>
     {{ else if eq .Decision "resolved" }}
-    <p><strong>Ihre Meldung wurde als <strong>erledigt</strong> geschlossen.</strong> Vielen Dank f&uuml;r Ihren Beitrag.</p>
+    <p>Ihre Meldung wurde als <strong>erledigt</strong> geschlossen. Vielen Dank f&uuml;r Ihren Beitrag.</p>
     {{ end }}
+
+    <p><a href="{{ .Link }}">{{ .AppName }}</a></p>
 
     <hr />
 

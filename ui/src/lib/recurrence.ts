@@ -1,6 +1,7 @@
 import { RRule } from "rrule";
 import type { PortalEvent } from "../types";
 import { dayKeyOf } from "./dates";
+import { fromZonedDigits, toZonedDigits } from "./timezone";
 
 export interface Occurrence {
     event: PortalEvent;
@@ -86,19 +87,100 @@ export function parseRule(
     return { freq: freqName, interval, byWeekdays, until, count };
 }
 
+// All-day events are stored as a calendar DATE: "YYYY-MM-DD 00:00:00.000Z"
+// (UTC midnight of that date). Older clients sent local midnight converted
+// to UTC (e.g. 23:00Z of the previous day in Germany), so the stored value
+// is rounded to the NEAREST UTC midnight - both forms map to the same date.
+export function allDayUTCDate(date: Date): Date {
+    return new Date(Math.round(date.getTime() / DAY_MS) * DAY_MS);
+}
+
+// UTC-midnight date -> local midnight of the same calendar date.
+function utcDateToLocal(date: Date): Date {
+    return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+// A stored event date as the Date to DISPLAY: timed values are instants,
+// all-day values become local midnight of their calendar date.
+export function displayDate(value: string | null | undefined, allDay: boolean): Date | null {
+    const date = parsePBDate(value);
+    if (!date || !allDay) {
+        return date;
+    }
+    return utcDateToLocal(allDayUTCDate(date));
+}
+
+// Local wall-clock time -> the same wall-clock digits in UTC.
+function localToUTCDigits(date: Date): Date {
+    return new Date(
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes()),
+    );
+}
+
 // Expands a single event into its occurrences within
 // [rangeStart, rangeEndExclusive). Recurring events are expanded even
 // when their first occurrence (date_start) long predates the range.
+//
+// All-day occurrences are returned at LOCAL midnight of their calendar
+// date (end = local midnight of the last covered day), independent of
+// the viewer's UTC offset.
+//
+// Recurring TIMED events repeat at the same wall-clock time in the portal
+// time zone (lib/timezone.ts): "every Tuesday 18:30" stays 18:30 across
+// DST changes, matching the iCal export (DTSTART;TZID=...).
 export function expandOccurrences(
     event: PortalEvent,
     rangeStart: Date,
     rangeEndExclusive: Date,
 ): Occurrence[] {
+    if (!event.all_day && event.rrule && event.rrule.trim()) {
+        const start = parsePBDate(event.date_start);
+        const end = parsePBDate(event.date_end);
+        return expandInstants(
+            event,
+            start ? toZonedDigits(start) : null,
+            end ? toZonedDigits(end) : null,
+            toZonedDigits(rangeStart),
+            toZonedDigits(rangeEndExclusive),
+            // UNTIL is a real UTC instant: compare it in the same digits
+            (until) => toZonedDigits(until),
+        ).map((occurrence) => ({
+            ...occurrence,
+            start: fromZonedDigits(occurrence.start),
+            end: occurrence.end ? fromZonedDigits(occurrence.end) : null,
+        }));
+    }
+    if (!event.all_day) {
+        return expandInstants(event, parsePBDate(event.date_start), parsePBDate(event.date_end), rangeStart, rangeEndExclusive);
+    }
     const start = parsePBDate(event.date_start);
+    const end = parsePBDate(event.date_end);
+    // expand on UTC dates against the range expressed in the same digits,
+    // then map every occurrence back to local midnight
+    return expandInstants(
+        event,
+        start ? allDayUTCDate(start) : null,
+        end ? allDayUTCDate(end) : null,
+        localToUTCDigits(rangeStart),
+        localToUTCDigits(rangeEndExclusive),
+    ).map((occurrence) => ({
+        ...occurrence,
+        start: utcDateToLocal(occurrence.start),
+        end: occurrence.end ? utcDateToLocal(occurrence.end) : null,
+    }));
+}
+
+function expandInstants(
+    event: PortalEvent,
+    start: Date | null,
+    end: Date | null,
+    rangeStart: Date,
+    rangeEndExclusive: Date,
+    mapUntil?: (until: Date) => Date,
+): Occurrence[] {
     if (!start || start >= rangeEndExclusive) {
         return [];
     }
-    const end = parsePBDate(event.date_end);
 
     if (!event.rrule || !event.rrule.trim()) {
         // single event: include when it overlaps the range
@@ -118,10 +200,11 @@ export function expandOccurrences(
 
     let rule: RRule;
     try {
-        rule = new RRule({
-            ...(RRule.parseString(normalizeRuleText(event.rrule)!) as object),
-            dtstart: start,
-        });
+        const options = RRule.parseString(normalizeRuleText(event.rrule)!);
+        if (mapUntil && options.until) {
+            options.until = mapUntil(options.until);
+        }
+        rule = new RRule({ ...options, dtstart: start });
     } catch {
         // malformed rule - treat the event as a single event instead of
         // crashing the calendar

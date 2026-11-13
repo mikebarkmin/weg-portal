@@ -14,6 +14,8 @@ import {
     suggestionSchema,
     issueSchema,
     isWithinIssueBounds,
+    applyIssueBounds,
+    ISSUE_BOUNDS,
     MAX_PHOTOS,
     type IssueFormValues,
     type SuggestionFormValues,
@@ -104,15 +106,14 @@ describe("toPBDateTime", () => {
         expect(new Date(iso).getTime()).toBe(new Date("2026-06-20T15:00").getTime());
     });
 
-    it("treats an all-day date as local midnight", () => {
-        const iso = toPBDateTime("2026-06-20", true);
-        expect(new Date(iso).getTime()).toBe(new Date("2026-06-20T00:00").getTime());
+    it("stores an all-day date as UTC midnight of that date (timezone-independent)", () => {
+        // regression: local midnight converted to UTC moved the date to the
+        // previous day in the iCal export for every UTC+ viewer
+        expect(toPBDateTime("2026-12-24", true)).toBe("2026-12-24T00:00:00.000Z");
     });
 
     it("keeps only the date part of a datetime value when all-day is toggled", () => {
-        const iso = toPBDateTime("2026-06-20T15:00", true);
-        expect(new Date(iso).getHours()).toBe(new Date("2026-06-20T00:00").getHours());
-        expect(new Date(iso).getMinutes()).toBe(0);
+        expect(toPBDateTime("2026-06-20T15:00", true)).toBe("2026-06-20T00:00:00.000Z");
     });
 });
 
@@ -593,5 +594,23 @@ describe("noteSchema and note payloads", () => {
         const payload = buildNoteUpdate(values) as Record<string, unknown>;
         expect(payload).toEqual({ title: "Notiz", body: "Text" });
         expect("author" in payload).toBe(false);
+    });
+});
+
+describe("applyIssueBounds", () => {
+    it("replaces the box with the deployment config and rejects malformed boxes", () => {
+        const original = { ...ISSUE_BOUNDS };
+        try {
+            expect(applyIssueBounds({ minLat: 52.1, maxLat: 52.2, minLng: 13.3, maxLng: 13.4 })).toBe(true);
+            expect(isWithinIssueBounds(52.15, 13.35)).toBe(true);
+            expect(isWithinIssueBounds(51.25, 7.25)).toBe(false);
+
+            expect(applyIssueBounds({ minLat: 53, maxLat: 52, minLng: 13.3, maxLng: 13.4 })).toBe(false);
+            expect(applyIssueBounds({ minLat: 52 })).toBe(false);
+            expect(applyIssueBounds(null)).toBe(false);
+            expect(ISSUE_BOUNDS.minLat).toBe(52.1);
+        } finally {
+            applyIssueBounds(original);
+        }
     });
 });

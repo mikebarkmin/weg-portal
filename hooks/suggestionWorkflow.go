@@ -104,6 +104,11 @@ func createEventFromSuggestion(txApp core.App, suggestion *core.Record) error {
 	event.Set("all_day", suggestion.Get("all_day"))
 	event.Set("location", suggestion.GetString("location"))
 	event.Set("category", suggestion.GetString("category"))
+	calendar := suggestion.GetString("calendar")
+	if calendar == "" {
+		calendar = "public"
+	}
+	event.Set("calendar", calendar)
 
 	if err := txApp.Save(event); err != nil {
 		return fmt.Errorf("failed to create the event for the accepted suggestion: %w", err)

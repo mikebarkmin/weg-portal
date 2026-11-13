@@ -1,0 +1,102 @@
+.tabs-header {
+    display: flex;
+    width: 100%;
+    column-gap: 10px;
+    align-items: stretch;
+    border-bottom: var(--borderWidth) solid var(--borderColor);
+
+    .tab-item {
+        outline: 0;
+        text-decoration: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        text-align: center;
+        justify-content: center;
+        gap: 5px;
+        min-width: 0;
+        user-select: none;
+        min-height: calc(var(--btnHeight) + var(--borderWidth));
+        padding: 5px var(--smSpacing);
+        margin: 0 0 calc(-1 * var(--borderWidth));
+        border: var(--borderWidth) solid transparent;
+        border-bottom: 0;
+        border-top-left-radius: var(--borderRadius);
+        border-top-right-radius: var(--borderRadius);
+        color: var(--surfaceTxtHintColor);
+        transition:
+            color var(--animationSpeed),
+            background var(--animationSpeed),
+            border-color var(--animationSpeed);
+        &:hover,
+        &:active,
+        &:focus-visible {
+            color: var(--surfaceTxtColor);
+        }
+        &:active,
+        &.active {
+            color: var(--surfaceTxtColor);
+            background: var(--borderColor);
+            border-color: var(--borderColor);
+            transition-duration: var(--activeAnimationSpeed);
+        }
+    }
+
+    &.equal-width {
+        .tab-item {
+            padding-left: 5px;
+            padding-right: 5px;
+            flex-grow: 1;
+            flex-shrink: 0;
+            flex-basis: 0;
+        }
+    }
+
+    .dropdown & {
+        gap: 5px;
+        .tab-item {
+            padding: 5px 10px;
+            min-height: 0;
+            border-top-left-radius: var(--smBorderRadius);
+            border-top-right-radius: var(--smBorderRadius);
+        }
+    }
+}
+
+.post-tabs-header {
+    z-index: -1;
+    flex-wrap: wrap;
+    border-bottom: 0;
+    column-gap: var(--xsSpacing);
+    min-height: calc(var(--btnHeight) + var(--borderRadius));
+    padding: 4px calc(var(--smSpacing) - 5px) calc(var(--borderRadius) + var(--borderWidth) + 3px);
+    margin-bottom: calc(-1 * var(--borderRadius) - var(--borderWidth));
+    border-top-left-radius: var(--borderRadius);
+    border-top-right-radius: var(--borderRadius);
+    background: var(--borderColor);
+    .tab-item {
+        margin: 0;
+        padding: 5px;
+        min-height: 0;
+        font-weight: bold;
+        line-height: var(--lineHeight);
+        transition: color var(--animationSpeed);
+        color: var(--surfaceTxtDisabledColor);
+        border-radius: var(--smBorderRadius);
+        border: 0;
+        &:focus-visible {
+            outline: var(--borderWidth) dotted var(--surfaceAlt5Color);
+        }
+        &:hover,
+        &:focus-visible,
+        &:active,
+        &.active {
+            background: none;
+            color: var(--surfaceTxtColor);
+        }
+    }
+    + .post {
+        z-index: 1;
+        border-top: 0;
+    }
+}

@@ -153,6 +153,11 @@ func SubmitIssue(app core.App) {
 				meta := core.NewRecord(issueMetasCollection)
 				meta.Set("issue", issue.Id)
 				meta.Set("email", email)
+				// logged-in owners see their own reports under "Meine
+				// Einreichungen" (the link stays Beirat-only data)
+				if e.Auth != nil && e.Auth.Collection().Name == "users" {
+					meta.Set("user", e.Auth.Id)
+				}
 				if name != "" {
 					meta.Set("name", name)
 				}

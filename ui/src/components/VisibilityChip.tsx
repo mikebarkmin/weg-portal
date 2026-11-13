@@ -14,9 +14,10 @@ export default function VisibilityChip({ visibility }: { visibility: IssueVisibi
 
     return (
         <span
-            className={`chip chip-visibility-${visibility}`}
+            className="label sm outline-label"
             title={t(`issueVisibility.${visibility}.hint`)}
         >
+            <i className={visibility === "private" ? "ri-lock-line" : "ri-group-line"} aria-hidden="true" />
             {t(`issueVisibility.${visibility}.label`)}
         </span>
     );

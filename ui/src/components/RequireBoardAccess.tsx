@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
+import { Wrapper } from "./Page";
+import Notice from "./Notice";
+
 import { boardAccessOf, useAuth } from "../lib/auth";
 import { pb } from "../lib/pbClient";
 
@@ -46,46 +49,61 @@ export default function RequireBoardAccess({ children }: { children: React.React
 
     if (!auth.isAuthenticated) {
         return (
-            <section className="card state">
-                <h1>{t("gate.anonymous.title")}</h1>
-                <p>{t("gate.anonymous.text")}</p>
-                <div className="btn-row">
-                    <Link className="btn" to="/login">
-                        {t("gate.anonymous.login")}
-                    </Link>
-                    <Link className="btn btn-outline" to="/signup">
-                        {t("gate.anonymous.signup")}
-                    </Link>
-                </div>
-            </section>
+            <Wrapper size="sm">
+                <Notice
+                    icon="ri-lock-line"
+                    title={t("gate.anonymous.title")}
+                    actions={
+                        <>
+                            <Link className="btn secondary" to="/signup">
+                                {t("gate.anonymous.signup")}
+                            </Link>
+                            <Link className="btn" to="/login">
+                                {t("gate.anonymous.login")}
+                            </Link>
+                        </>
+                    }
+                >
+                    <p>{t("gate.anonymous.text")}</p>
+                </Notice>
+            </Wrapper>
         );
     }
 
     const access = boardAccessOf(record);
     if (access === "unverified") {
         return (
-            <section className="card state">
-                <h1>{t("gate.unverified.title")}</h1>
-                <p>{t("gate.unverified.text")}</p>
-                <div className="btn-row">
-                    <Link className="btn btn-outline" to="/profile">
-                        {t("gate.unverified.profile")}
-                    </Link>
-                </div>
-            </section>
+            <Wrapper size="sm">
+                <Notice
+                    icon="ri-mail-unread-line"
+                    tone="warning"
+                    title={t("gate.unverified.title")}
+                    actions={
+                        <Link className="btn secondary" to="/profile">
+                            {t("gate.unverified.profile")}
+                        </Link>
+                    }
+                >
+                    <p>{t("gate.unverified.text")}</p>
+                </Notice>
+            </Wrapper>
         );
     }
     if (access === "waiting") {
         return (
-            <section className="card state">
-                <h1>{t("gate.waiting.title")}</h1>
-                <p>{t("gate.waiting.text")}</p>
-                <div className="btn-row">
-                    <Link className="btn btn-outline" to="/profile">
-                        {t("gate.waiting.profile")}
-                    </Link>
-                </div>
-            </section>
+            <Wrapper size="sm">
+                <Notice
+                    icon="ri-hourglass-line"
+                    title={t("gate.waiting.title")}
+                    actions={
+                        <Link className="btn secondary" to="/profile">
+                            {t("gate.waiting.profile")}
+                        </Link>
+                    }
+                >
+                    <p>{t("gate.waiting.text")}</p>
+                </Notice>
+            </Wrapper>
         );
     }
 

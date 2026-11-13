@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
+import { Wrapper } from "./Page";
+import Notice from "./Notice";
+
 import { canShow, useAuth } from "../lib/auth";
 
 // Route guard for the Beirat-only pages. The nav already hides the
@@ -12,13 +15,19 @@ export default function RequireBeirat({ children }: { children: React.ReactNode 
 
     if (!canShow(role)) {
         return (
-            <section className="card state">
-                <h1>{t("auth.forbidden.title")}</h1>
-                <p>{t("auth.forbidden.text")}</p>
-                <Link className="btn btn-outline" to="/">
-                    {t("auth.forbidden.back")}
-                </Link>
-            </section>
+            <Wrapper size="sm">
+                <Notice
+                    icon="ri-shield-user-line"
+                    title={t("auth.forbidden.title")}
+                    actions={
+                        <Link className="btn secondary" to="/">
+                            {t("auth.forbidden.back")}
+                        </Link>
+                    }
+                >
+                    <p>{t("auth.forbidden.text")}</p>
+                </Notice>
+            </Wrapper>
         );
     }
 

@@ -6,6 +6,9 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
 import MapPicker from "../components/MapPicker";
+import { BackLink, Page, PageHeading, SidebarMenu, Wrapper } from "../components/Page";
+import FormField, { SwitchField } from "../components/FormField";
+import Notice from "../components/Notice";
 import PhotoInput, { type PreparedPhoto } from "../components/PhotoInput";
 import {
     buildIssueFormData,
@@ -24,10 +27,6 @@ function messageText(message: string | undefined, t: TFunction): string {
     return message;
 }
 
-function FormError({ message, t }: { message?: string; t: TFunction }) {
-    if (!message) return null;
-    return <p className="field-error">{messageText(message, t)}</p>;
-}
 
 // Response shape of the custom route (hooks/submitIssue.go):
 // 200 -> {"ok": true}, 400/429 -> PocketBase error JSON.
@@ -156,145 +155,135 @@ export default function NewIssue() {
 
     if (submitted) {
         return (
-            <section className="card state-success">
-                <h1>{t("issue.success.title")}</h1>
-                <p>{t("issue.success.text")}</p>
-                <div className="btn-row">
-                    <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={resetForm}
-                    >
-                        {t("issue.success.another")}
-                    </button>
-                    <Link className="btn" to="/">
-                        {t("issue.success.back")}
-                    </Link>
-                </div>
-            </section>
+            <Wrapper size="sm">
+                <Notice
+                    icon="ri-checkbox-circle-line"
+                    tone="success"
+                    title={t("issue.success.title")}
+                    actions={
+                        <>
+                            <button type="button" className="btn secondary" onClick={resetForm}>
+                                {t("issue.success.another")}
+                            </button>
+                            <Link className="btn" to="/">
+                                {t("issue.success.back")}
+                            </Link>
+                        </>
+                    }
+                >
+                    <p>{t("issue.success.text")}</p>
+                </Notice>
+            </Wrapper>
         );
     }
 
+    const err = (message?: string) => (message ? messageText(message, t) : null);
+
     return (
-        <>
-            <h1>{t("issue.heading")}</h1>
-            <p className="hint">{t("issue.intro")}</p>
-            <form className="card form" onSubmit={submit} noValidate>
-                <div className="field">
-                    <label htmlFor="issue-title">{t("issue.title")}</label>
-                    <input
-                        id="issue-title"
-                        type="text"
-                        maxLength={200}
-                        {...register("title")}
-                    />
-                    <FormError message={errors.title?.message} t={t} />
-                </div>
+        <Page
+            sidebar={
+                <>
+                    <SidebarMenu>
+                        <BackLink to="/">{t("home.back")}</BackLink>
+                    </SidebarMenu>
+                    <p className="txt-hint sidebar-text">{t("issue.intro")}</p>
+                </>
+            }
+        >
+            <PageHeading title={t("issue.heading")} />
+            <form className="post" onSubmit={submit} noValidate>
+                <div className="grid sm">
+                    <FormField id="issue-title" label={t("issue.title")} required error={err(errors.title?.message)}>
+                        <input id="issue-title" type="text" maxLength={200} autoComplete="off" {...register("title")} />
+                    </FormField>
 
-                <div className="field">
-                    <label htmlFor="issue-description">
-                        {t("issue.description")}
-                    </label>
-                    <textarea
-                        id="issue-description"
-                        rows={4}
-                        maxLength={5000}
-                        {...register("description")}
-                    />
-                    <FormError message={errors.description?.message} t={t} />
-                </div>
+                    <FormField id="issue-description" label={t("issue.description")} error={err(errors.description?.message)}>
+                        <textarea id="issue-description" rows={4} maxLength={5000} {...register("description")} />
+                    </FormField>
 
-                <div className="field">
-                    <label htmlFor="issue-category">{t("issue.category")}</label>
-                    <input
-                        id="issue-category"
-                        type="text"
-                        maxLength={100}
-                        {...register("category")}
-                    />
-                    <FormError message={errors.category?.message} t={t} />
-                </div>
+                    <FormField id="issue-category" label={t("issue.category")} error={err(errors.category?.message)}>
+                        <input id="issue-category" type="text" maxLength={100} {...register("category")} />
+                    </FormField>
 
-                <div className="field">
-                    <span className="field-label" id="issue-location-label">
-                        {t("issue.location.label")}
-                    </span>
-                    <MapPicker lat={lat} lng={lng} onPick={pickLocation} />
-                    <FormError message={errors.lat?.message || errors.lng?.message} t={t} />
-                </div>
-
-                <div className="field">
-                    <span className="field-label" id="issue-photos-label">
-                        {t("issue.photos.label")}
-                    </span>
-                    <PhotoInput photos={photos} onChange={changePhotos} />
-                    <FormError message={errors.photos?.message} t={t} />
-                </div>
-
-                {photos.length > 0 && (
-                    <div className="field field-inline">
-                        <label>
-                            <input type="checkbox" {...register("photo_consent")} />
-                            {t("issue.photoConsent")}
-                        </label>
-                        <FormError message={errors.photo_consent?.message} t={t} />
+                    <div className="col-12">
+                        <div className="field-group-label required" id="issue-location-label">
+                            {t("issue.location.label")}
+                        </div>
+                        <MapPicker lat={lat} lng={lng} onPick={pickLocation} />
+                        {(errors.lat?.message || errors.lng?.message) && (
+                            <div className="field-help error" role="alert">
+                                {err(errors.lat?.message || errors.lng?.message)}
+                            </div>
+                        )}
                     </div>
-                )}
 
-                <div className="field">
-                    <label htmlFor="issue-email">{t("issue.email")}</label>
-                    <input
+                    <div className="col-12">
+                        <div className="field-group-label" id="issue-photos-label">
+                            {t("issue.photos.label")}
+                        </div>
+                        <PhotoInput photos={photos} onChange={changePhotos} />
+                        {errors.photos?.message && (
+                            <div className="field-help error" role="alert">{err(errors.photos.message)}</div>
+                        )}
+                    </div>
+
+                    {photos.length > 0 && (
+                        <SwitchField
+                            id="issue-photo-consent"
+                            label={t("issue.photoConsent")}
+                            error={err(errors.photo_consent?.message)}
+                            {...register("photo_consent")}
+                        />
+                    )}
+
+                    <FormField
                         id="issue-email"
-                        type="email"
-                        inputMode="email"
-                        {...register("email")}
-                    />
-                    <p className="hint">{t("issue.emailHint")}</p>
-                    <FormError message={errors.email?.message} t={t} />
-                </div>
+                        className="col-12 col-md-6"
+                        label={t("issue.email")}
+                        required
+                        hint={t("issue.emailHint")}
+                        error={err(errors.email?.message)}
+                    >
+                        <input id="issue-email" type="email" inputMode="email" autoComplete="email" {...register("email")} />
+                    </FormField>
 
-                <div className="field">
-                    <label htmlFor="issue-name">{t("issue.name")}</label>
-                    <input
+                    <FormField
                         id="issue-name"
-                        type="text"
-                        maxLength={200}
-                        {...register("name")}
-                    />
-                    <FormError message={errors.name?.message} t={t} />
-                </div>
+                        className="col-12 col-md-6"
+                        label={t("issue.name")}
+                        error={err(errors.name?.message)}
+                    >
+                        <input id="issue-name" type="text" maxLength={200} autoComplete="name" {...register("name")} />
+                    </FormField>
 
-                {/*
-                    Honeypot: hidden from users (off-screen, not
-                    focusable), populated by spam bots. Must stay empty -
-                    enforced by the zod schema and again server-side.
-                */}
-                <div className="hp-field" aria-hidden="true">
-                    <label htmlFor="issue-hp">{t("issue.hpLabel")}</label>
-                    <input
-                        id="issue-hp"
-                        type="text"
-                        tabIndex={-1}
-                        autoComplete="off"
-                        {...register("honeypot")}
-                    />
-                </div>
-
-                {serverError && (
-                    <div className="form-error">
-                        {t(serverError)}
-                        {serverMessage && ` (${serverMessage})`}
+                    {/*
+                        Honeypot: hidden from users (off-screen, not
+                        focusable), populated by spam bots. Must stay empty -
+                        enforced by the zod schema and again server-side.
+                    */}
+                    <div className="hp-field" aria-hidden="true">
+                        <label htmlFor="issue-hp">{t("issue.hpLabel")}</label>
+                        <input id="issue-hp" type="text" tabIndex={-1} autoComplete="off" {...register("honeypot")} />
                     </div>
-                )}
 
-                <div className="btn-row">
-                    <button type="submit" className="btn" disabled={isSubmitting}>
-                        {isSubmitting
-                            ? t("issue.submitting")
-                            : t("issue.submit")}
-                    </button>
+                    {serverError && (
+                        <div className="col-12">
+                            <div className="alert danger">
+                                {t(serverError)}
+                                {serverMessage && ` (${serverMessage})`}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="col-12">
+                        <footer className="form-footer">
+                            <button type="submit" className={`btn expanded-lg ${isSubmitting ? "loading" : ""}`} disabled={isSubmitting}>
+                                <span className="txt">{isSubmitting ? t("issue.submitting") : t("issue.submit")}</span>
+                            </button>
+                        </footer>
+                    </div>
                 </div>
             </form>
-        </>
+        </Page>
     );
 }

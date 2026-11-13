@@ -14,13 +14,17 @@ import {
     type IssueStatus,
     type IssueVisibility,
 } from "../lib/validation";
-import {
-    buildFileUrl,
-    FileTokenRefresher,
-} from "../lib/fileToken";
 import type { PortalIssue } from "../types";
 import StatusBadge from "../components/StatusBadge";
+import { BackLink, Page, PageHeading, SidebarInfo, SidebarMenu, Wrapper } from "../components/Page";
+import FormField from "../components/FormField";
+import Notice from "../components/Notice";
 import VisibilityChip from "../components/VisibilityChip";
+import ProtectedPhotos from "../components/ProtectedPhotos";
+import IssueLocationMap from "../components/IssueLocationMap";
+import IssueReporter from "../components/IssueReporter";
+import IssueHistory from "../components/IssueHistory";
+import { exactPositionOf } from "../lib/issues";
 
 // Issue detail (M9): the fields, photos and - for beirat/hausmeister -
 // the status change buttons for exactly the transitions the server
@@ -37,13 +41,6 @@ export default function IssueDetail() {
     const [record, setRecord] = useState<PortalIssue | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<"load" | "notFound" | null>(null);
-
-    // file token (single-flight, see lib/fileToken.ts)
-    const refresher = useMemo(() => new FileTokenRefresher(() => pb.files.getToken()), []);
-    const [token, setToken] = useState<string | null>(null);
-    // file names whose 404-retry already failed are not retried anymore
-    const retried = useMemo(() => new Set<string>(), []);
-    const [photoFailed, setPhotoFailed] = useState<string[]>([]);
 
     const loadRecord = useCallback(async () => {
         setLoading(true);
@@ -65,19 +62,6 @@ export default function IssueDetail() {
     useEffect(() => {
         void loadRecord();
     }, [loadRecord]);
-
-    // first token fetch + proactive refresh: every incoming record state
-    // (mount, realtime update) re-checks the single-flight refresher; when
-    // the cached token is older than ~2/3 of its TTL, get() fetches a new
-    // one BEFORE the old one expires - so a long-lived open page never
-    // renders an expired URL. A failed fetch falls back to the one-shot
-    // 404 retry below.
-    useEffect(() => {
-        if (!record || record.photos.length === 0) {
-            return; // no photos: no token needed
-        }
-        void refresher.get().then(setToken).catch(() => setToken(null));
-    }, [refresher, record]);
 
     // keep the open detail page live (same rules as the board; the Beirat
     // sees decisions made by another member without a reload).
@@ -120,29 +104,6 @@ export default function IssueDetail() {
             }
         };
     }, [record?.id]);
-
-    const onPhotoError = (filename: string) => {
-        if (retried.has(filename)) {
-            setPhotoFailed((prev) =>
-                prev.includes(filename) ? prev : [...prev, filename],
-            );
-            return;
-        }
-        // one-shot 404 retry: force a fresh token and let the re-rendered
-        // URL load with it
-        retried.add(filename);
-        void refresher
-            .get(true)
-            .then((fresh) => {
-                setPhotoFailed((prev) => prev.filter((name) => name !== filename));
-                setToken(fresh);
-            })
-            .catch(() => {
-                setPhotoFailed((prev) =>
-                    prev.includes(filename) ? prev : [...prev, filename],
-                );
-            });
-    };
 
     // ---- status transitions (beirat + hausmeister only; see
     // lib/validation.ts for the matrix) ----
@@ -195,187 +156,204 @@ export default function IssueDetail() {
         }
     };
 
+    const backSidebar = (
+        <SidebarMenu>
+            <BackLink to="/issues">{t("issueDetail.back")}</BackLink>
+        </SidebarMenu>
+    );
+
     if (loading && !record) {
         return (
-            <>
-                <h1>{t("issueDetail.heading")}</h1>
-                <p className="state">{t("issueDetail.loading")}</p>
-            </>
+            <Page sidebar={backSidebar}>
+                <p className="txt-hint">{t("issueDetail.loading")}</p>
+            </Page>
         );
     }
 
     if (error === "notFound" || (!record && error)) {
         return (
-            <section className="card state">
-                <h1>{t("issueDetail.notFoundTitle")}</h1>
-                <p>{t("issueDetail.notFoundText")}</p>
-                <div className="btn-row">
-                    <Link className="btn btn-outline" to="/issues">
-                        {t("issueDetail.back")}
-                    </Link>
-                </div>
-            </section>
+            <Wrapper size="sm">
+                <Notice
+                    icon="ri-question-line"
+                    title={t("issueDetail.notFoundTitle")}
+                    actions={
+                        <Link className="btn secondary" to="/issues">
+                            {t("issueDetail.back")}
+                        </Link>
+                    }
+                >
+                    <p>{t("issueDetail.notFoundText")}</p>
+                </Notice>
+            </Wrapper>
         );
     }
 
     if (error === "load" || !record) {
         return (
-            <>
-                <h1>{t("issueDetail.heading")}</h1>
-                <p className="state state-error">{t("issueDetail.loadError")}</p>
-                <div className="btn-row">
-                    <button type="button" className="btn" onClick={() => void loadRecord()}>
+            <Page sidebar={backSidebar}>
+                <div className="alert danger flex gap-sm">
+                    <span className="flex-fill">{t("issueDetail.loadError")}</span>
+                    <button type="button" className="btn sm secondary" onClick={() => void loadRecord()}>
                         {t("issueDetail.retry")}
                     </button>
                 </div>
-            </>
+            </Page>
         );
     }
 
     // roles with at least one possible next step (beirat, hausmeister)
     const canDecide = transitions.length > 0;
 
+    const created = parsePBDate(record.created);
     const decided = parsePBDate(record.decided_at);
     const resolved = parsePBDate(record.resolved_at);
+    const exact = exactPositionOf(record, role);
 
     return (
-        <>
-            <p className="hint">
-                <Link to="/issues">{t("issueDetail.back")}</Link>
-            </p>
-            <article className="card detail-card">
-                <h1 className="detail-title">{record.title}</h1>
-                <div className="board-item-badges detail-badges">
-                    <StatusBadge status={record.status} />
-                    {auth.role === "beirat" && (
-                        <VisibilityChip visibility={record.visibility} />
-                    )}
-                </div>
-
-                {record.description && (
-                    <p className="prewrap">{record.description}</p>
-                )}
-
-                <dl className="queue-meta">
+        <Page
+            sidebar={
+                <>
+                    {backSidebar}
+                    <SidebarInfo label={t("issueDetail.status")}>
+                        <span className="labels-list">
+                            <StatusBadge status={record.status} />
+                            {auth.role === "beirat" && <VisibilityChip visibility={record.visibility} />}
+                        </span>
+                    </SidebarInfo>
                     {record.category && (
-                        <>
-                            <dt>{t("issueDetail.category")}</dt>
-                            <dd>{record.category}</dd>
-                        </>
+                        <SidebarInfo label={t("issueDetail.category")}>
+                            <span>{record.category}</span>
+                        </SidebarInfo>
                     )}
-                    <dt>{t("issueDetail.location")}</dt>
-                    <dd>
-                        {record.lat.toFixed(3)}, {record.lng.toFixed(3)}
-                    </dd>
+                    {created && (
+                        <SidebarInfo label={t("issueDetail.created")}>
+                            <span>{formatLongDate(created, locale)}</span>
+                        </SidebarInfo>
+                    )}
                     {decided && (
-                        <>
-                            <dt>{t("issueDetail.decided")}</dt>
-                            <dd>{formatLongDate(decided, locale)}</dd>
-                        </>
+                        <SidebarInfo label={t("issueDetail.decided")}>
+                            <span>{formatLongDate(decided, locale)}</span>
+                        </SidebarInfo>
                     )}
                     {resolved && (
+                        <SidebarInfo label={t("issueDetail.resolved")}>
+                            <span>{formatLongDate(resolved, locale)}</span>
+                        </SidebarInfo>
+                    )}
+                    {role === "beirat" && (
+                        <SidebarInfo label={t("issueDetail.reporter")}>
+                            <IssueReporter issueId={record.id} />
+                        </SidebarInfo>
+                    )}
+                </>
+            }
+        >
+            <PageHeading title={record.title} />
+            <div className="flex-column gap-sm">
+                <article className="post">
+                    {record.description ? (
+                        <div className="content prewrap">{record.description}</div>
+                    ) : (
+                        <div className="txt-hint">{t("issueDetail.noDescription")}</div>
+                    )}
+
+                    <hr />
+
+                    <div className="post-section">
+                        <h2 className="section-title">
+                            <i className="ri-map-pin-line" aria-hidden="true" />
+                            {exact ? t("issueDetail.locationExact") : t("issueDetail.location")}
+                        </h2>
+                        <IssueLocationMap issue={record} role={role} />
+                        <p className="txt-hint txt-sm m-0">
+                            {exact
+                                ? `${exact[0].toFixed(6)}, ${exact[1].toFixed(6)}`
+                                : `${record.lat.toFixed(3)}, ${record.lng.toFixed(3)} · ${t("issueDetail.roundedHint")}`}
+                        </p>
+                    </div>
+
+                    {record.photos.length > 0 && (
                         <>
-                            <dt>{t("issueDetail.resolved")}</dt>
-                            <dd>{formatLongDate(resolved, locale)}</dd>
+                            <hr />
+                            <div className="post-section">
+                                <h2 className="section-title">
+                                    <i className="ri-image-line" aria-hidden="true" />
+                                    {t("issueDetail.photos")}
+                                </h2>
+                                <ProtectedPhotos
+                                    recordId={record.id}
+                                    photos={record.photos}
+                                    refreshKey={record}
+                                    className="photo-thumbs detail-photos"
+                                />
+                            </div>
                         </>
                     )}
-                </dl>
-
-                {record.photos.length > 0 && (
-                    <div className="field">
-                        <span className="field-label">{t("issueDetail.photos")}</span>
-                        <ul className="photo-thumbs detail-photos">
-                            {record.photos
-                                .filter((name) => !photoFailed.includes(name))
-                                .map((name) => (
-                                    <li key={name} className="photo-thumb">
-                                        {token ? (
-                                            <img
-                                                src={buildFileUrl(
-                                                    pb.baseUrl,
-                                                    "issues",
-                                                    record.id,
-                                                    name,
-                                                    { token, thumb: "600x0" },
-                                                )}
-                                                alt={t("issueDetail.photoAlt", {
-                                                    index: record.photos.indexOf(name) + 1,
-                                                })}
-                                                onError={() => onPhotoError(name)}
-                                            />
-                                        ) : (
-                                            <div className="photo-placeholder" />
-                                        )}
-                                    </li>
-                                ))}
-                        </ul>
-                        {photoFailed.length > 0 && (
-                            <p className="hint">{t("issueDetail.photoFailed")}</p>
-                        )}
-                    </div>
-                )}
+                </article>
 
                 {canDecide && (
-                    <div className="detail-actions">
-                        <h2 className="section-title">{t("issueDetail.actions")}</h2>
+                    <section className="post detail-actions">
+                        <h2 className="section-title">
+                            <i className="ri-flag-line" aria-hidden="true" />
+                            {t("issueDetail.actions")}
+                        </h2>
                         {transitions.some((transition) => transition.requiresVisibility) && (
-                            <div className="field">
-                                <label htmlFor="detail-visibility">
-                                    {t("moderation.visibility.label")}
-                                </label>
-                                <select
+                            <div className="grid sm">
+                                <FormField
                                     id="detail-visibility"
-                                    value={visibility}
-                                    onChange={(e) =>
-                                        setVisibility(e.target.value as IssueVisibility | "")
-                                    }
+                                    label={t("moderation.visibility.label")}
+                                    required
+                                    hint={t("moderation.visibility.hint")}
                                 >
-                                    <option value="">—</option>
-                                    <option value="community">
-                                        {t("issueVisibility.community.label")}
-                                    </option>
-                                    <option value="private">
-                                        {t("issueVisibility.private.label")}
-                                    </option>
-                                </select>
-                                <p className="hint">
-                                    {t("moderation.visibility.hint")}
-                                </p>
+                                    <select
+                                        id="detail-visibility"
+                                        value={visibility}
+                                        onChange={(e) => setVisibility(e.target.value as IssueVisibility | "")}
+                                    >
+                                        <option value="">{t("moderation.visibility.choose")}</option>
+                                        <option value="community">{t("issueVisibility.community.label")}</option>
+                                        <option value="private">{t("issueVisibility.private.label")}</option>
+                                    </select>
+                                </FormField>
                             </div>
                         )}
                         {actionError && (
-                            <div className="form-error">
+                            <div className="alert danger">
                                 {t(actionError.key)}
                                 {actionError.detail ? ` (${actionError.detail})` : ""}
                             </div>
                         )}
-                        <div className="btn-row">
-                            {transitions.map((transition) => (
+                        <footer className="form-footer">
+                            {/* secondary action (reject) first, primary last - as in the moderation queue */}
+                            {[...transitions]
+                                .sort((a, b) => Number(b.status === "rejected") - Number(a.status === "rejected"))
+                                .map((transition) => (
                                 <button
                                     key={transition.status}
                                     type="button"
-                                    className={
-                                        transition.status === "rejected"
-                                            ? "btn btn-outline"
-                                            : "btn"
-                                    }
+                                    className={`btn ${transition.status === "rejected" ? "secondary" : ""} ${actionBusy ? "loading" : ""}`}
                                     disabled={actionBusy}
-                                    onClick={() =>
-                                        void applyTransition(
-                                            transition.status,
-                                            transition.requiresVisibility,
-                                        )
-                                    }
+                                    onClick={() => void applyTransition(transition.status, transition.requiresVisibility)}
                                 >
-                                    {transition.status === "open"
-                                        ? t("moderation.accept")
-                                        : t(`issueDetail.action.${transition.status}`)}
+                                    <span className="txt">
+                                        {transition.status === "open"
+                                            ? t("moderation.accept")
+                                            : t(`issueDetail.action.${transition.status}`)}
+                                    </span>
                                 </button>
-                            ))}
-                        </div>
-                    </div>
+                                ))}
+                        </footer>
+                    </section>
                 )}
-            </article>
-        </>
+
+                {(role === "beirat" || role === "hausmeister" || role === "hausverwaltung") && (
+                    <IssueHistory
+                        issueId={record.id}
+                        refreshKey={record.status}
+                        canWrite={role === "beirat" || (record.status !== "pending" && record.status !== "rejected")}
+                    />
+                )}
+            </div>
+        </Page>
     );
 }

@@ -7,6 +7,9 @@ import type { TFunction } from "i18next";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
+import { BackLink, Page, PageHeading, SidebarMenu, Wrapper } from "../components/Page";
+import FormField, { SwitchField } from "../components/FormField";
+import Notice from "../components/Notice";
 import { errorStatus, fieldErrors } from "../lib/pbErrors";
 import {
     buildSuggestionPayload,
@@ -24,10 +27,6 @@ function messageText(message: string | undefined, t: TFunction): string {
     return message;
 }
 
-function FormError({ message, t }: { message?: string; t: TFunction }) {
-    if (!message) return null;
-    return <p className="field-error">{messageText(message, t)}</p>;
-}
 
 // Public suggestion form (plan.md "Public submission routes"): the
 // createRule forces status='pending' (sent in the payload), no
@@ -107,149 +106,126 @@ export default function NewSuggestion() {
 
     if (submitted) {
         return (
-            <section className="card state-success">
-                <h1>{t("suggestion.success.title")}</h1>
-                <p>{t("suggestion.success.text")}</p>
-                <div className="btn-row">
-                    <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={resetForm}
-                    >
-                        {t("suggestion.success.another")}
-                    </button>
-                    <Link className="btn" to="/">
-                        {t("suggestion.success.back")}
-                    </Link>
-                </div>
-            </section>
+            <Wrapper size="sm">
+                <Notice
+                    icon="ri-checkbox-circle-line"
+                    tone="success"
+                    title={t("suggestion.success.title")}
+                    actions={
+                        <>
+                            <button type="button" className="btn secondary" onClick={resetForm}>
+                                {t("suggestion.success.another")}
+                            </button>
+                            <Link className="btn" to="/kalender">
+                                {t("suggestion.success.back")}
+                            </Link>
+                        </>
+                    }
+                >
+                    <p>{t("suggestion.success.text")}</p>
+                </Notice>
+            </Wrapper>
         );
     }
 
+    const err = (message?: string) => (message ? messageText(message, t) : null);
+
     return (
-        <>
-            <h1>{t("suggestion.heading")}</h1>
-            <p className="hint">{t("suggestion.intro")}</p>
-            <form className="card form" onSubmit={submit} noValidate>
-                <div className="field">
-                    <label htmlFor="suggestion-title">{t("suggestion.title")}</label>
-                    <input
-                        id="suggestion-title"
-                        type="text"
-                        maxLength={200}
-                        {...register("title")}
-                    />
-                    <FormError message={errors.title?.message} t={t} />
-                </div>
+        <Page
+            sidebar={
+                <>
+                    <SidebarMenu>
+                        <BackLink to="/kalender">{t("event.back")}</BackLink>
+                    </SidebarMenu>
+                    <p className="txt-hint sidebar-text">{t("suggestion.intro")}</p>
+                </>
+            }
+        >
+            <PageHeading title={t("suggestion.heading")} />
+            <form className="post" onSubmit={submit} noValidate>
+                <div className="grid sm">
+                    <FormField id="suggestion-title" label={t("suggestion.title")} required error={err(errors.title?.message)}>
+                        <input id="suggestion-title" type="text" maxLength={200} autoComplete="off" {...register("title")} />
+                    </FormField>
 
-                <div className="field">
-                    <label htmlFor="suggestion-description">
-                        {t("suggestion.description")}
-                    </label>
-                    <textarea
-                        id="suggestion-description"
-                        rows={4}
-                        maxLength={5000}
-                        {...register("description")}
-                    />
-                    <FormError message={errors.description?.message} t={t} />
-                </div>
+                    <FormField id="suggestion-description" label={t("suggestion.description")} error={err(errors.description?.message)}>
+                        <textarea id="suggestion-description" rows={4} maxLength={5000} {...register("description")} />
+                    </FormField>
 
-                <div className="field field-inline">
-                    <label>
-                        <input type="checkbox" {...register("all_day")} />
-                        {t("suggestion.allDay")}
-                    </label>
-                </div>
+                    <SwitchField id="suggestion-all-day" label={t("suggestion.allDay")} {...register("all_day")} />
 
-                <div className="field">
-                    <label htmlFor="suggestion-date-start">
-                        {t("suggestion.dateStart")}
-                    </label>
-                    <input
+                    <FormField
                         id="suggestion-date-start"
-                        type={dateInputType}
-                        {...register("date_start")}
-                    />
-                    <FormError message={errors.date_start?.message} t={t} />
-                </div>
+                        className="col-12 col-md-6"
+                        label={t("suggestion.dateStart")}
+                        required
+                        error={err(errors.date_start?.message)}
+                    >
+                        <input id="suggestion-date-start" type={dateInputType} {...register("date_start")} />
+                    </FormField>
 
-                <div className="field">
-                    <label htmlFor="suggestion-date-end">
-                        {t("suggestion.dateEnd")}
-                    </label>
-                    <input
+                    <FormField
                         id="suggestion-date-end"
-                        type={dateInputType}
-                        {...register("date_end")}
-                    />
-                    <FormError message={errors.date_end?.message} t={t} />
-                </div>
+                        className="col-12 col-md-6"
+                        label={t("suggestion.dateEnd")}
+                        error={err(errors.date_end?.message)}
+                    >
+                        <input id="suggestion-date-end" type={dateInputType} {...register("date_end")} />
+                    </FormField>
 
-                <div className="field">
-                    <label htmlFor="suggestion-location">
-                        {t("suggestion.location")}
-                    </label>
-                    <input
+                    <FormField
                         id="suggestion-location"
-                        type="text"
-                        maxLength={200}
-                        {...register("location")}
-                    />
-                    <FormError message={errors.location?.message} t={t} />
-                </div>
+                        className="col-12 col-md-6"
+                        label={t("suggestion.location")}
+                        error={err(errors.location?.message)}
+                    >
+                        <input id="suggestion-location" type="text" maxLength={200} {...register("location")} />
+                    </FormField>
 
-                <div className="field">
-                    <label htmlFor="suggestion-category">
-                        {t("suggestion.category")}
-                    </label>
-                    <input
+                    <FormField
                         id="suggestion-category"
-                        type="text"
-                        maxLength={100}
-                        {...register("category")}
-                    />
-                    <FormError message={errors.category?.message} t={t} />
-                </div>
+                        className="col-12 col-md-6"
+                        label={t("suggestion.category")}
+                        error={err(errors.category?.message)}
+                    >
+                        <input id="suggestion-category" type="text" maxLength={100} {...register("category")} />
+                    </FormField>
 
-                <div className="field">
-                    <label htmlFor="suggestion-email">{t("suggestion.email")}</label>
-                    <input
+                    <FormField
                         id="suggestion-email"
-                        type="email"
-                        inputMode="email"
-                        {...register("email")}
-                    />
-                    <p className="hint">{t("suggestion.emailHint")}</p>
-                    <FormError message={errors.email?.message} t={t} />
-                </div>
+                        label={t("suggestion.email")}
+                        required
+                        hint={t("suggestion.emailHint")}
+                        error={err(errors.email?.message)}
+                    >
+                        <input id="suggestion-email" type="email" inputMode="email" autoComplete="email" {...register("email")} />
+                    </FormField>
 
-                {/*
-                    Honeypot: hidden from users (off-screen, not
-                    focusable), populated by spam bots. Must stay empty -
-                    enforced by the zod schema and again server-side.
-                */}
-                <div className="hp-field" aria-hidden="true">
-                    <label htmlFor="suggestion-hp">{t("suggestion.hpLabel")}</label>
-                    <input
-                        id="suggestion-hp"
-                        type="text"
-                        tabIndex={-1}
-                        autoComplete="off"
-                        {...register("honeypot")}
-                    />
-                </div>
+                    {/*
+                        Honeypot: hidden from users (off-screen, not
+                        focusable), populated by spam bots. Must stay empty -
+                        enforced by the zod schema and again server-side.
+                    */}
+                    <div className="hp-field" aria-hidden="true">
+                        <label htmlFor="suggestion-hp">{t("suggestion.hpLabel")}</label>
+                        <input id="suggestion-hp" type="text" tabIndex={-1} autoComplete="off" {...register("honeypot")} />
+                    </div>
 
-                {serverError && <div className="form-error">{t(serverError)}</div>}
+                    {serverError && (
+                        <div className="col-12">
+                            <div className="alert danger">{t(serverError)}</div>
+                        </div>
+                    )}
 
-                <div className="btn-row">
-                    <button type="submit" className="btn" disabled={isSubmitting}>
-                        {isSubmitting
-                            ? t("suggestion.submitting")
-                            : t("suggestion.submit")}
-                    </button>
+                    <div className="col-12">
+                        <footer className="form-footer">
+                            <button type="submit" className={`btn expanded-lg ${isSubmitting ? "loading" : ""}`} disabled={isSubmitting}>
+                                <span className="txt">{isSubmitting ? t("suggestion.submitting") : t("suggestion.submit")}</span>
+                            </button>
+                        </footer>
+                    </div>
                 </div>
             </form>
-        </>
+        </Page>
     );
 }
