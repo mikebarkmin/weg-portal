@@ -128,7 +128,7 @@ describe("cappedDimensions", () => {
 
 // --- reencodePhoto (with canvas APIs mocked) --------------------------------
 //
-// The acual canvas round-trip needs a real browser; the mocks here verify
+// The actual canvas round-trip needs a real browser; the mocks here verify
 // the wiring: capped dimensions reach the canvas, the ORIGINAL file is
 // never returned, the bitmap is closed, and the canvas output (which real
 // encoders ship without EXIF - see hasExifApp1) is what the caller gets.

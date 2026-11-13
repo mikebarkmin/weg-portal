@@ -101,6 +101,7 @@ export default function NewSuggestion() {
     const resetForm = () => {
         startedAt.current = Date.now(); // fresh time-trap window
         reset();
+        setSubmitted(false);
         setServerError(null);
     };
 
