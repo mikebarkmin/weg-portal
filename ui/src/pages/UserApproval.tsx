@@ -36,7 +36,11 @@ export default function UserApproval() {
             .then((users) => {
                 if (active) {
                     setState({
-                        pending: users.filter((user) => !user.approved),
+                        // per milestones.md only unapproved *verified*
+                        // users wait for approval - an unverified account
+                        // must confirm its email first (server rules
+                        // require approved && verified for access anyway)
+                        pending: users.filter((user) => !user.approved && user.verified),
                         approved: users.filter((user) => user.approved),
                         loading: false,
                         error: false,
