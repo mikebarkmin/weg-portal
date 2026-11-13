@@ -27,13 +27,26 @@ const STATUS_COLORS: Record<IssueStatus, string> = {
     rejected: "var(--dangerColor)",
 };
 
-// Markers sit on the exact coordinates when the viewer's record carries
-// them (unhidden for beirat/HM/HV by the enrich hook) and on the rounded
-// ones otherwise - residents never receive lat_exact/lng_exact at all.
-function positionOf(issue: PortalIssue): [number, number] {
-    const lat = typeof issue.lat_exact === "number" ? issue.lat_exact : issue.lat;
-    const lng = typeof issue.lng_exact === "number" ? issue.lng_exact : issue.lng;
-    return [lat, lng];
+// Markers sit on the exact coordinates for viewers whose role may see them
+// (lat_exact/lng_exact are unhidden for beirat/HM/HV by the enrich hook) and
+// on the rounded ones otherwise. The role is checked EXPLICITLY: even if the
+// API ever shipped exact fields to a resident, no rendering path here would
+// place a marker on them (defense in depth on top of the enrich hook).
+export const SEES_EXACT_COORDS: ReadonlySet<string> = new Set([
+    "beirat",
+    "hausmeister",
+    "hausverwaltung",
+]);
+
+function positionOf(issue: PortalIssue, seesExact: boolean): [number, number] {
+    const useExact =
+        seesExact &&
+        typeof issue.lat_exact === "number" &&
+        typeof issue.lng_exact === "number";
+    return [
+        useExact ? (issue.lat_exact as number) : issue.lat,
+        useExact ? (issue.lng_exact as number) : issue.lng,
+    ];
 }
 
 // Board order: pending issues first (they wait for a Beirat decision),
@@ -55,6 +68,7 @@ export default function IssueBoard() {
     const navigate = useNavigate();
     const auth = useAuth();
     const isBeirat = auth.role === "beirat";
+    const seesExactCoords = SEES_EXACT_COORDS.has(auth.role);
 
     const [items, setItems] = useState<PortalIssue[]>([]);
     const [loading, setLoading] = useState(true);
@@ -217,7 +231,7 @@ export default function IssueBoard() {
                             {filtered.map((issue) => (
                                 <CircleMarker
                                     key={issue.id}
-                                    center={positionOf(issue)}
+                                    center={positionOf(issue, seesExactCoords)}
                                     radius={8}
                                     pathOptions={{
                                         color: "#fff",

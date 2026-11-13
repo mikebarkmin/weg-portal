@@ -66,12 +66,18 @@ export default function IssueDetail() {
         void loadRecord();
     }, [loadRecord]);
 
-    // first token fetch + proactive refresh: whenever the token from the
-    // refresher is more than ~2/3 of its TTL old, get() fetches a new one
-    // automatically when the photos are (re)rendered.
+    // first token fetch + proactive refresh: every incoming record state
+    // (mount, realtime update) re-checks the single-flight refresher; when
+    // the cached token is older than ~2/3 of its TTL, get() fetches a new
+    // one BEFORE the old one expires - so a long-lived open page never
+    // renders an expired URL. A failed fetch falls back to the one-shot
+    // 404 retry below.
     useEffect(() => {
+        if (!record || record.photos.length === 0) {
+            return; // no photos: no token needed
+        }
         void refresher.get().then(setToken).catch(() => setToken(null));
-    }, [refresher, record?.id]);
+    }, [refresher, record]);
 
     // keep the open detail page live (same rules as the board; the Beirat
     // sees decisions made by another member without a reload).
