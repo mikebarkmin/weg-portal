@@ -22,3 +22,11 @@
 .DS_Store
 .idea
 .vscode
+
+# deployment secrets / local config (templates: *.env.example)
+/portal.env
+/caddy.env
+
+# local runtime artifacts (backup drills etc.)
+*.zip
+/.env
