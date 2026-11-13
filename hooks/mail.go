@@ -31,6 +31,12 @@ import (
 // when addressed to a submitter address - the addresses are unverified, so
 // echoing content would make the portal a spam relay. Mails to beirat/staff
 // accounts may contain the content.
+
+// beiratRecipientsFilter: every mail addressed "to the Beirat" also
+// reaches the admins - they can do everything the Beirat can (migration
+// 1795000109), so whoever can act on new work must hear about it.
+const beiratRecipientsFilter = "role = 'beirat' || role = 'admin'"
+
 func Mail(app core.App) {
 	// -------------------------------------------------------------------
 	// new suggestion -> all beirat users
@@ -55,7 +61,7 @@ func Mail(app core.App) {
 				Email:       email,
 			}
 
-			recipients, err := findRoleEmails(app, "role = 'beirat'")
+			recipients, err := findRoleEmails(app, beiratRecipientsFilter)
 			if err != nil {
 				logMailError(app, err, "beirat new-suggestion mail", "")
 				return
@@ -90,7 +96,7 @@ func Mail(app core.App) {
 				Lng:         lng,
 			}
 
-			recipients, err := findRoleEmails(app, "role = 'beirat'")
+			recipients, err := findRoleEmails(app, beiratRecipientsFilter)
 			if err != nil {
 				logMailError(app, err, "beirat new-issue mail", "")
 				return

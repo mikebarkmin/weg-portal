@@ -194,10 +194,11 @@ transaction as the suggestion update.
 The admin column equals the Beirat column everywhere (migration
 1795000109 widens every `role = 'beirat'` rule to
 `(role = 'beirat' || role = 'admin')`, hooks never check the beirat role
-themselves) plus the /admin account management. Differences to the
-Beirat: admins never appear in the beirat notification mail recipients
-(`findRoleEmails("role = 'beirat'")`) and the last-active-admin guard
-applies only to admins (hooks/adminUsers.go).
+themselves) plus the /admin account management. The Beirat notification
+mails ("new suggestion", "new issue", "new meeting topic") also reach the
+admins (`beiratRecipientsFilter` in hooks/mail.go) - whoever can act on
+new work must hear about it. Remaining admin-only specifics: the
+last-active-admin guard (hooks/adminUsers.go).
 
 ### Public submission routes
 

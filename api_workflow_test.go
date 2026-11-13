@@ -807,8 +807,10 @@ func TestWorkflowMailsIssues(t *testing.T) {
 		}
 
 		beirat := findBySubject(t, app, "Neue Meldung: Meldefall test")
-		if to := toAddresses(beirat); len(to) != 1 || to[0] != emailBeirat {
-			t.Fatalf("expected the new-issue mail only for the beirat member, got %v", to)
+		// one mail; the admins share it because they can act on the
+		// issue like the Beirat (beiratRecipientsFilter)
+		if to := toAddresses(beirat); len(to) != 2 || to[0] != emailBeirat || to[1] != emailAdmin {
+			t.Fatalf("expected the new-issue mail for the beirat member and the admin, got %v", to)
 		}
 		if !strings.Contains(beirat.HTML, "Meldefall test") {
 			t.Fatal("expected the issue title in the beirat mail (internal recipients may see the content)")
@@ -898,8 +900,10 @@ func TestWorkflowMailsSuggestions(t *testing.T) {
 		waitTestMailerMails(t, app, 1, "beirat new-suggestion mail")
 
 		m := findBySubject(t, app, "Neuer Kalendervorschlag: Neuer Vorschlag per API")
-		if to := toAddresses(m); len(to) != 1 || to[0] != emailBeirat {
-			t.Fatalf("expected the new-suggestion mail only for the beirat member, got %v", to)
+		// one mail; the admins share it because they can act on the
+		// suggestion like the Beirat (beiratRecipientsFilter)
+		if to := toAddresses(m); len(to) != 2 || to[0] != emailBeirat || to[1] != emailAdmin {
+			t.Fatalf("expected the new-suggestion mail for the beirat member and the admin, got %v", to)
 		}
 		if !strings.Contains(m.HTML, "Neuer Vorschlag per API") {
 			t.Fatal("expected the suggestion title in the beirat mail")

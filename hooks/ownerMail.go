@@ -10,7 +10,7 @@ import (
 // OwnerMail sends the opt-in notifications of the owner features:
 //
 //   - new announcement -> accounts with notify_announcements = true that
-//     can see it (public: every approved account; owners: same)
+//     can see it (public: every verified account; owners: approved ones)
 //   - new calendar event -> accounts with notify_events = true that can
 //     see its calendar (beirat calendar: Beirat only)
 //   - new agenda topic -> all Beirat members
@@ -21,6 +21,9 @@ import (
 // no address is disclosed to the others.
 func OwnerMail(app core.App) {
 	app.OnRecordAfterCreateSuccess("announcements").BindFunc(func(e *core.RecordEvent) error {
+		// "public" | "owners": only accounts that may read the announcement
+		// in the portal are mailed (an unapproved account sees "public" only)
+		visibility := e.Record.GetString("visibility")
 		data := mailAnnouncementData{
 			Title: e.Record.GetString("title"),
 			Body:  e.Record.GetString("body"),
@@ -28,7 +31,7 @@ func OwnerMail(app core.App) {
 		}
 		notifyAsync(app, func() {
 			data.AppName = app.Settings().Meta.AppName
-			recipients, err := findOptInEmails(app, "notify_announcements", []string{"public", "owners"})
+			recipients, err := findOptInEmails(app, "notify_announcements", []string{visibility})
 			if err != nil {
 				logMailError(app, err, "announcement mail", "")
 				return
@@ -67,7 +70,7 @@ func OwnerMail(app core.App) {
 		}
 		notifyAsync(app, func() {
 			data.AppName = app.Settings().Meta.AppName
-			recipients, err := findRoleEmails(app, "role = 'beirat'")
+			recipients, err := findRoleEmails(app, beiratRecipientsFilter)
 			if err != nil {
 				logMailError(app, err, "agenda beirat mail", "")
 				return

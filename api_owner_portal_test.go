@@ -212,7 +212,10 @@ func TestAgendaWorkflow(t *testing.T) {
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"decided_at":"2`) {
 		t.Fatalf("accept: expected 200 with decided_at, got %d: %s", rec.Code, rec.Body.String())
 	}
-	waitTestMailerMails(t, app, 2, "beirat topic mail + agenda decision mail")
+	// the topic-create mail is sent per recipient (sendEach): beirat
+	// member AND admin (beiratRecipientsFilter), then the decision mail
+	// to the author - three sends in total
+	waitTestMailerMails(t, app, 3, "beirat topic mails + agenda decision mail")
 	mailMsg := findBySubject(t, app, "Ihr Thema für die Versammlung wurde angenommen")
 	if to := toAddresses(mailMsg); len(to) != 1 || to[0] != emailResident {
 		t.Fatalf("decision mail must go to the author only, got %v", to)
