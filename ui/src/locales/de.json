@@ -3,7 +3,12 @@
         "title": "WEG-Portal"
     },
     "nav": {
-        "calendar": "Terminkalender"
+        "calendar": "Terminkalender",
+        "newSuggestion": "Termin vorschlagen",
+        "moderation": "Moderation",
+        "users": "Benutzer",
+        "login": "Anmelden",
+        "logout": "Abmelden"
     },
     "calendar": {
         "heading": "Terminkalender",
@@ -55,5 +60,120 @@
     "notFound": {
         "title": "Seite nicht gefunden",
         "home": "Zur Startseite"
+    },
+    "validation": {
+        "required": "Bitte ausfüllen.",
+        "tooLong": "Die Eingabe ist zu lang.",
+        "invalidDate": "Bitte ein gültiges Datum eingeben.",
+        "invalidEmail": "Bitte eine gültige E-Mail-Adresse eingeben.",
+        "dateEndBeforeStart": "Das Ende liegt vor dem Anfang.",
+        "submitFailed": "Die Eingaben konnten nicht gesendet werden."
+    },
+    "suggestion": {
+        "heading": "Termin vorschlagen",
+        "intro": "Schlagen Sie einen Termin für den Gemeinschaftskalender vor. Der Beirat prüft Ihren Vorschlag und benachrichtigt Sie per E-Mail.",
+        "title": "Titel",
+        "description": "Beschreibung",
+        "allDay": "Ganztägig",
+        "dateStart": "Beginn",
+        "dateEnd": "Ende (optional)",
+        "location": "Ort",
+        "category": "Kategorie",
+        "email": "E-Mail-Adresse",
+        "emailHint": "An diese Adresse wird die Entscheidung des Beirats geschickt. Die Adresse ist nur für den Beirat sichtbar.",
+        "hpLabel": "Nicht ausfüllen",
+        "submit": "Vorschlag abschicken",
+        "submitting": "Wird gesendet …",
+        "error": {
+            "rateLimited": "Zu viele Einsendungen. Bitte warten Sie einige Minuten und versuchen es dann erneut.",
+            "trapFailed": "Die Einsendung wurde abgelehnt. Bitte prüfen Sie Ihre Eingaben und versuchen es erneut.",
+            "generic": "Der Vorschlag konnte nicht gesendet werden. Bitte später erneut versuchen."
+        },
+        "success": {
+            "title": "Vielen Dank!",
+            "text": "Ihr Vorschlag ist bei der Beiratsmoderation eingegangen. Sie erhalten eine E-Mail, sobald darüber entschieden wurde.",
+            "another": "Weiteren Termin vorschlagen",
+            "back": "Zum Kalender"
+        }
+    },
+    "login": {
+        "heading": "Anmelden",
+        "email": "E-Mail-Adresse",
+        "password": "Passwort",
+        "submit": "Anmelden",
+        "submitting": "Anmeldung läuft …",
+        "back": "Zurück zum Kalender",
+        "error": {
+            "rateLimited": "Zu viele Anmeldeversuche. Bitte warten Sie einen Moment und versuchen es erneut.",
+            "invalid": "E-Mail-Adresse oder Passwort ist falsch.",
+            "generic": "Die Anmeldung ist fehlgeschlagen. Bitte später erneut versuchen."
+        }
+    },
+    "auth": {
+        "forbidden": {
+            "title": "Kein Zugriff",
+            "text": "Diese Seite ist Beiratsmitgliedern vorbehalten.",
+            "back": "Zur Startseite"
+        }
+    },
+    "moderation": {
+        "heading": "Moderation",
+        "tab": {
+            "suggestions": "Vorschläge",
+            "issues": "Meldungen"
+        },
+        "loading": "Wird geladen …",
+        "error": {
+            "load": "Einträge konnten nicht geladen werden. Bitte später erneut versuchen.",
+            "transition": "Die Aktion wurde vom Server abgelehnt",
+            "generic": "Die Aktion ist fehlgeschlagen. Bitte später erneut versuchen.",
+            "noteTooLong": "Die Anmerkung ist zu lang (maximal 2000 Zeichen).",
+            "visibilityRequired": "Bitte die Sichtbarkeit wählen, bevor Sie annehmen."
+        },
+        "empty": {
+            "suggestions": "Keine offenen Vorschläge.",
+            "issues": "Keine offenen Meldungen."
+        },
+        "submitter": "Absender",
+        "date": "Termin",
+        "location": "Ort",
+        "category": "Kategorie",
+        "decisionNote": "Anmerkung an den Absender (optional)",
+        "accept": "Annehmen",
+        "reject": "Ablehnen",
+        "visibility": {
+            "label": "Sichtbarkeit",
+            "community": "Für die Gemeinschaft sichtbar",
+            "private": "Nur intern (privat)",
+            "hint": "Beim Annehmen muss gewählt werden, ob die Meldung für die Gemeinschaft sichtbar ist."
+        }
+    },
+    "users": {
+        "heading": "Benutzer",
+        "loading": "Wird geladen …",
+        "error": {
+            "load": "Benutzer konnten nicht geladen werden. Bitte später erneut versuchen.",
+            "update": "Die Änderung konnte nicht gespeichert werden."
+        },
+        "pending": {
+            "heading": "Warten auf Freigabe",
+            "empty": "Keine Benutzer warten auf Freigabe."
+        },
+        "approved": {
+            "heading": "Freigegebene Benutzer",
+            "empty": "Keine Benutzer freigegeben."
+        },
+        "name": "Name",
+        "noName": "—",
+        "email": "E-Mail-Adresse",
+        "role": "Rolle",
+        "roleValues": {
+            "resident": "Bewohner",
+            "beirat": "Beirat",
+            "hausmeister": "Hausmeister",
+            "hausverwaltung": "Hausverwaltung"
+        },
+        "approve": "Freigeben",
+        "revoke": "Freigabe zurückziehen"
     }
 }

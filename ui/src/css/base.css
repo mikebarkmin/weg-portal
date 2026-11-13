@@ -355,3 +355,217 @@ h3 {
 .back-link:hover {
     text-decoration: underline;
 }
+
+/* --- main navigation --- */
+
+.app-nav {
+    max-width: var(--appWidth);
+    margin: 0 auto;
+    padding: 0 var(--smSpacing) var(--xsSpacing);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px var(--xsSpacing);
+    min-width: 0;
+}
+
+.app-nav a,
+.app-nav-logout {
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: var(--smBorderRadius);
+    border: var(--borderWidth) solid transparent;
+    font-size: var(--smFontSize);
+    color: var(--surfaceTxtColor);
+    background: none;
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.app-nav a:hover,
+.app-nav-logout:hover {
+    background: var(--surfaceAlt2Color);
+}
+
+.app-nav a.active {
+    border-color: var(--borderColor);
+    background: var(--surfaceAlt2Color);
+    font-weight: 600;
+}
+
+.app-nav-spacer {
+    flex: 1;
+}
+
+/* --- forms --- */
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--smSpacing);
+    margin-top: var(--xsSpacing);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.field > label,
+.field legend {
+    font-size: var(--smFontSize);
+    color: var(--surfaceTxtColor);
+    font-weight: 600;
+}
+
+.field-inline label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.radio {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 400;
+    cursor: pointer;
+    padding: 2px 0;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]),
+textarea,
+select {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: var(--smBorderRadius);
+    border: var(--borderWidth) solid var(--inputBorderColor);
+    background: var(--inputColor);
+    color: var(--surfaceTxtColor);
+    font: inherit;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.btn:focus-visible,
+.app-nav a:focus-visible {
+    outline: 2px solid var(--borderFocusColor);
+    outline-offset: 1px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primaryColor);
+    flex: none;
+}
+
+.field-error {
+    color: var(--dangerColor);
+    font-size: var(--smFontSize);
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.form-error {
+    color: var(--dangerColor);
+    font-size: var(--smFontSize);
+    background: var(--surfaceDangerColor);
+    border-radius: var(--smBorderRadius);
+    padding: 8px 10px;
+    overflow-wrap: anywhere;
+}
+
+.state-success {
+    padding: var(--spacing);
+}
+
+.btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: var(--xsSpacing);
+}
+
+/* honeypot: present in the DOM (bots fill it), out of sight for users */
+.hp-field {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* --- moderation queue + user approval --- */
+
+.tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: var(--xsSpacing) 0;
+}
+
+.queue {
+    display: flex;
+    flex-direction: column;
+    gap: var(--xsSpacing);
+    margin-top: var(--xsSpacing);
+}
+
+.queue-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--xsSpacing);
+}
+
+.queue-title {
+    font-size: var(--lgFontSize);
+    margin: 0;
+}
+
+.queue-meta {
+    display: grid;
+    grid-template-columns: minmax(90px, 130px) 1fr;
+    gap: 6px var(--xsSpacing);
+    margin: 0;
+}
+
+.queue-meta dt {
+    font-size: var(--smFontSize);
+    color: var(--surfaceTxtHintColor);
+}
+
+.queue-meta dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+@media (max-width: 600px) {
+    .queue-meta {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    .queue-meta dd {
+        margin-bottom: 6px;
+    }
+}
+
+.prewrap {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0;
+}
