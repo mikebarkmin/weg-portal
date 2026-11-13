@@ -1,11 +1,13 @@
 import { useEffect } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import LangSwitch from "./LangSwitch";
+import { canShow, logout, useAuth } from "../lib/auth";
 
 export default function Layout() {
     const { t } = useTranslation();
+    const auth = useAuth();
 
     // keep the document title in sync with the active language
     useEffect(() => {
@@ -21,6 +23,30 @@ export default function Layout() {
                     </Link>
                     <LangSwitch />
                 </div>
+                <nav className="app-nav">
+                    <NavLink to="/">{t("nav.calendar")}</NavLink>
+                    <NavLink to="/suggestions/new">{t("nav.newSuggestion")}</NavLink>
+                    {canShow(auth.role) && (
+                        <>
+                            <NavLink to="/moderation">
+                                {t("nav.moderation")}
+                            </NavLink>
+                            <NavLink to="/users">{t("nav.users")}</NavLink>
+                        </>
+                    )}
+                    <span className="app-nav-spacer" />
+                    {auth.isAuthenticated ? (
+                        <button
+                            type="button"
+                            className="app-nav-logout"
+                            onClick={logout}
+                        >
+                            {t("nav.logout")}
+                        </button>
+                    ) : (
+                        <NavLink to="/login">{t("nav.login")}</NavLink>
+                    )}
+                </nav>
             </header>
             <main className="app-main">
                 <Outlet />

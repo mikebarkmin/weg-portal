@@ -3,7 +3,12 @@
         "title": "WEG Portal"
     },
     "nav": {
-        "calendar": "Calendar"
+        "calendar": "Calendar",
+        "newSuggestion": "Suggest an event",
+        "moderation": "Moderation",
+        "users": "Users",
+        "login": "Log in",
+        "logout": "Log out"
     },
     "calendar": {
         "heading": "Community calendar",
@@ -55,5 +60,120 @@
     "notFound": {
         "title": "Page not found",
         "home": "Go to the start page"
+    },
+    "validation": {
+        "required": "Please fill in.",
+        "tooLong": "The input is too long.",
+        "invalidDate": "Please enter a valid date.",
+        "invalidEmail": "Please enter a valid email address.",
+        "dateEndBeforeStart": "The end is before the start.",
+        "submitFailed": "The data could not be submitted."
+    },
+    "suggestion": {
+        "heading": "Suggest an event",
+        "intro": "Suggest an event for the community calendar. The advisory board reviews your suggestion and notifies you by email.",
+        "title": "Title",
+        "description": "Description",
+        "allDay": "All day",
+        "dateStart": "Start",
+        "dateEnd": "End (optional)",
+        "location": "Location",
+        "category": "Category",
+        "email": "Email address",
+        "emailHint": "The advisory board's decision is sent to this address. It is only visible to the advisory board.",
+        "hpLabel": "Do not fill in",
+        "submit": "Submit suggestion",
+        "submitting": "Submitting …",
+        "error": {
+            "rateLimited": "Too many submissions. Please wait a few minutes and try again.",
+            "trapFailed": "The submission was rejected. Please check your input and try again.",
+            "generic": "The suggestion could not be submitted. Please try again later."
+        },
+        "success": {
+            "title": "Thank you!",
+            "text": "Your suggestion is now with the advisory board. You will receive an email once a decision has been made.",
+            "another": "Suggest another event",
+            "back": "Back to the calendar"
+        }
+    },
+    "login": {
+        "heading": "Log in",
+        "email": "Email address",
+        "password": "Password",
+        "submit": "Log in",
+        "submitting": "Signing in …",
+        "back": "Back to the calendar",
+        "error": {
+            "rateLimited": "Too many attempts. Please wait a moment and try again.",
+            "invalid": "Email address or password is wrong.",
+            "generic": "Login failed. Please try again later."
+        }
+    },
+    "auth": {
+        "forbidden": {
+            "title": "No access",
+            "text": "This page is reserved for advisory board members.",
+            "back": "Go to the start page"
+        }
+    },
+    "moderation": {
+        "heading": "Moderation",
+        "tab": {
+            "suggestions": "Suggestions",
+            "issues": "Reports"
+        },
+        "loading": "Loading …",
+        "error": {
+            "load": "Entries could not be loaded. Please try again later.",
+            "transition": "The action was rejected by the server",
+            "generic": "The action failed. Please try again later.",
+            "noteTooLong": "The note is too long (2000 characters max).",
+            "visibilityRequired": "Please choose the visibility before accepting."
+        },
+        "empty": {
+            "suggestions": "No open suggestions.",
+            "issues": "No open reports."
+        },
+        "submitter": "Submitter",
+        "date": "Event",
+        "location": "Location",
+        "category": "Category",
+        "decisionNote": "Note to the submitter (optional)",
+        "accept": "Accept",
+        "reject": "Reject",
+        "visibility": {
+            "label": "Visibility",
+            "community": "Visible to the community",
+            "private": "Internal only (private)",
+            "hint": "When accepting, you must choose whether the report is visible to the community."
+        }
+    },
+    "users": {
+        "heading": "Users",
+        "loading": "Loading …",
+        "error": {
+            "load": "Users could not be loaded. Please try again later.",
+            "update": "The change could not be saved."
+        },
+        "pending": {
+            "heading": "Waiting for approval",
+            "empty": "No users are waiting for approval."
+        },
+        "approved": {
+            "heading": "Approved users",
+            "empty": "No approved users."
+        },
+        "name": "Name",
+        "noName": "—",
+        "email": "Email address",
+        "role": "Role",
+        "roleValues": {
+            "resident": "Resident",
+            "beirat": "Advisory board",
+            "hausmeister": "Janitor",
+            "hausverwaltung": "Property management"
+        },
+        "approve": "Approve",
+        "revoke": "Revoke approval"
     }
 }

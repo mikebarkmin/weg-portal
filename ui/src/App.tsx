@@ -1,9 +1,14 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/Layout";
+import RequireBeirat from "./components/RequireBeirat";
 import NotFound from "./pages/NotFound";
 import PublicCalendar from "./pages/PublicCalendar";
 import EventDetail from "./pages/EventDetail";
+import NewSuggestion from "./pages/NewSuggestion";
+import Login from "./pages/Login";
+import ModerationQueue from "./pages/ModerationQueue";
+import UserApproval from "./pages/UserApproval";
 
 export default function App() {
     return (
@@ -13,6 +18,24 @@ export default function App() {
                 <Route path="events/:id" element={<EventDetail />} />
                 <Route path="events/:id/:day" element={<EventDetail />} />
                 <Route path="events" element={<Navigate to="/" replace />} />
+                <Route path="suggestions/new" element={<NewSuggestion />} />
+                <Route path="login" element={<Login />} />
+                <Route
+                    path="moderation"
+                    element={
+                        <RequireBeirat>
+                            <ModerationQueue />
+                        </RequireBeirat>
+                    }
+                />
+                <Route
+                    path="users"
+                    element={
+                        <RequireBeirat>
+                            <UserApproval />
+                        </RequireBeirat>
+                    }
+                />
                 <Route path="*" element={<NotFound />} />
             </Route>
         </Routes>
