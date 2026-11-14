@@ -1,9 +1,13 @@
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink } from "react-router-dom";
 
-// Page skeleton in BugStage's layout (layout.css): an optional sidebar with
-// sub-navigation, filters, metadata and actions next to the content column.
-// Below 800 px BugStage stacks the sidebar above the content.
+import { SidebarSlotContext } from "../lib/sidebarSlot";
+
+// The app shell (Layout.tsx) owns the left sidebar: it shows the active
+// section's sub-navigation and, below it, a slot for page-specific content
+// (filters, metadata, actions). Pages render into that slot via a portal,
+// so on phones their sidebar content moves into the drawer as well.
 export function Page({
     sidebar,
     children,
@@ -13,10 +17,11 @@ export function Page({
     children: ReactNode;
     className?: string;
 }) {
+    const slot = useContext(SidebarSlotContext);
     return (
-        <div className={`page ${className}`.trim()}>
-            {sidebar && <aside className="page-sidebar">{sidebar}</aside>}
-            <div className="page-content">{children}</div>
+        <div className={`page-body ${className}`.trim()}>
+            {sidebar && slot && createPortal(sidebar, slot)}
+            {children}
         </div>
     );
 }

@@ -69,6 +69,7 @@ export default function NewIssue() {
         handleSubmit,
         reset,
         setValue,
+        trigger,
         watch,
         formState: { errors, isSubmitting },
     } = useForm<IssueFormValues>({
@@ -109,11 +110,14 @@ export default function NewIssue() {
         x: watch("x"),
         y: watch("y"),
     };
+    // set all four first, then validate them together: validating x
+    // before y is written would flag the half-set pin as incomplete
     const changeLocation = (next: LocationValue) => {
-        setValue("area", next.area, { shouldValidate: true });
-        setValue("floor", next.floor, { shouldValidate: true });
-        setValue("x", next.x, { shouldValidate: true });
-        setValue("y", next.y, { shouldValidate: true });
+        setValue("area", next.area);
+        setValue("floor", next.floor);
+        setValue("x", next.x);
+        setValue("y", next.y);
+        void trigger(["area", "floor", "x", "y"]);
     };
     const locationError = errors.area?.message || errors.floor?.message || errors.x?.message || errors.y?.message;
 

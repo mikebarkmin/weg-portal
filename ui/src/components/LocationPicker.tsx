@@ -82,6 +82,7 @@ export default function LocationPicker({ areas, value, onChange }: LocationPicke
                         plan={area.plan}
                         pin={pin}
                         label={t("issue.location.planLabel", { area: area.name })}
+                        hint={t("issue.location.pinHint")}
                         onPick={(point) =>
                             onChange({
                                 ...value,

@@ -40,19 +40,6 @@
     }
 }
 
-/* invisible copy of the inline menu, measured by Layout.tsx */
-.project-header .menu-measure {
-    position: absolute;
-    visibility: hidden;
-    pointer-events: none;
-    flex-wrap: nowrap;
-    left: 0;
-    top: 0;
-}
-.project-header .top-bar-content {
-    position: relative;
-}
-
 @media (max-width: 540px) {
     .project-header .login-btn .txt {
         display: none;
@@ -62,25 +49,12 @@
     }
 }
 
-/* popovers anchored to their toggle (BugStage relies on implicit anchors) */
-.account-dropdown,
-.header-dropdown {
+/* popovers anchored to their toggle (BugStage relies on implicit anchors);
+   sized to their content instead of the small avatar button */
+.account-dropdown {
     position-area: bottom span-left;
     position-try-fallbacks: flip-block;
-}
-
-/* the base caps anchor-sized dropdowns at 330px and then clips; the header
-   popups should show all their items (the Beirat menu holds a full group)
-   and only scroll when the viewport itself leaves no room */
-.account-dropdown,
-.header-dropdown {
     max-height: calc(100dvh - 2 * var(--smSpacing));
-}
-
-/* BugStage sizes dropdowns to their anchor (anchor-size(width)), which is
-   just the small avatar/menu button here: size these to their content */
-.account-dropdown,
-.header-dropdown {
     width: max-content;
     max-width: min(340px, calc(100vw - 2 * var(--xsSpacing)));
     .dropdown-item {
@@ -109,128 +83,220 @@
 
 
 /* ------------------------------------------------------------------ */
-/* collapsed navigation: slide-in sheet with accordion sections         */
+/* shell navigation: section tabs, sidebar, drawer, bottom tabs         */
 /* ------------------------------------------------------------------ */
 
-/* the collapsed menu opens as a full-height panel pinned to the left edge
-   instead of a small anchored dropdown: long lists get comfortable rows
-   and nothing can clip near the viewport bottom */
-.project-menu.sheet {
-    position: fixed;
-    inset: 0 auto 0 0;
-    position-area: none;
-    flex-direction: column;
-    align-items: stretch;
+.project-header .project-menu {
     flex-wrap: nowrap;
-    white-space: normal;
-    width: min(320px, calc(100vw - 72px));
-    max-width: none;
-    height: 100dvh;
-    max-height: none;
-    margin: 0;
-    overflow-y: auto;
-    border-radius: 0;
-    border-top-width: 0;
-    border-bottom-width: 0;
-    border-left-width: 0;
 }
 
-/* slide in from the left instead of the base dropdown's downward shift */
-.project-menu.sheet[popover] {
-    transform: translateX(-16px);
-}
-.project-menu.sheet[popover]:popover-open {
-    transform: translateX(0);
-}
-@starting-style {
-    .project-menu.sheet:popover-open {
-        transform: translateX(-16px);
+/* tabs between 800 and 1100px: icons only (the label stays for screen
+   readers); six Beirat tabs with labels need the full app width */
+@media (max-width: 1100px) {
+    .project-header .project-menu .tab .txt {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+    .project-header .project-menu .tab i:first-child {
+        margin: 0 -10px;
     }
 }
 
-.project-menu.sheet .sheet-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--xsSpacing);
-    padding: 5px 5px 10px;
-    margin-bottom: 10px;
-    border-bottom: var(--borderWidth) solid var(--accentAlt1Color);
-    font-weight: bold;
+/* the header never scrolls away: the wrapper sticks to the top of the
+   scrolling .app and its page-colored top padding hides the content
+   passing underneath the gap above the floating header */
+.app {
+    /* the top spacing lives in .app-header (sticky offsets are measured
+       inside the scroller's padding, so a padded .app would leave a gap) */
+    padding-top: 0;
+}
+.app-header {
+    position: sticky;
+    z-index: 50;
+    top: 0;
+    padding-top: var(--smSpacing);
+    background: var(--surfaceAlt1Color);
 }
 
-/* full-width rows with comfortable touch targets */
-.project-menu.sheet .header-btn {
-    justify-content: flex-start;
-    min-height: 44px;
-    padding-left: 10px;
-    padding-right: 10px;
-}
-
-/* the accordion card look of the bare <details> (bugstage/accordion.css)
-   is flattened back into menu rows; only the chevron shows the state */
-.project-menu.sheet details.menu-group {
-    display: block;
-    background: none;
-    border: 0;
-    box-shadow: none;
-    border-radius: 0;
-    margin: 0;
-    padding: 0;
-    transition: none;
-}
-.project-menu.sheet details.menu-group summary {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    min-height: 44px;
-    padding: 5px 10px;
-    padding-right: 15px;
-    background: none;
-    cursor: pointer;
-    user-select: none;
-    font-weight: bold;
-    color: var(--accentTxtColor);
-    border-radius: 30px;
-    transition: background var(--animationSpeed);
-    &::marker {
-        content: "";
+.app-page {
+    /* the shell sidebar is always a column next to the content */
+    .app-sidebar {
+        /* stick below the header instead of sliding under it */
+        top: calc(var(--smSpacing) + 60px + 2 * var(--borderWidth) + var(--xsSpacing));
+        .sidebar-slot {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing);
+            &:empty {
+                display: none;
+            }
+        }
+    }
+    /* nothing to show (login, legal pages): no empty column */
+    .app-sidebar:not(:has(.section-nav)):has(.sidebar-slot:empty):not(.drawer) {
         display: none;
     }
-    &::before {
-        content: "";
+    &.sidebar-closed .app-sidebar:not(.drawer) {
         display: none;
     }
-    &:hover,
-    &:focus-visible {
-        outline: 0;
-        background: var(--accentAlt3Color);
-    }
-    .chevron {
-        margin-left: auto;
-        color: var(--accentTxtHintColor);
-        transition: rotate var(--slideAnimationSpeed);
-    }
 }
-.project-menu.sheet details.menu-group[open] summary {
-    color: var(--accentTxtHintColor);
-    .chevron {
-        rotate: 180deg;
+
+/* the section entry on top of the tree, like BugStage's repository name */
+.section-nav {
+    .section-root {
+        color: var(--surfaceTxtColor);
+        i {
+            font-size: 1.1em;
+        }
+    }
+    > .menu-content {
+        gap: 0;
     }
 }
-.project-menu.sheet details.menu-group::details-content {
-    height: auto;
-    padding: 0;
-    box-shadow: none;
-    overflow: visible;
-    transition: none;
+
+@media (max-width: 800px) {
+    /* iOS Safari zooms into any focused field below 16px, which throws
+       the form layout off on phones (new issue, new meeting, ...) */
+    .app :is(input:not([type="radio"]):not([type="checkbox"]), textarea, select) {
+        font-size: 16px;
+    }
+
+    .app.has-bottom-tabs {
+        padding-bottom: calc(64px + env(safe-area-inset-bottom));
+        /* no reserved scrollbar gutters, they would leave gaps beside the
+           edge-to-edge header */
+        scrollbar-gutter: auto;
+    }
+
+    /* the header becomes an edge-to-edge app bar: it cancels the shell's
+       top and side padding and drops the floating card look */
+    .app-header {
+        width: calc(100% + 2 * var(--xsSpacing));
+        margin: 0 calc(-1 * var(--xsSpacing));
+        padding-top: 0;
+        .project-header {
+            padding-top: env(safe-area-inset-top);
+            border-radius: 0;
+            border-width: 0 0 var(--borderWidth);
+        }
+    }
+
+    /* the sidebar slides in from the left as a drawer */
+    .page.app-page {
+        flex-direction: column;
+        .app-sidebar.drawer {
+            position: fixed;
+            z-index: 100;
+            inset: 0 auto 0 0;
+            top: 0;
+            width: min(320px, calc(100vw - 56px));
+            height: 100dvh;
+            max-height: none;
+            padding: var(--xsSpacing) var(--smSpacing) calc(var(--smSpacing) + env(safe-area-inset-bottom));
+            gap: var(--spacing);
+            overflow-y: auto;
+            background: var(--surfaceColor);
+            border-right: var(--borderWidth) solid var(--borderColor);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.15);
+            transform: translateX(-105%);
+            visibility: hidden;
+            transition:
+                transform var(--slideAnimationSpeed) ease-out,
+                visibility 0s linear var(--slideAnimationSpeed);
+        }
+        &.sidebar-open .app-sidebar.drawer {
+            transform: translateX(0);
+            visibility: visible;
+            transition: transform var(--slideAnimationSpeed) ease-out;
+        }
+        /* comfortable touch targets in the drawer */
+        .app-sidebar.drawer .menu-content {
+            gap: 4px;
+        }
+        .app-sidebar.drawer .menu-item {
+            min-height: 36px;
+        }
+        .app-sidebar.drawer .sidebar-text {
+            display: block;
+        }
+    }
+
+    .drawer-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--xsSpacing);
+        padding-bottom: 10px;
+        border-bottom: var(--borderWidth) solid var(--borderColor);
+        font-weight: bold;
+    }
+
+    .drawer-backdrop {
+        position: fixed;
+        z-index: 99;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        animation: drawerFade var(--slideAnimationSpeed);
+    }
 }
-.project-menu.sheet .menu-group-items {
+
+@keyframes drawerFade {
+    from {
+        opacity: 0;
+    }
+}
+
+/* phone tab bar with the top-level sections */
+.bottom-tabs {
+    position: fixed;
+    z-index: 90;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding-left: 10px;
+    justify-content: space-around;
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+    background: var(--surfaceColor);
+    border-top: var(--borderWidth) solid var(--borderColor);
+    .bottom-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 6px 2px;
+        border-radius: var(--smBorderRadius);
+        text-decoration: none;
+        font-size: 11px;
+        line-height: 1.2;
+        font-weight: bold;
+        color: var(--surfaceTxtHintColor);
+        transition:
+            color var(--animationSpeed),
+            background var(--animationSpeed);
+        i {
+            font-size: 20px;
+            line-height: 1;
+        }
+        .txt {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        &:hover,
+        &:focus-visible {
+            color: var(--surfaceTxtColor);
+        }
+        &.active {
+            color: var(--surfaceTxtColor);
+            background: var(--surfaceAlt2Color);
+        }
+    }
 }
 
 .app-footer button.list-item {
@@ -316,45 +382,6 @@
     gap: 6px;
     color: var(--surfaceTxtColor);
     word-break: break-word;
-}
-
-@media (max-width: 800px) {
-    /* stacked above the content: menus become a horizontal row like in
-       BugStage's discussions page */
-    .page .page-sidebar {
-        gap: var(--xsSpacing);
-        max-height: none;
-        overflow: visible;
-        .sidebar-menu:not(.secondary) .menu-content {
-            flex-direction: row;
-            flex-wrap: wrap;
-            column-gap: var(--smSpacing);
-            row-gap: 10px;
-        }
-        .sidebar-menu button.menu-item {
-            width: auto;
-            align-self: auto;
-        }
-        .sidebar-menu .menu-title {
-            margin-bottom: 10px;
-        }
-        .sidebar-text {
-            display: none;
-        }
-        /* label/value pairs: compact two-column block above the content */
-        &:has(.sidebar-info) {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            column-gap: var(--smSpacing);
-            row-gap: 12px;
-            > :not(.sidebar-info) {
-                grid-column: 1 / -1;
-            }
-        }
-        .sidebar-info .menu-title {
-            margin-bottom: 4px;
-        }
-    }
 }
 
 .section-title {
@@ -840,6 +867,10 @@ fieldset.visibility-choice {
     }
 }
 
+.plan-canvas .board-map-canvas {
+    position: absolute;
+    inset: 0;
+}
 .map-canvas .board-map-canvas {
     height: 100%;
     border: 0;
@@ -871,6 +902,33 @@ fieldset.visibility-choice {
 .plan-canvas.board-map {
     height: 380px;
 }
+/* a loaded plan sizes its box by the plan's aspect ratio (inline style in
+   AreaPlan.tsx); the heights above become the caps */
+.plan-canvas[style*="aspect-ratio"] {
+    /* the aspect ratio sizes the content box; the padding on top is the
+       free strip of AreaPlan.tsx (TOP_STRIP) for pin heads and buttons */
+    box-sizing: content-box;
+    width: auto;
+    padding-top: 40px;
+    height: auto;
+    min-height: 160px;
+    max-height: 360px;
+    &.issue-map {
+        max-height: 280px;
+    }
+    &.board-map {
+        max-height: 380px;
+    }
+    /* phones: tall plans may use more of the screen, but leave room
+       around the map to scroll the page */
+    @media (max-width: 600px) {
+        &,
+        &.issue-map,
+        &.board-map {
+            max-height: min(420px, 60dvh);
+        }
+    }
+}
 .plan-loading {
     opacity: 0.6;
 }
@@ -898,6 +956,237 @@ fieldset.visibility-choice {
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
+}
+
+.plan-view {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.map-canvas {
+    position: relative;
+    /* zoom buttons in BugStage's look instead of Leaflet's defaults */
+    .leaflet-bar {
+        border: var(--borderWidth) solid var(--borderColor);
+        border-radius: var(--smBorderRadius);
+        box-shadow: none;
+        overflow: hidden;
+        a {
+            width: 32px;
+            height: 32px;
+            line-height: 30px;
+            font-size: 18px;
+            color: var(--surfaceTxtColor);
+            background: var(--surfaceColor);
+            border-bottom-color: var(--borderColor);
+            transition: background var(--animationSpeed);
+            &:hover {
+                background: var(--surfaceAlt2Color);
+            }
+            &.leaflet-disabled {
+                color: var(--surfaceTxtDisabledColor);
+                background: var(--surfaceColor);
+            }
+        }
+    }
+    .leaflet-control-container .leaflet-top.leaflet-left {
+        margin: 2px;
+    }
+}
+
+/* plans: zoom buttons side by side in the free strip above the plan */
+.plan-canvas {
+    .leaflet-top.leaflet-left {
+        margin: 0;
+        .leaflet-control {
+            margin: 4px 0 0 4px;
+        }
+    }
+    .leaflet-control-zoom {
+        display: flex;
+        a {
+            height: 28px;
+            line-height: 26px;
+            border-bottom: 0;
+            border-radius: 0;
+            &:first-child {
+                border-right: 1px solid var(--borderColor);
+            }
+        }
+    }
+    .leaflet-tooltip {
+        font: inherit;
+        font-size: var(--smFontSize);
+        line-height: var(--smLineHeight);
+        color: var(--surfaceTxtColor);
+        background: var(--surfaceColor);
+        border: var(--borderWidth) solid var(--borderColor);
+        border-radius: var(--smBorderRadius);
+        box-shadow: var(--boxShadow);
+    }
+}
+
+/* the report form's plan: a click places the pin */
+.plan-picker .leaflet-container:not(.leaflet-dragging) {
+    cursor: crosshair;
+}
+
+.plan-expand-btn {
+    position: absolute;
+    z-index: 1000;
+    top: 4px;
+    right: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--surfaceTxtColor);
+    background: var(--surfaceColor);
+    border: var(--borderWidth) solid var(--borderColor);
+    border-radius: var(--smBorderRadius);
+    transition: background var(--animationSpeed);
+    &:hover,
+    &:focus-visible {
+        background: var(--surfaceAlt2Color);
+    }
+}
+
+/* full-screen plan: covers header, tab bar and drawer */
+.plan-fullscreen {
+    position: fixed;
+    z-index: 300;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) var(--xsSpacing) calc(10px + env(safe-area-inset-bottom));
+    background: var(--surfaceAlt1Color);
+    animation: drawerFade var(--slideAnimationSpeed);
+    .plan-fullscreen-bar {
+        display: flex;
+        align-items: center;
+        gap: var(--xsSpacing);
+    }
+    .plan-fullscreen-title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+    }
+    .plan-fullscreen-map {
+        flex: 1;
+        height: auto;
+        min-height: 0;
+        max-height: none;
+    }
+}
+
+/* several reports on one spot: numbered dot, tap lists them */
+.plan-group {
+    background: none;
+    border: 0;
+    span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        color: #fff;
+        font-size: 12px;
+        font-weight: bold;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
+    }
+}
+.plan-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    border-radius: var(--smBorderRadius);
+    border: var(--borderWidth) solid var(--borderColor);
+    background: var(--surfaceColor);
+    .plan-group-list-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-left: 8px;
+    }
+}
+.plan-popup-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: 220px;
+    overflow-y: auto;
+    button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 40px;
+        padding: 4px 8px;
+        text-align: left;
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        border-radius: var(--smBorderRadius);
+        cursor: pointer;
+        &:hover,
+        &:focus-visible {
+            background: var(--surfaceAlt2Color);
+        }
+    }
+    .plan-legend-dot {
+        flex-shrink: 0;
+    }
+    .txt {
+        flex: 1;
+        min-width: 0;
+    }
+    i {
+        color: var(--surfaceTxtHintColor);
+    }
+}
+
+.plan-placeholder {
+    visibility: hidden;
+}
+
+.plan-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--smFontSize);
+    line-height: var(--smLineHeight);
+    color: var(--surfaceTxtHintColor);
+    li {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+}
+.plan-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--surfaceColor);
+    box-shadow: 0 0 0 1px var(--borderColor);
 }
 
 .map-pin {
@@ -1517,10 +1806,6 @@ a.post.announcement-teaser {
         color: var(--infoColor);
         background: var(--surfaceInfoAlt1Color);
     }
-}
-
-.header-group {
-    display: inline-flex;
 }
 
 /* legal pages editor */

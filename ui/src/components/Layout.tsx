@@ -1,18 +1,13 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { canShow, canShowAdmin, logout, useAuth, useOwnerAccount } from "../lib/auth";
 import { changeLanguage, supportedLanguages, type Language } from "../lib/i18n";
+import { activeSection, buildSections, isLeafActive, type NavSection } from "../lib/nav";
 import { setColorScheme, useColorScheme } from "../lib/theme";
 import { portalVersion } from "../lib/portalConfig";
-
-interface NavItem {
-    to: string;
-    icon: string;
-    label: string;
-    active?: boolean;
-}
+import { SidebarSlotContext } from "../lib/sidebarSlot";
 
 // Initials for the avatar circle (BugStage shows them in the header).
 function initialsOf(name: string, fallback: string): string {
@@ -22,63 +17,81 @@ function initialsOf(name: string, fallback: string): string {
     return letters.toUpperCase();
 }
 
+const MOBILE_QUERY = "(max-width: 800px)";
+const SIDEBAR_KEY = "portal.sidebarHidden";
+
+function useMediaQuery(query: string): boolean {
+    const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+    useEffect(() => {
+        const mql = window.matchMedia(query);
+        const onChange = () => setMatches(mql.matches);
+        onChange();
+        mql.addEventListener("change", onChange);
+        return () => mql.removeEventListener("change", onChange);
+    }, [query]);
+    return matches;
+}
+
+function readSidebarHidden(): boolean {
+    try {
+        return localStorage.getItem(SIDEBAR_KEY) === "1";
+    } catch {
+        return false;
+    }
+}
+
 // App shell in BugStage's layout: the floating header bar (.project-header)
-// with icon navigation, the page body, and the footer with the theme and
-// language pickers. On narrow screens the navigation collapses into a
-// slide-in sheet behind a menu button, with the sections as accordions.
+// holds only the top-level sections as tabs (a bottom tab bar on phones);
+// the left sidebar holds the active section's sub-navigation plus the
+// page's own sidebar content. The header's menu button toggles the
+// sidebar - on phones it slides in as a drawer.
 export default function Layout() {
     const { t } = useTranslation();
     const auth = useAuth();
     const scheme = useColorScheme();
     const location = useLocation();
     const navigate = useNavigate();
-    const menuId = useId().replace(/:/g, "");
-    const reportId = useId().replace(/:/g, "");
-    const beiratId = useId().replace(/:/g, "");
     const isOwner = useOwnerAccount();
     const accountId = useId().replace(/:/g, "");
+    const sidebarId = useId().replace(/:/g, "");
+    const isMobile = useMediaQuery(MOBILE_QUERY);
 
     const isBeirat = canShow(auth.role);
     const isAdmin = canShowAdmin(auth.role);
+    const sections = buildSections({ isAuthenticated: auth.isAuthenticated, isOwner, isBeirat, isAdmin });
+    const path = location.pathname;
+    const section = activeSection(sections, path);
 
-    // Like BugStage's project menu: the items stay inline while they fit
-    // into one row and collapse into a dropdown otherwise. An invisible
-    // copy of the inline menu is measured against the free space.
-    const barRef = useRef<HTMLDivElement>(null);
-    const measureRef = useRef<HTMLElement>(null);
-    const [collapsed, setCollapsed] = useState(false);
-    useLayoutEffect(() => {
-        const bar = barRef.current;
-        const measure = measureRef.current;
-        if (!bar || !measure) return;
-        const update = () => {
-            const reserved = Array.from(bar.children).reduce((sum, child) => {
-                const el = child as HTMLElement;
-                if (el === measure || el.classList.contains("project-menu") ||
-                    el.classList.contains("project-menu-toggle") || el.classList.contains("flex-fill")) {
-                    return sum;
-                }
-                return sum + el.offsetWidth;
-            }, 0);
-            const style = getComputedStyle(bar);
-            const gap = parseFloat(style.columnGap || "0") || 0;
-            const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-            const free = bar.clientWidth - padding - reserved - gap * 3;
-            setCollapsed(measure.scrollWidth > free);
-        };
-        update();
-        const observer = new ResizeObserver(update);
-        observer.observe(bar);
-        return () => observer.disconnect();
-    }, [isBeirat, isAdmin, auth.isAuthenticated, t]);
+    const [slot, setSlot] = useState<HTMLElement | null>(null);
+    const slotRef = useCallback((el: HTMLDivElement | null) => setSlot(el), []);
+
+    // desktop: collapsible sidebar (remembered); phones: drawer
+    const [hidden, setHidden] = useState(readSidebarHidden);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const toggleSidebar = () => {
+        if (isMobile) {
+            setDrawerOpen((open) => !open);
+            return;
+        }
+        setHidden((h) => {
+            try {
+                localStorage.setItem(SIDEBAR_KEY, h ? "0" : "1");
+            } catch {
+                // storage unavailable: keep the in-memory state
+            }
+            return !h;
+        });
+    };
+    const sidebarVisible = isMobile ? drawerOpen : !hidden;
 
     // keep the document title in sync with the active language
     useEffect(() => {
         document.title = t("app.title");
     }, [t]);
 
-    // close open dropdowns after every navigation
+    // close the drawer and open dropdowns after every navigation
     useEffect(() => {
+        setDrawerOpen(false);
         document.querySelectorAll<HTMLElement>("[popover]").forEach((el) => {
             try {
                 el.hidePopover();
@@ -86,173 +99,75 @@ export default function Layout() {
                 // not open
             }
         });
-    }, [location.pathname]);
+    }, [path]);
 
-    const onBoard =
-        location.pathname.startsWith("/issues") && location.pathname !== "/issues/new";
+    useEffect(() => {
+        if (!isMobile) setDrawerOpen(false);
+    }, [isMobile]);
 
-    // main pages; "report" and "beirat" items live in their own dropdowns
-    const items: NavItem[] = [
-        { to: "/aktuelles", icon: "ri-megaphone-line", label: t("nav.announcements") },
-        { to: "/kalender", icon: "ri-calendar-2-line", label: t("nav.calendar") },
-        { to: "/issues", icon: "ri-map-pin-2-line", label: t("nav.board"), active: onBoard },
-        { to: "/dokumente", icon: "ri-folder-3-line", label: t("nav.documents") },
-    ];
-    if (isOwner) {
-        items.push({ to: "/mitreden", icon: "ri-chat-poll-line", label: t("nav.participate") });
-    }
-    if (isAdmin) {
-        // account management of the admin role, separated from the content
-        // pages because it is infrastructure, not community work
-        items.push({ to: "/admin", icon: "ri-user-settings-line", label: t("nav.admin") });
-    }
-    const reportItems: NavItem[] = [
-        { to: "/issues/new", icon: "ri-error-warning-line", label: t("nav.newIssue") },
-        { to: "/suggestions/new", icon: "ri-calendar-event-line", label: t("nav.newSuggestion") },
-    ];
-    const beiratItems: NavItem[] = isBeirat
-        ? [
-              { to: "/moderation", icon: "ri-inbox-2-line", label: t("nav.moderation") },
-              { to: "/events/new", icon: "ri-calendar-2-line", label: t("nav.newEvent") },
-              { to: "/users", icon: "ri-group-line", label: t("nav.users") },
-              { to: "/bereiche", icon: "ri-map-2-line", label: t("nav.areas") },
-              { to: "/notes", icon: "ri-sticky-note-line", label: t("nav.notes") },
-              { to: "/rechtstexte", icon: "ri-scales-3-line", label: t("nav.legal") },
-          ]
-        : [];
-    const groupButtons = [
-        { id: reportId, icon: "ri-add-circle-line", label: t("nav.report"), items: reportItems },
-        ...(isBeirat ? [{ id: beiratId, icon: "ri-shield-user-line", label: t("nav.beirat"), items: beiratItems }] : []),
-    ];
+    useEffect(() => {
+        if (!drawerOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setDrawerOpen(false);
+        };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, [drawerOpen]);
 
-    const dropdownLink = (item: NavItem) => (
-        <NavLink key={item.to} to={item.to} end className={({ isActive }) => `dropdown-item ${isActive ? "active" : ""}`}>
-            <i className={item.icon} aria-hidden="true" />
-            <span className="txt">{item.label}</span>
-        </NavLink>
-    );
-
-    const navLink = (item: NavItem) => (
-        <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/"}
-            className={({ isActive }) =>
-                `header-btn ${(item.active ?? isActive) ? "active" : ""}`
-            }
-            {...(item.active !== undefined
-                ? { "aria-current": item.active ? ("page" as const) : undefined }
-                : {})}
-        >
-            <i className={item.icon} aria-hidden="true" />
-            <span className="txt">{item.label}</span>
-        </NavLink>
-    );
+    // filters and in-page actions in the drawer close it as well
+    const onSidebarClick = (e: React.MouseEvent) => {
+        if (isMobile && (e.target as HTMLElement).closest(".menu-item")) setDrawerOpen(false);
+    };
 
     const onLogout = () => {
         logout();
         navigate("/");
     };
 
+    const tab = (s: NavSection) => {
+        const active = s.id === section?.id;
+        return (
+            <Link
+                key={s.id}
+                to={s.to}
+                className={`header-btn tab ${active ? "active" : ""}`}
+                title={t(s.tabKey)}
+                aria-current={active ? "page" : undefined}
+            >
+                <i className={s.icon} aria-hidden="true" />
+                <span className="txt">{t(s.tabKey)}</span>
+            </Link>
+        );
+    };
+
     return (
-        <div className="app">
+        <div className={`app ${isMobile ? "has-bottom-tabs" : ""}`.trim()}>
             <div className="app-body">
+                {/* sticky wrapper: keeps the header in view and masks the
+                    content scrolling underneath the gap above it */}
+                <div className="app-header">
                 {/* BugStage picks the header text color from the accent's lightness */}
                 <header className="project-header accent-vars" data-accent={scheme === "dark" ? "dark" : "light"}>
                     <div className="top-bar">
-                        <Link
-                            to="/"
-                            className="header-btn secondary all-projects-btn"
-                            aria-label={t("nav.home")}
+                        <button
+                            type="button"
+                            className="header-btn secondary all-projects-btn sidebar-toggle"
+                            aria-label={t("nav.menu")}
+                            aria-controls={sidebarId}
+                            aria-expanded={sidebarVisible}
+                            onClick={toggleSidebar}
                         >
-                            <i className="ri-home-4-line" aria-hidden="true" />
-                        </Link>
-                        <div className="top-bar-content" ref={barRef}>
-                            <nav ref={measureRef} className="project-menu menu-measure" aria-hidden="true">
-                                {items.map((item) => (
-                                    <span key={item.to} className="header-btn">
-                                        <i className={item.icon} />
-                                        <span className="txt">{item.label}</span>
-                                    </span>
-                                ))}
-                                {groupButtons.map((group) => (
-                                    <span key={group.id} className="header-btn">
-                                        <i className={group.icon} />
-                                        <span className="txt">{group.label}</span>
-                                        <i className="ri-arrow-drop-down-fill" />
-                                    </span>
-                                ))}
-                            </nav>
+                            <i className={isMobile ? "ri-menu-line" : "ri-layout-left-line"} aria-hidden="true" />
+                        </button>
+                        <div className="top-bar-content">
                             <Link to="/" className="header-title">
                                 <span className="txt">{t("app.title")}</span>
                             </Link>
                             <div className="flex-fill" />
 
-                            {collapsed ? (
-                                <>
-                                    <nav
-                                        id={menuId}
-                                        className="project-menu dropdown sheet"
-                                        popover="auto"
-                                        aria-label={t("nav.menu")}
-                                    >
-                                        <div className="sheet-head">
-                                            <span className="txt">{t("app.title")}</span>
-                                            <button
-                                                type="button"
-                                                className="header-btn secondary"
-                                                popoverTarget={menuId}
-                                                aria-label={t("nav.close")}
-                                            >
-                                                <i className="ri-close-line" aria-hidden="true" />
-                                            </button>
-                                        </div>
-                                        {items.map(navLink)}
-                                        {groupButtons.map((group) => (
-                                            <details
-                                                key={group.id}
-                                                className="menu-group"
-                                                open={group.items.some((i) => location.pathname.startsWith(i.to))}
-                                            >
-                                                <summary>
-                                                    <i className={group.icon} aria-hidden="true" />
-                                                    <span className="txt">{group.label}</span>
-                                                    <i className="ri-arrow-drop-down-fill chevron" aria-hidden="true" />
-                                                </summary>
-                                                <div className="menu-group-items">
-                                                    {group.items.map(navLink)}
-                                                </div>
-                                            </details>
-                                        ))}
-                                    </nav>
-                                    <button
-                                        type="button"
-                                        className="header-btn project-menu-toggle"
-                                        popoverTarget={menuId}
-                                        aria-label={t("nav.menu")}
-                                    >
-                                        <i className="ri-menu-line" aria-hidden="true" />
-                                    </button>
-                                </>
-                            ) : (
-                                <nav className="project-menu" aria-label={t("nav.menu")}>
-                                    {items.map(navLink)}
-                                    {groupButtons.map((group) => (
-                                        <span key={group.id} className="header-group">
-                                            <button
-                                                type="button"
-                                                className={`header-btn ${group.items.some((i) => location.pathname.startsWith(i.to)) ? "active" : ""}`}
-                                                popoverTarget={group.id}
-                                            >
-                                                <i className={group.icon} aria-hidden="true" />
-                                                <span className="txt">{group.label}</span>
-                                                <i className="ri-arrow-drop-down-fill" aria-hidden="true" />
-                                            </button>
-                                            <div id={group.id} className="dropdown sm header-dropdown" popover="auto">
-                                                {group.items.map(dropdownLink)}
-                                            </div>
-                                        </span>
-                                    ))}
+                            {!isMobile && (
+                                <nav className="project-menu" aria-label={t("nav.sections")}>
+                                    {sections.map(tab)}
                                 </nav>
                             )}
 
@@ -299,14 +214,101 @@ export default function Layout() {
                         </div>
                     </div>
                 </header>
+                </div>
 
-                <main className="app-main">
-                    <Outlet />
-                </main>
+                <div className={`page app-page ${sidebarVisible ? "sidebar-open" : "sidebar-closed"}`}>
+                    {isMobile && drawerOpen && (
+                        <div className="drawer-backdrop" aria-hidden="true" onClick={() => setDrawerOpen(false)} />
+                    )}
+                    <aside
+                        id={sidebarId}
+                        className={`page-sidebar app-sidebar ${isMobile ? "drawer" : ""}`.trim()}
+                        aria-label={section ? t(section.tabKey) : t("nav.menu")}
+                        inert={!sidebarVisible || undefined}
+                        onClick={onSidebarClick}
+                    >
+                        {isMobile && (
+                            <div className="drawer-head">
+                                <span className="txt">{section ? t(section.tabKey) : t("app.title")}</span>
+                                <button
+                                    type="button"
+                                    className="btn sm circle transparent secondary"
+                                    aria-label={t("nav.close")}
+                                    onClick={() => setDrawerOpen(false)}
+                                >
+                                    <i className="ri-close-line" aria-hidden="true" />
+                                </button>
+                            </div>
+                        )}
+                        {section && <SectionNav section={section} path={path} />}
+                        <div className="sidebar-slot" ref={slotRef} />
+                    </aside>
+                    <main className="page-content app-main">
+                        <SidebarSlotContext.Provider value={slot}>
+                            <Outlet />
+                        </SidebarSlotContext.Provider>
+                    </main>
+                </div>
             </div>
 
             <AppFooter />
+
+            {isMobile && (
+                <nav className="bottom-tabs" aria-label={t("nav.sections")}>
+                    {/* no "Start" tab: the header title links home, which
+                        keeps six tabs for the Beirat from getting cramped */}
+                    {sections.filter((s) => s.id !== "home").map((s) => {
+                        const active = s.id === section?.id;
+                        return (
+                            <Link
+                                key={s.id}
+                                to={s.to}
+                                className={`bottom-tab ${active ? "active" : ""}`}
+                                aria-current={active ? "page" : undefined}
+                            >
+                                <i className={s.icon} aria-hidden="true" />
+                                <span className="txt">{t(s.tabKey)}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+            )}
         </div>
+    );
+}
+
+// The active section's sub-navigation, drawn like BugStage's repository
+// tree: the section as the parent entry, its pages nested below.
+function SectionNav({ section, path }: { section: NavSection; path: string }) {
+    const { t } = useTranslation();
+    return (
+        <nav className="sidebar-menu section-nav" aria-label={t(section.tabKey)}>
+            <div className="menu-content">
+                <Link to={section.to} className="menu-item section-root">
+                    <i className={section.icon} aria-hidden="true" />
+                    <span className="txt">{t(section.tabKey)}</span>
+                </Link>
+                {section.items.length > 1 && (
+                    <div className="sidebar-menu">
+                        <div className="menu-content">
+                            {section.items.map((leaf) => {
+                                const active = isLeafActive(leaf, path);
+                                return (
+                                    <Link
+                                        key={leaf.to}
+                                        to={leaf.to}
+                                        className={`menu-item ${active ? "active" : ""}`}
+                                        aria-current={active ? "page" : undefined}
+                                    >
+                                        <span className="txt">{t(leaf.labelKey)}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </nav>
     );
 }
 

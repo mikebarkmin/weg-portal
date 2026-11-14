@@ -28,7 +28,17 @@
         "mySubmissions": "My submissions",
         "legal": "Legal texts",
         "admin": "Admin",
-        "areas": "Areas & plans"
+        "areas": "Areas & plans",
+        "sections": "Main navigation",
+        "overview": "Overview",
+        "tab": {
+            "home": "Home",
+            "news": "News",
+            "calendar": "Calendar",
+            "board": "Issues",
+            "documents": "Documents",
+            "beirat": "Beirat"
+        }
     },
     "calendar": {
         "heading": "Community calendar",
@@ -819,7 +829,11 @@
         }
     },
     "areaPlan": {
-        "failed": "The plan could not be loaded."
+        "failed": "The plan could not be loaded.",
+        "expand": "Enlarge plan",
+        "done": "Done",
+        "groupCount_one": "{{count}} report at this spot",
+        "groupCount_other": "{{count}} reports at this spot"
     },
     "areas": {
         "heading": "Areas & plans",

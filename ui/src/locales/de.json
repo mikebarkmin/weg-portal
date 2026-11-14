@@ -28,7 +28,17 @@
         "mySubmissions": "Meine Einreichungen",
         "legal": "Rechtstexte",
         "admin": "Verwaltung",
-        "areas": "Bereiche & Lagepläne"
+        "areas": "Bereiche & Lagepläne",
+        "sections": "Hauptnavigation",
+        "overview": "Übersicht",
+        "tab": {
+            "home": "Start",
+            "news": "Aktuelles",
+            "calendar": "Kalender",
+            "board": "Pinnwand",
+            "documents": "Dokumente",
+            "beirat": "Beirat"
+        }
     },
     "calendar": {
         "heading": "Terminkalender",
@@ -819,7 +829,11 @@
         }
     },
     "areaPlan": {
-        "failed": "Der Lageplan konnte nicht geladen werden."
+        "failed": "Der Lageplan konnte nicht geladen werden.",
+        "expand": "Lageplan vergrößern",
+        "done": "Fertig",
+        "groupCount_one": "{{count}} Meldung an dieser Stelle",
+        "groupCount_other": "{{count}} Meldungen an dieser Stelle"
     },
     "areas": {
         "heading": "Bereiche & Lagepläne",

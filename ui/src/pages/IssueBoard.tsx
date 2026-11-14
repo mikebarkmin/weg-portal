@@ -32,7 +32,8 @@ import { MenuButton, Page, PageHeading, SidebarMenu } from "../components/Page";
 // and the realtime subscription keeps ONE authoritative list).
 
 const STATUS_COLOR_VARS: Record<IssueStatus, string> = {
-    pending: "--surfaceAlt5Color",
+    // pale tokens vanish on a white plan: new issues get the dark primary
+    pending: "--primaryColor",
     open: "--infoColor",
     in_progress: "--warningColor",
     resolved: "--successColor",
