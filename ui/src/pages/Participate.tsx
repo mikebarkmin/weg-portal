@@ -10,6 +10,8 @@ import { parsePBDate } from "../lib/recurrence";
 import type { AgendaItem, Poll, PollVote } from "../types";
 import { MenuButton, Page, PageHeading, SidebarMenu } from "../components/Page";
 import FormField from "../components/FormField";
+import ConfirmDeleteButton from "../components/ConfirmDeleteButton";
+import { showError } from "../lib/toast";
 
 type Section = "polls" | "agenda";
 
@@ -141,7 +143,6 @@ function PollCard({
     const [results, setResults] = useState<{ counts: number[]; total: number } | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [confirmDelete, setConfirmDelete] = useState(false);
     const showResults = closed || vote !== undefined;
 
     useEffect(() => {
@@ -174,7 +175,7 @@ function PollCard({
     };
 
     const remove = async () => {
-        await pb.collection("polls").delete(poll.id).catch(() => undefined);
+        await pb.collection("polls").delete(poll.id);
         onChanged();
     };
 
@@ -242,23 +243,9 @@ function PollCard({
             {error && <div className="alert danger">{error}</div>}
 
             <footer className="form-footer">
-                {isBeirat &&
-                    (confirmDelete ? (
-                        <>
-                            <span className="txt-hint txt-sm delete-hint">{t("participate.confirmDeletePoll")}</span>
-                            <button type="button" className="btn sm secondary" onClick={() => setConfirmDelete(false)}>
-                                {t("eventEditor.cancel")}
-                            </button>
-                            <button type="button" className="btn sm danger" onClick={() => void remove()}>
-                                {t("notes.delete")}
-                            </button>
-                        </>
-                    ) : (
-                        <button type="button" className="btn sm secondary transparent" onClick={() => setConfirmDelete(true)}>
-                            <i className="ri-delete-bin-line" aria-hidden="true" />
-                            <span className="txt">{t("notes.delete")}</span>
-                        </button>
-                    ))}
+                {isBeirat && (
+                    <ConfirmDeleteButton prompt={t("participate.confirmDeletePoll")} onConfirm={remove} />
+                )}
                 <span className="flex-fill" />
                 {!closed && (
                     <button
@@ -406,7 +393,11 @@ function Agenda() {
     };
 
     const withdraw = async (item: AgendaItem) => {
-        await pb.collection("agenda_items").delete(item.id).catch(() => undefined);
+        try {
+            await pb.collection("agenda_items").delete(item.id);
+        } catch {
+            showError();
+        }
         load();
     };
 

@@ -25,6 +25,7 @@ import IssueLocationView from "../components/IssueLocationView";
 import IssueEditor from "../components/IssueEditor";
 import IssueReporter from "../components/IssueReporter";
 import IssueHistory from "../components/IssueHistory";
+import ConfirmDeleteButton from "../components/ConfirmDeleteButton";
 import {
     isIdentifyingLocation,
     shareIssueLocation,
@@ -207,7 +208,6 @@ export default function IssueDetail() {
     // server cascades metas, locations and the history)
     const remove = async () => {
         if (!record) return;
-        if (!window.confirm(t("issueDetail.deleteConfirm", { title: record.title }))) return;
         setDeleteBusy(true);
         try {
             await pb.collection("issues").delete(record.id);
@@ -324,10 +324,12 @@ export default function IssueDetail() {
                     </button>
                 )}
                 {canShowAdmin(role) && (
-                    <button type="button" className="btn sm secondary transparent" disabled={deleteBusy} onClick={() => void remove()}>
-                        <i className="ri-delete-bin-line" aria-hidden="true" />
-                        <span className="txt">{t("issueDetail.delete")}</span>
-                    </button>
+                    <ConfirmDeleteButton
+                        label={t("issueDetail.delete")}
+                        prompt={t("issueDetail.deleteConfirm", { title: record.title })}
+                        disabled={deleteBusy}
+                        onConfirm={remove}
+                    />
                 )}
             </PageHeading>
             <div className="flex-column gap-sm">

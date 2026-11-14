@@ -264,12 +264,6 @@ export default function IssueBoard() {
                             </MenuButton>
                         ))}
                     </SidebarMenu>
-                    <SidebarMenu secondary>
-                        <Link className="menu-item" to="/issues/new">
-                            <i className="ri-error-warning-line" aria-hidden="true" />
-                            <span className="txt">{t("nav.newIssue")}</span>
-                        </Link>
-                    </SidebarMenu>
                     <p className="txt-hint sidebar-text">{t("board.intro")}</p>
                 </>
             }
@@ -307,6 +301,11 @@ export default function IssueBoard() {
                 <div className="flex-column gap-sm">
                     {shownPlan && shownPlan.plan && (
                         <section className="board-plans" aria-label={t("board.plan.label")}>
+                            {planAreas.length === 1 && (
+                                <h2 className="board-plan-title">
+                                    <i className="ri-map-2-line" aria-hidden="true" /> {shownPlan.name}
+                                </h2>
+                            )}
                             {planAreas.length > 1 && (
                                 <div className="board-plan-tabs" role="tablist">
                                     {planAreas.map((area) => (

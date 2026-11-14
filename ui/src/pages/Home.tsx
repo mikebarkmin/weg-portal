@@ -12,6 +12,7 @@ import type { PortalAnnouncement, PortalContact, PortalEvent } from "../types";
 import { MenuLink, Page, PageHeading, SidebarMenu } from "../components/Page";
 import CalendarBadge from "../components/CalendarBadge";
 import ContactCard from "../components/ContactCard";
+import { inboxTotal, useBeiratInbox } from "../lib/beiratInbox";
 
 const UPCOMING_DAYS = 60;
 const UPCOMING_MAX = 6;
@@ -23,6 +24,7 @@ export default function Home() {
     const locale = i18n.language;
     const auth = useAuth();
     const isOwner = useOwnerAccount();
+    const inbox = useBeiratInbox();
 
     const [announcements, setAnnouncements] = useState<PortalAnnouncement[] | null>(null);
     const [events, setEvents] = useState<PortalEvent[] | null>(null);
@@ -107,9 +109,6 @@ export default function Home() {
                         <MenuLink to="/dokumente" icon="ri-folder-3-line">
                             {t("nav.documents")}
                         </MenuLink>
-                        <MenuLink to="/kontakte" icon="ri-contacts-book-line">
-                            {t("nav.contacts")}
-                        </MenuLink>
                     </SidebarMenu>
                     {!auth.isAuthenticated && <p className="txt-hint sidebar-text">{t("home.ownerHint")}</p>}
                 </>
@@ -118,6 +117,33 @@ export default function Home() {
             <PageHeading title={t("home.heading")} />
 
             <div className="flex-column gap-sm">
+                {inbox && inboxTotal(inbox) > 0 && (
+                    <section className="home-section">
+                        <header className="page-heading">
+                            <h2 className="title">{t("home.inbox.heading")}</h2>
+                        </header>
+                        <div className="inbox-grid">
+                            {(
+                                [
+                                    ["suggestions", inbox.suggestions, "/moderation?tab=suggestions", "ri-calendar-event-line"],
+                                    ["issues", inbox.issues, "/moderation?tab=issues", "ri-error-warning-line"],
+                                    ["agenda", inbox.agenda, "/moderation?tab=agenda", "ri-list-ordered"],
+                                    ["users", inbox.users, "/users", "ri-user-add-line"],
+                                ] as const
+                            )
+                                .filter(([, count]) => count > 0)
+                                .map(([key, count, to, icon]) => (
+                                    <Link key={key} className="inbox-item" to={to}>
+                                        <i className={icon} aria-hidden="true" />
+                                        <span className="inbox-count">{count}</span>
+                                        <span className="txt">{t(`home.inbox.${key}`, { count })}</span>
+                                        <i className="ri-arrow-right-line inbox-arrow" aria-hidden="true" />
+                                    </Link>
+                                ))}
+                        </div>
+                    </section>
+                )}
+
                 <section className="home-section">
                     <header className="page-heading">
                         <h2 className="title">{t("announcements.heading")}</h2>

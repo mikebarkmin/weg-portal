@@ -8,6 +8,7 @@ import { serverMessage } from "../lib/pbErrors";
 import { MIN_PASSWORD_LENGTH } from "../lib/validation";
 import type { PortalUser } from "../types";
 import { USER_ROLES } from "../types";
+import ConfirmDeleteButton from "../components/ConfirmDeleteButton";
 
 type View = "all" | "pending" | "new";
 
@@ -191,9 +192,6 @@ function UserRow({
     };
 
     const remove = async () => {
-        if (!window.confirm(t("admin.confirmDelete", { email: user.email }))) {
-            return;
-        }
         setBusy(true);
         setError(null);
         try {
@@ -298,16 +296,13 @@ function UserRow({
                     <i className="ri-key-2-line" aria-hidden="true" />
                     <span className="txt">{t("admin.password.reset")}</span>
                 </button>
-                <button
-                    type="button"
+                <ConfirmDeleteButton
                     className="btn sm secondary"
+                    label={t("admin.delete")}
+                    prompt={t("admin.confirmDelete", { email: user.email })}
                     disabled={busy || ownRecord}
-                    title={t("admin.delete")}
-                    onClick={() => void remove()}
-                >
-                    <i className="ri-delete-bin-line" aria-hidden="true" />
-                    <span className="txt">{t("admin.delete")}</span>
-                </button>
+                    onConfirm={remove}
+                />
             </span>
         </div>
     );

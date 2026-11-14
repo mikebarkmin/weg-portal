@@ -38,7 +38,9 @@
             "board": "Pinnwand",
             "documents": "Dokumente",
             "beirat": "Beirat"
-        }
+        },
+        "openItems_one": "{{count}} offener Punkt",
+        "openItems_other": "{{count}} offene Punkte"
     },
     "calendar": {
         "heading": "Terminkalender",
@@ -64,7 +66,8 @@
         "copy": "Link kopieren",
         "copied": "Kopiert",
         "renewFeed": "Neuen Link erzeugen",
-        "feedError": "Der Link konnte nicht erzeugt werden."
+        "feedError": "Der Link konnte nicht erzeugt werden.",
+        "frequent": "Laufend:"
     },
     "event": {
         "back": "Zurück zum Kalender",
@@ -156,7 +159,8 @@
             "invalid": "E-Mail-Adresse oder Passwort ist falsch.",
             "generic": "Die Anmeldung ist fehlgeschlagen. Bitte später erneut versuchen."
         },
-        "toSignup": "Noch kein Konto? Jetzt registrieren."
+        "toSignup": "Noch kein Konto? Jetzt registrieren.",
+        "forgot": "Passwort vergessen?"
     },
     "auth": {
         "forbidden": {
@@ -330,7 +334,19 @@
             "another": "Weitere Meldung",
             "back": "Zum Kalender"
         },
-        "descriptionHint": "Bitte nennen Sie keine Namen und keine Wohnungsnummern – angenommene Meldungen können für alle Eigentümer sichtbar sein."
+        "descriptionHint": "Bitte nennen Sie keine Namen und keine Wohnungsnummern – angenommene Meldungen können für alle Eigentümer sichtbar sein.",
+        "categories": {
+            "lighting": "Beleuchtung",
+            "doors": "Türen & Schlösser",
+            "waste": "Müll",
+            "garden": "Garten & Außenanlage",
+            "elevator": "Aufzug",
+            "heatingWater": "Heizung & Wasser",
+            "cleanliness": "Sauberkeit",
+            "damage": "Schaden am Gebäude",
+            "parking": "Parken & Garage",
+            "other": "Sonstiges"
+        }
     },
     "signup": {
         "heading": "Konto erstellen",
@@ -609,7 +625,18 @@
         "allContacts": "Alle Kontakte",
         "beiratHint": "Neuigkeiten für die Gemeinschaft? Veröffentlichen Sie einen Aushang.",
         "back": "Zur Startseite",
-        "recurring": "wiederkehrend"
+        "recurring": "wiederkehrend",
+        "inbox": {
+            "heading": "Wartet auf den Beirat",
+            "suggestions_one": "Terminvorschlag",
+            "suggestions_other": "Terminvorschläge",
+            "issues_one": "neue Meldung",
+            "issues_other": "neue Meldungen",
+            "agenda_one": "Themenvorschlag",
+            "agenda_other": "Themenvorschläge",
+            "users_one": "Konto zur Freigabe",
+            "users_other": "Konten zur Freigabe"
+        }
     },
     "announcements": {
         "heading": "Aktuelles",
@@ -862,5 +889,41 @@
         "active": "Aktiv",
         "activeHint": "Inaktive Bereiche werden im Meldeformular nicht mehr angeboten; bestehende Meldungen behalten ihren Ort.",
         "saveError": "Der Bereich konnte nicht gespeichert werden."
+    },
+    "account": {
+        "toLogin": "Zur Anmeldung",
+        "error": {
+            "rateLimited": "Zu viele Versuche. Bitte warten Sie einen Moment und versuchen es erneut.",
+            "generic": "Das hat nicht geklappt. Bitte später erneut versuchen.",
+            "invalidLink": "Der Link ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen an.",
+            "emailChange": "Das Passwort ist falsch oder der Link ist abgelaufen."
+        },
+        "forgot": {
+            "heading": "Passwort vergessen",
+            "intro": "Geben Sie die E-Mail-Adresse Ihres Kontos ein. Sie erhalten einen Link, mit dem Sie ein neues Passwort festlegen.",
+            "submit": "Link anfordern",
+            "sent": "Falls zu dieser Adresse ein Konto besteht, ist eine E-Mail mit einem Link unterwegs. Bitte prüfen Sie auch den Spam-Ordner."
+        },
+        "reset": {
+            "heading": "Neues Passwort festlegen",
+            "password": "Neues Passwort",
+            "confirm": "Neues Passwort wiederholen",
+            "submit": "Passwort speichern",
+            "done": "Ihr Passwort wurde geändert. Sie können sich jetzt anmelden."
+        },
+        "verify": {
+            "heading": "E-Mail-Adresse bestätigen",
+            "working": "Einen Moment …",
+            "done": "Ihre E-Mail-Adresse ist bestätigt. Sobald der Beirat Ihr Konto freigegeben hat, können Sie alle Bereiche nutzen."
+        },
+        "emailChange": {
+            "heading": "Neue E-Mail-Adresse bestätigen",
+            "intro": "Bitte geben Sie zur Bestätigung Ihr Passwort ein.",
+            "submit": "Bestätigen",
+            "done": "Ihre E-Mail-Adresse wurde geändert. Bitte melden Sie sich mit der neuen Adresse an."
+        }
+    },
+    "common": {
+        "actionFailed": "Das hat nicht geklappt. Bitte erneut versuchen oder die Seite neu laden."
     }
 }

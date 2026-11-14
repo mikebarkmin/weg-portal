@@ -19,6 +19,7 @@ import NewSuggestion from "./pages/NewSuggestion";
 import NewIssue from "./pages/NewIssue";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import { ConfirmEmailChange, ConfirmVerification, ForgotPassword, ResetPassword } from "./pages/AccountLinks";
 import ProfileSettings from "./pages/ProfileSettings";
 import IssueBoard from "./pages/IssueBoard";
 import IssueDetail from "./pages/IssueDetail";
@@ -88,6 +89,10 @@ export default function App() {
                 />
                 <Route path="login" element={<Login />} />
                 <Route path="signup" element={<Signup />} />
+                <Route path="passwort-vergessen" element={<ForgotPassword />} />
+                <Route path="konto/passwort-neu/:token" element={<ResetPassword />} />
+                <Route path="konto/bestaetigen/:token" element={<ConfirmVerification />} />
+                <Route path="konto/email-bestaetigen/:token" element={<ConfirmEmailChange />} />
                 <Route
                     path="profile"
                     element={

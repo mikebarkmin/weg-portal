@@ -13,6 +13,7 @@ import PhotoInput, { type PreparedPhoto } from "../components/PhotoInput";
 import { useAuth } from "../lib/auth";
 import { useIssueAreas } from "../lib/issueAreas";
 import { pb } from "../lib/pbClient";
+import IssueCategoryList from "../components/IssueCategoryList";
 import {
     buildIssueFormData,
     makeIssueSchema,
@@ -233,7 +234,8 @@ export default function NewIssue() {
                     </FormField>
 
                     <FormField id="issue-category" label={t("issue.category")} error={err(errors.category?.message)}>
-                        <input id="issue-category" type="text" maxLength={100} {...register("category")} />
+                        <input id="issue-category" type="text" maxLength={100} list="issue-category-list" autoComplete="off" {...register("category")} />
+                        <IssueCategoryList id="issue-category-list" />
                     </FormField>
 
                     <div className="col-12">

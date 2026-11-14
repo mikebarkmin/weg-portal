@@ -5,6 +5,7 @@ import { MenuButton, Page, PageHeading, SidebarMenu } from "../components/Page";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
+import { notifyInboxChanged } from "../lib/beiratInbox";
 import { errorStatus, serverMessage } from "../lib/pbErrors";
 import { buildUserApprovalPatch } from "../lib/validation";
 import type { PortalUser } from "../types";
@@ -149,6 +150,7 @@ function UserRow({
         setError(null);
         try {
             await pb.collection("users").update(user.id, buildUserApprovalPatch(approved));
+            notifyInboxChanged();
             onApprovedChange(user, approved);
         } catch (err) {
             if (err instanceof ClientResponseError && errorStatus(err) === 400) {

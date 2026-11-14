@@ -13,11 +13,11 @@ import {
     weekdayLabels,
 } from "../lib/dates";
 import { expandAll, parseRule, type Occurrence } from "../lib/recurrence";
-import { canShow, useAuth, useOwnerAccount } from "../lib/auth";
+import { useAuth, useOwnerAccount } from "../lib/auth";
 import { CALENDARS, calendarOf, visibleCalendars } from "../lib/calendars";
 import type { CalendarId } from "../types";
 import PersonalFeed from "../components/PersonalFeed";
-import { MenuLink, Page, PageHeading, SidebarMenu } from "../components/Page";
+import { Page, PageHeading, SidebarMenu } from "../components/Page";
 import CalendarBadge from "../components/CalendarBadge";
 import type { PortalEvent } from "../types";
 
@@ -28,6 +28,7 @@ interface MonthState {
 }
 
 const CELL_COUNT = 42; // 6 weeks -> stable grid height
+const FREQUENT_DAYS = 10; // a series on this many days of the month is "frequent"
 
 // CSS grid position of a date: Monday-first column.
 function mondayFirstWeekday(date: Date): number {
@@ -121,6 +122,25 @@ export default function PublicCalendar() {
         () => expandAll(shownEvents, range.start, range.end),
         [shownEvents, range.start, range.end],
     );
+
+    // Series that fill most of the month (a daily reminder, a weekday
+    // rule) would put the same chip into every cell and hide the one-off
+    // dates; they are listed once above the grid instead.
+    const frequent = useMemo(() => {
+        const days = new Map<string, number>();
+        const events = new Map<string, PortalEvent>();
+        for (const occurrences of byDay.values()) {
+            const seen = new Set<string>();
+            for (const o of occurrences) {
+                if (!o.event.rrule || seen.has(o.event.id)) continue;
+                seen.add(o.event.id);
+                days.set(o.event.id, (days.get(o.event.id) ?? 0) + 1);
+                events.set(o.event.id, o.event);
+            }
+        }
+        const ids = new Set([...days].filter(([, n]) => n >= FREQUENT_DAYS).map(([id]) => id));
+        return { ids, events: [...ids].map((id) => events.get(id)!) };
+    }, [byDay]);
 
     // grid cells: 6 weeks starting on the Monday before the 1st
     const cells = useMemo(() => {
@@ -240,16 +260,6 @@ export default function PublicCalendar() {
                             ))}
                         </SidebarMenu>
                     )}
-                    <SidebarMenu>
-                        <MenuLink to="/suggestions/new" icon="ri-calendar-event-line">
-                            {t("nav.newSuggestion")}
-                        </MenuLink>
-                        {canShow(auth.role) && (
-                            <MenuLink to="/events/new" icon="ri-add-line">
-                                {t("calendar.newEvent")}
-                            </MenuLink>
-                        )}
-                    </SidebarMenu>
                     <SidebarMenu title={t("calendar.subscribeTitle")} secondary>
                         {auth.isAuthenticated ? (
                             <PersonalFeed />
@@ -298,6 +308,23 @@ export default function PublicCalendar() {
             )}
             {state.error && <div className="alert danger m-b-sm">{t("calendar.error")}</div>}
 
+            {frequent.events.length > 0 && (
+                <div className="cal-frequent">
+                    <i className="ri-repeat-line" aria-hidden="true" />
+                    <span className="txt-hint">{t("calendar.frequent")}</span>
+                    {frequent.events.map((event) => (
+                        <Link
+                            key={event.id}
+                            className={`cal-chip calendar-${calendarOf(event)}`}
+                            to={`/events/${event.id}`}
+                        >
+                            {event.title}
+                            <span className="txt-hint"> · {ruleText(event)}</span>
+                        </Link>
+                    ))}
+                </div>
+            )}
+
             <div className="cal-grid">
                 {weekdays.map((label, i) => (
                     <div key={i} className="cal-weekday">
@@ -306,7 +333,7 @@ export default function PublicCalendar() {
                 ))}
                 {cells.map((date) => {
                     const key = dayKeyOf(date);
-                    const occurrences = byDay.get(key) ?? [];
+                    const occurrences = (byDay.get(key) ?? []).filter((o) => !frequent.ids.has(o.event.id));
                     const visible = occurrences.slice(0, 2);
                     const hidden = occurrences.length - visible.length;
                     return (

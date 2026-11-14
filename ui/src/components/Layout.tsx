@@ -8,6 +8,28 @@ import { activeSection, buildSections, isLeafActive, type NavSection } from "../
 import { setColorScheme, useColorScheme } from "../lib/theme";
 import { portalVersion } from "../lib/portalConfig";
 import { SidebarSlotContext } from "../lib/sidebarSlot";
+import { dismissToast, useToasts } from "../lib/toast";
+import { BeiratInboxContext, inboxTotal, useBeiratInboxLoader, type BeiratInbox } from "../lib/beiratInbox";
+
+// Open-item counts per nav target (Beirat only): the Beirat tab carries
+// the total, the sidebar entries their share.
+function badgeCounts(inbox: BeiratInbox | null): Record<string, number> {
+    if (!inbox) return {};
+    return {
+        "section:beirat": inboxTotal(inbox),
+        "/moderation": inbox.suggestions + inbox.issues + inbox.agenda,
+        "/users": inbox.users,
+    };
+}
+
+function CountBadge({ count, label }: { count: number | undefined; label: string }) {
+    if (!count) return null;
+    return (
+        <span className="nav-badge" aria-label={label}>
+            {count > 99 ? "99+" : count}
+        </span>
+    );
+}
 
 // Initials for the avatar circle (BugStage shows them in the header).
 function initialsOf(name: string, fallback: string): string {
@@ -61,6 +83,8 @@ export default function Layout() {
     const sections = buildSections({ isAuthenticated: auth.isAuthenticated, isOwner, isBeirat, isAdmin });
     const path = location.pathname;
     const section = activeSection(sections, path);
+    const inbox = useBeiratInboxLoader(isBeirat, path);
+    const badges = badgeCounts(inbox);
 
     const [slot, setSlot] = useState<HTMLElement | null>(null);
     const slotRef = useCallback((el: HTMLDivElement | null) => setSlot(el), []);
@@ -134,7 +158,10 @@ export default function Layout() {
                 title={t(s.tabKey)}
                 aria-current={active ? "page" : undefined}
             >
-                <i className={s.icon} aria-hidden="true" />
+                <span className="tab-icon">
+                    <i className={s.icon} aria-hidden="true" />
+                    <CountBadge count={badges[`section:${s.id}`]} label={t("nav.openItems", { count: badges[`section:${s.id}`] })} />
+                </span>
                 <span className="txt">{t(s.tabKey)}</span>
             </Link>
         );
@@ -240,18 +267,21 @@ export default function Layout() {
                                 </button>
                             </div>
                         )}
-                        {section && <SectionNav section={section} path={path} />}
+                        {section && <SectionNav section={section} path={path} badges={badges} />}
                         <div className="sidebar-slot" ref={slotRef} />
                     </aside>
                     <main className="page-content app-main">
                         <SidebarSlotContext.Provider value={slot}>
-                            <Outlet />
+                            <BeiratInboxContext.Provider value={inbox}>
+                                <Outlet />
+                            </BeiratInboxContext.Provider>
                         </SidebarSlotContext.Provider>
                     </main>
                 </div>
             </div>
 
             <AppFooter />
+            <Toasts />
 
             {isMobile && (
                 <nav className="bottom-tabs" aria-label={t("nav.sections")}>
@@ -266,7 +296,10 @@ export default function Layout() {
                                 className={`bottom-tab ${active ? "active" : ""}`}
                                 aria-current={active ? "page" : undefined}
                             >
-                                <i className={s.icon} aria-hidden="true" />
+                                <span className="tab-icon">
+                                    <i className={s.icon} aria-hidden="true" />
+                                    <CountBadge count={badges[`section:${s.id}`]} label={t("nav.openItems", { count: badges[`section:${s.id}`] })} />
+                                </span>
                                 <span className="txt">{t(s.tabKey)}</span>
                             </Link>
                         );
@@ -279,7 +312,7 @@ export default function Layout() {
 
 // The active section's sub-navigation, drawn like BugStage's repository
 // tree: the section as the parent entry, its pages nested below.
-function SectionNav({ section, path }: { section: NavSection; path: string }) {
+function SectionNav({ section, path, badges }: { section: NavSection; path: string; badges: Record<string, number> }) {
     const { t } = useTranslation();
     return (
         <nav className="sidebar-menu section-nav" aria-label={t(section.tabKey)}>
@@ -301,6 +334,7 @@ function SectionNav({ section, path }: { section: NavSection; path: string }) {
                                         aria-current={active ? "page" : undefined}
                                     >
                                         <span className="txt">{t(leaf.labelKey)}</span>
+                                        {!!badges[leaf.to] && <span className="label sm menu-count">{badges[leaf.to]}</span>}
                                     </Link>
                                 );
                             })}
@@ -309,6 +343,34 @@ function SectionNav({ section, path }: { section: NavSection; path: string }) {
                 )}
             </div>
         </nav>
+    );
+}
+
+// Feedback toasts (lib/toast.ts); polite live region for screen readers.
+function Toasts() {
+    const { t } = useTranslation();
+    const toasts = useToasts();
+    return (
+        <div className="toasts-container" aria-live="polite">
+            {toasts.map((toast) => (
+                <div key={toast.id} className={`toast ${toast.kind}`} role={toast.kind === "error" ? "alert" : "status"}>
+                    <div className="toast-container">
+                        <span className="toast-icon" aria-hidden="true" />
+                        <div className="toast-content">
+                            <span className="flex-fill">{t(toast.messageKey)}</span>
+                            <button
+                                type="button"
+                                className="btn sm circle transparent secondary toast-remove"
+                                aria-label={t("nav.close")}
+                                onClick={() => dismissToast(toast.id)}
+                            >
+                                <i className="ri-close-line" aria-hidden="true" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
     );
 }
 

@@ -16,3 +16,19 @@ export const STATUS_ICONS: Record<PortalIssue["status"], string> = {
     archived: "ri-archive-line",
     rejected: "ri-close-circle-line",
 };
+
+// Suggested report categories (offered via <datalist>, free text stays
+// possible): consistent spellings make the board search and the Beirat's
+// overview more useful. Labels come from issue.categories.<key>.
+export const ISSUE_CATEGORY_KEYS = [
+    "lighting",
+    "doors",
+    "waste",
+    "garden",
+    "elevator",
+    "heatingWater",
+    "cleanliness",
+    "damage",
+    "parking",
+    "other",
+] as const;

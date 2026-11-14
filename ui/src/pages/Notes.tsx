@@ -15,6 +15,7 @@ import {
     noteSchema,
 } from "../lib/validation";
 import type { PortalNote } from "../types";
+import { showError } from "../lib/toast";
 
 interface NotesState {
     notes: PortalNote[];
@@ -92,13 +93,17 @@ export default function Notes() {
         upsertNote({ ...note, pinned });
         pb.collection<PortalNote>("notes")
             .update(note.id, buildNotePinUpdate(pinned))
-            .catch(() => upsertNote(note));
+            .catch(() => {
+                showError();
+                upsertNote(note);
+            });
     };
 
     // NoteCard asks for confirmation inline before calling this
     const onDelete = (note: PortalNote) => {
         removeNote(note.id);
         pb.collection("notes").delete(note.id).catch(() => {
+            showError();
             // reload so the list mirrors the server again
             pb.collection<PortalNote>("notes")
                 .getFullList({ sort: "title", expand: "author" })

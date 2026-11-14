@@ -88,6 +88,8 @@ export default function Login() {
                 </div>
             </form>
             <p className="auth-links txt-hint">
+                <Link to="/passwort-vergessen">{t("login.forgot")}</Link>
+                <br />
                 <Link to="/signup">{t("login.toSignup")}</Link>
             </p>
         </Wrapper>

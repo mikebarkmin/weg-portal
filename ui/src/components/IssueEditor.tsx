@@ -6,6 +6,7 @@ import { pb } from "../lib/pbClient";
 import { serverMessage } from "../lib/pbErrors";
 import FormField, { SwitchField } from "./FormField";
 import type { PortalIssue } from "../types";
+import IssueCategoryList from "./IssueCategoryList";
 
 // Plain field edits of a report (text and photo removal) without a status
 // change: allowed for the Beirat/Admin by the issue update rule and the
@@ -64,7 +65,8 @@ export default function IssueEditor({
                     <textarea id={`edit-description-${issue.id}`} rows={3} maxLength={5000} value={description} onChange={(e) => setDescription(e.target.value)} />
                 </FormField>
                 <FormField id={`edit-category-${issue.id}`} label={t("issue.category")}>
-                    <input id={`edit-category-${issue.id}`} type="text" maxLength={100} value={category} onChange={(e) => setCategory(e.target.value)} />
+                    <input id={`edit-category-${issue.id}`} type="text" maxLength={100} list={`edit-category-list-${issue.id}`} autoComplete="off" value={category} onChange={(e) => setCategory(e.target.value)} />
+                    <IssueCategoryList id={`edit-category-list-${issue.id}`} />
                 </FormField>
                 <div className="col-12">
                     <div className="field-help">{t("moderation.editHint")}</div>

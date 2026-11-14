@@ -10,6 +10,7 @@ import type { ContactCategory, PortalContact, Visibility } from "../types";
 import { Page, PageHeading, SidebarMenu } from "../components/Page";
 import FormField from "../components/FormField";
 import ContactCard from "../components/ContactCard";
+import ConfirmDeleteButton from "../components/ConfirmDeleteButton";
 
 const CATEGORIES: ContactCategory[] = ["notdienst", "beirat", "verwaltung", "hausmeister", "sonstiges"];
 
@@ -39,8 +40,11 @@ export default function Contacts() {
     }, [load, auth.isAuthenticated, auth.role]);
 
     const remove = async (contact: PortalContact) => {
-        await pb.collection("contacts").delete(contact.id).catch(() => undefined);
-        load();
+        try {
+            await pb.collection("contacts").delete(contact.id);
+        } finally {
+            load();
+        }
     };
 
     const groups = CATEGORIES.map((category) => ({
@@ -122,7 +126,7 @@ export default function Contacts() {
                                                         <i className="ri-edit-line" aria-hidden="true" />
                                                         <span className="txt">{t("notes.editAction")}</span>
                                                     </button>
-                                                    <ConfirmDeleteButton onConfirm={() => void remove(c)} />
+                                                    <ConfirmDeleteButton onConfirm={() => remove(c)} />
                                                 </>
                                             )
                                         }
@@ -137,25 +141,6 @@ export default function Contacts() {
     );
 }
 
-function ConfirmDeleteButton({ onConfirm }: { onConfirm: () => void }) {
-    const { t } = useTranslation();
-    const [confirm, setConfirm] = useState(false);
-    return confirm ? (
-        <>
-            <button type="button" className="btn sm secondary" onClick={() => setConfirm(false)}>
-                {t("eventEditor.cancel")}
-            </button>
-            <button type="button" className="btn sm danger" onClick={onConfirm}>
-                {t("notes.delete")}
-            </button>
-        </>
-    ) : (
-        <button type="button" className="btn sm secondary transparent" onClick={() => setConfirm(true)}>
-            <i className="ri-delete-bin-line" aria-hidden="true" />
-            <span className="txt">{t("notes.delete")}</span>
-        </button>
-    );
-}
 
 function ContactForm({
     contact,

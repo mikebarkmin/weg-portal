@@ -90,19 +90,43 @@
     flex-wrap: nowrap;
 }
 
-/* tabs between 800 and 1100px: icons only (the label stays for screen
-   readers); six Beirat tabs with labels need the full app width */
+/* tabs between 800 and 1100px: six Beirat tabs with inline labels need
+   the full app width, so the label moves under the icon in small type
+   (bare icons were hard to tell apart for occasional visitors) */
 @media (max-width: 1100px) {
+    .project-header .project-menu .tab {
+        flex-direction: column;
+        gap: 2px;
+        border-radius: var(--borderRadius);
+        padding: 4px 8px;
+    }
     .project-header .project-menu .tab .txt {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
+        font-size: 0.72rem;
+        font-weight: 600;
+        line-height: 1.1;
     }
-    .project-header .project-menu .tab i:first-child {
-        margin: 0 -10px;
-    }
+}
+
+/* open-item count on a section tab (Beirat inbox) */
+.tab-icon {
+    position: relative;
+    display: inline-flex;
+}
+.nav-badge {
+    position: absolute;
+    top: -7px;
+    right: -11px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--dangerColor);
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 16px;
+    text-align: center;
+    pointer-events: none;
 }
 
 /* the header never scrolls away: the wrapper sticks to the top of the
@@ -601,6 +625,10 @@ fieldset.visibility-choice {
     }
 }
 
+.auth-intro {
+    margin: 0 0 var(--smSpacing);
+}
+
 .auth-links {
     margin: var(--smSpacing) 0 0;
     text-align: center;
@@ -729,15 +757,31 @@ fieldset.visibility-choice {
     }
 }
 
+/* series on most days of the month, listed once above the grid */
+.cal-frequent {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin: 0 0 var(--xsSpacing);
+    font-size: var(--smFontSize);
+    .cal-chip {
+        display: inline-block;
+        -webkit-line-clamp: none;
+    }
+}
+
 .cal-chip {
     display: block;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     padding: 2px 8px;
     border-radius: var(--smBorderRadius);
     font-size: 12px;
-    line-height: 18px;
-    white-space: nowrap;
+    line-height: 16px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
     text-decoration: none;
     color: var(--surfaceTxtColor);
     background: var(--surfaceAlt3Color);
@@ -1840,4 +1884,65 @@ code.legal-placeholder {
     > i {
         flex-shrink: 0;
     }
+}
+
+/* start page: what is waiting for the Beirat */
+.inbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+    gap: var(--xsSpacing);
+}
+.inbox-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--borderRadius);
+    border: var(--borderWidth) solid var(--borderColor);
+    border-left: 4px solid var(--warningColor);
+    background: var(--surfaceColor);
+    color: var(--surfaceTxtColor);
+    text-decoration: none;
+    transition: background var(--animationSpeed);
+    &:hover,
+    &:focus-visible {
+        background: var(--surfaceAlt1Color);
+    }
+    > i:first-child {
+        font-size: 18px;
+        color: var(--surfaceTxtHintColor);
+    }
+    .inbox-count {
+        font-size: 1.25rem;
+        font-weight: bold;
+        line-height: 1;
+    }
+    .txt {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .inbox-arrow {
+        color: var(--surfaceTxtHintColor);
+    }
+}
+
+/* name of the single plan shown on the board (several plans get tabs) */
+.board-plan-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+/* toasts stay clear of the phone tab bar */
+.has-bottom-tabs .toasts-container {
+    bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+/* inline delete confirmation (components/ConfirmDeleteButton.tsx) */
+.confirm-delete {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
 }

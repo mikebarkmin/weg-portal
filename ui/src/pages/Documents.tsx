@@ -13,6 +13,7 @@ import type { DocumentCategory, PortalDocument, Visibility } from "../types";
 import { MenuButton, Page, PageHeading, SidebarMenu } from "../components/Page";
 import FormField from "../components/FormField";
 import VisibilityLabel from "../components/VisibilityLabel";
+import ConfirmDeleteButton from "../components/ConfirmDeleteButton";
 
 const CATEGORIES: DocumentCategory[] = [
     "hausordnung",
@@ -78,8 +79,11 @@ export default function Documents() {
     const visible = (items ?? []).filter((d) => category === "all" || d.category === category);
 
     const remove = async (doc: PortalDocument) => {
-        await pb.collection("documents").delete(doc.id).catch(() => undefined);
-        load();
+        try {
+            await pb.collection("documents").delete(doc.id);
+        } finally {
+            load();
+        }
     };
 
     return (
@@ -178,7 +182,7 @@ export default function Documents() {
                                                 <i className="ri-edit-line" aria-hidden="true" />
                                             </button>
                                         )}
-                                        {isBeirat && <DeleteButton onConfirm={() => void remove(doc)} />}
+                                        {isBeirat && <ConfirmDeleteButton iconOnly onConfirm={() => remove(doc)} />}
                                     </span>
                                 </div>
                             );
@@ -190,24 +194,6 @@ export default function Documents() {
     );
 }
 
-function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
-    const { t } = useTranslation();
-    const [confirm, setConfirm] = useState(false);
-    return confirm ? (
-        <>
-            <button type="button" className="btn sm secondary" onClick={() => setConfirm(false)}>
-                {t("eventEditor.cancel")}
-            </button>
-            <button type="button" className="btn sm danger" onClick={onConfirm}>
-                {t("notes.delete")}
-            </button>
-        </>
-    ) : (
-        <button type="button" className="btn sm secondary transparent" aria-label={t("notes.delete")} onClick={() => setConfirm(true)}>
-            <i className="ri-delete-bin-line" aria-hidden="true" />
-        </button>
-    );
-}
 
 // The upload form doubles as the property editor: with `doc` it PATCHes
 // the given record instead of creating one, the file input turns optional

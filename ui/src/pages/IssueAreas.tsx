@@ -8,6 +8,7 @@ import { invalidateIssueAreas, parseFloorLines } from "../lib/issueAreas";
 import AreaPlan from "../components/AreaPlan";
 import FormField, { SwitchField } from "../components/FormField";
 import { Page, PageHeading } from "../components/Page";
+import ConfirmDeleteButton from "../components/ConfirmDeleteButton";
 
 // issue_areas record as the Beirat sees it (collection API).
 interface AreaRecord {
@@ -58,7 +59,6 @@ export default function IssueAreas() {
     };
 
     const remove = async (area: AreaRecord) => {
-        if (!window.confirm(t("areas.deleteConfirm", { name: area.name }))) return;
         try {
             await pb.collection("issue_areas").delete(area.id);
             changed();
@@ -115,14 +115,11 @@ export default function IssueAreas() {
                                                 <i className="ri-edit-line" aria-hidden="true" />
                                                 <span className="txt">{t("areas.edit")}</span>
                                             </button>
-                                            <button
-                                                type="button"
-                                                className="btn sm secondary transparent"
-                                                onClick={() => void remove(area)}
-                                            >
-                                                <i className="ri-delete-bin-line" aria-hidden="true" />
-                                                <span className="txt">{t("areas.delete")}</span>
-                                            </button>
+                                            <ConfirmDeleteButton
+                                                label={t("areas.delete")}
+                                                prompt={t("areas.deleteConfirm", { name: area.name })}
+                                                onConfirm={() => remove(area)}
+                                            />
                                         </span>
                                     </div>
                                     <span className="meta">

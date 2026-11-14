@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
+import { notifyInboxChanged } from "../lib/beiratInbox";
 import { errorStatus, serverMessage } from "../lib/pbErrors";
 import { dayKeyOf, formatLongDate, formatTime } from "../lib/dates";
 import { parseRule, displayDate, parsePBDate } from "../lib/recurrence";
@@ -49,7 +50,12 @@ interface QueueState {
 // (see Layout) and the route is guarded (see App).
 export default function ModerationQueue() {
     const { t } = useTranslation();
-    const [tab, setTab] = useState<Tab>("suggestions");
+    // ?tab= lets the start page's inbox link straight to a queue
+    const [searchParams] = useSearchParams();
+    const requested = searchParams.get("tab");
+    const [tab, setTab] = useState<Tab>(
+        requested === "issues" || requested === "agenda" ? requested : "suggestions",
+    );
     const [state, setState] = useState<QueueState>({
         suggestions: [],
         issues: [],
@@ -95,6 +101,7 @@ export default function ModerationQueue() {
     useEffect(() => load(), [load]);
 
     const onSuggestionDecided = (id: string) => {
+        notifyInboxChanged();
         setState((prev) => ({
             ...prev,
             suggestions: prev.suggestions.filter((item) => item.id !== id),
@@ -102,6 +109,7 @@ export default function ModerationQueue() {
     };
 
     const onAgendaDecided = (id: string) => {
+        notifyInboxChanged();
         setState((prev) => ({ ...prev, agenda: prev.agenda.filter((item) => item.id !== id) }));
     };
 
@@ -120,6 +128,7 @@ export default function ModerationQueue() {
     };
 
     const onIssueDecided = (id: string) => {
+        notifyInboxChanged();
         setState((prev) => ({
             ...prev,
             issues: prev.issues.filter((item) => item.id !== id),

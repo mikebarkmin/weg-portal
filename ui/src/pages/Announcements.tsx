@@ -13,6 +13,7 @@ import type { PortalAnnouncement, Visibility } from "../types";
 import { Page, PageHeading, SidebarMenu } from "../components/Page";
 import FormField, { SwitchField } from "../components/FormField";
 import VisibilityLabel from "../components/VisibilityLabel";
+import { showError } from "../lib/toast";
 
 function isExpired(a: PortalAnnouncement): boolean {
     const expires = parsePBDate(a.expires_at);
@@ -167,6 +168,7 @@ function AnnouncementPost({
             await pb.collection("announcements").delete(a.id);
             onDeleted();
         } catch {
+            showError();
             setConfirmDelete(false);
         }
     };
