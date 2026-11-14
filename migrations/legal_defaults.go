@@ -33,7 +33,7 @@ Terminkalender: Die veröffentlichten Termine (Titel, Beschreibung, Termin, Ort,
 
 Terminvorschläge: Bei einem Terminvorschlag werden Titel, Beschreibung, Termin, Ort und Kategorie sowie Ihre E-Mail-Adresse gespeichert. Die E-Mail-Adresse dient ausschließlich dazu, Ihnen die Entscheidung (Annahme oder Ablehnung samt Begründung) mitzuteilen; sie ist nur für den Beirat einsehbar.
 
-Mängelmeldungen: Bei einer Meldung werden Titel, Beschreibung, Kategorie und die von Ihnen markierte Örtlichkeit gespeichert. Konto-basierte Nutzer (Eigentümer, Hausmeister, Hausverwaltung) sehen ausschließlich grob gerundete Koordinaten (ca. 100 m Genauigkeit); die genaue Position ist nur für den Beirat sowie Hausmeister und Hausverwaltung einsehbar. Angehängte Fotos werden vor dem Hochladen auf Ihrem Gerät neu codiert, wobei Aufnahme-Metadaten (u. a. GPS) entfernt werden. Ihre E-Mail-Adresse (und ein freiwillig angegebener Name) werden zur Rückmeldung getrennt von der Meldung gespeichert und sind nur für den Beirat einsehbar.
+Mängelmeldungen: Bei einer Meldung werden Titel, Beschreibung und Kategorie gespeichert. Optional können Sie den Ort angeben (Bereich der Wohnanlage, ggf. Etage und eine Markierung auf dem Lageplan). Die Ortsangabe sehen nur Sie selbst (bei Meldung mit Konto) und der Beirat; der Beirat kann sie im Einzelfall für Hausmeister und Hausverwaltung freigeben, damit diese die Meldung bearbeiten können. Andere Eigentümer sehen die Ortsangabe nicht. Angehängte Fotos werden vor dem Hochladen auf Ihrem Gerät neu codiert, wobei Aufnahme-Metadaten (u. a. GPS) entfernt werden. Ihre E-Mail-Adresse (und ein freiwillig angegebener Name) werden zur Rückmeldung getrennt von der Meldung gespeichert und sind nur für den Beirat einsehbar.
 
 Benutzerkonten: Für Konten werden Name, E-Mail-Adresse, Rolle (Eigentümer/in, Beirat, Hausmeister, Hausverwaltung) und der Freigabestatus verarbeitet. Neue Konten sind erst nach Bestätigung der E-Mail-Adresse und Freigabe durch den Beirat nutzbar. Hausmeister und Hausverwaltung können optional Benachrichtigungen zu neuen Meldungen erhalten (Einwilligung, jederzeit widerrufbar).
 
@@ -53,7 +53,7 @@ Umfragen: Bei unverbindlichen Umfragen wird Ihre Stimme mit Ihrem Konto gespeich
 
 ## Empfänger und Dienstleister (Drittanbieter)
 
-OpenStreetMap-Karten: Das Portal bindet Kartenausschnitte des OpenStreetMap-Projekts ein. Beim Aufruf der Karten werden Verbindungsdaten (u. a. Ihre IP-Adresse) an den Tile-Server der OpenStreetMap Foundation (Großbritannien), tile.openstreetmap.org, übermittelt. Eine Anmeldung dort ist nicht erforderlich.
+Hausmeister und Hausverwaltung: Gibt der Beirat die Ortsangabe einer Meldung frei, erhalten die Konten von Hausmeister und Hausverwaltung Zugriff darauf. Benachrichtigungs-E-Mails enthalten keine Ortsangaben.
 
 E-Mail-Versand: Der Versand der Benachrichtigungs-E-Mails erfolgt über den SMTP-Dienstleister TODO(Beirat): Name und Adresse des Anbieters). Für die Zustellung werden die jeweils erforderlichen Empfänger- und Absenderdaten verarbeitet.
 

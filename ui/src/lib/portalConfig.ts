@@ -1,9 +1,7 @@
-import { applyIssueBounds, type IssueBounds } from "./validation";
 import { setPortalTimeZone } from "./timezone";
 
 // Public per-deployment settings (GET /api/portal/config, hooks/portalConfig.go).
 interface PortalConfig {
-    bounds?: Partial<IssueBounds>;
     timezone?: string;
     version?: string;
 }
@@ -16,8 +14,7 @@ export function portalVersion(): string {
 }
 
 // Loads the deployment config once at startup. Never throws and never
-// blocks for long: on any failure the built-in fallbacks stay in place
-// (the server validates the location again anyway).
+// blocks for long: on any failure the built-in fallbacks stay in place.
 export async function loadPortalConfig(timeoutMs = 3000): Promise<void> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -25,7 +22,6 @@ export async function loadPortalConfig(timeoutMs = 3000): Promise<void> {
         const res = await fetch("/api/portal/config", { signal: controller.signal });
         if (!res.ok) return;
         const config = (await res.json()) as PortalConfig;
-        applyIssueBounds(config.bounds);
         setPortalTimeZone(config.timezone);
         if (typeof config.version === "string") {
             appVersion = config.version.trim().slice(0, 64);

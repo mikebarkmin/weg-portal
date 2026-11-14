@@ -21,7 +21,7 @@ Caddy (Systempaket: TLS mit Let's Encrypt, HSTS, Basic-Auth für /_/)
 ├── pb_data/                      SQLite-Datenbank + Uploads (nur weg-portal)
 ├── backups/                      Sicherungen vor Updates und manuelle
 ├── incoming/                     Upload-Ablage für neue Binaries (deploy)
-├── portal.env                    Einstellungen (Bounding-Box, Zeitzone)
+├── portal.env                    Einstellungen (Zeitzone)
 └── history                       wann welche Version aktiv wurde
 ```
 
@@ -89,10 +89,11 @@ werden aktualisiert; Daten, `portal.env` und das `/_/`-Passwort bleiben
 `/srv/weg-portal/portal.env` (vom Setup aus `portal.env.example` angelegt)
 anpassen, danach `systemctl restart weg-portal`:
 
-- **Bounding-Box** (`PORTAL_MIN_LAT` … `PORTAL_MAX_LNG`) **eng um die
-  Anlage** legen (wenige hundert Meter): sie begrenzt, wo Meldungen gesetzt
-  werden dürfen, und ist der Kartenausschnitt der Melde-Karte.
 - `PORTAL_TIMEZONE` (Standard `Europe/Berlin`).
+
+Meldeorte werden nicht über Umgebungsvariablen konfiguriert: Der Beirat
+legt die Bereiche (Häuser mit Geschossen, gemeinsame Flächen mit
+Lageplan) im Portal unter „Bereiche & Lagepläne“ (`/bereiche`) an.
 
 ### 2.4 Erste Version ausrollen
 
@@ -280,10 +281,6 @@ Logs.
 
 | Variable | Bedeutung |
 |---|---|
-| `PORTAL_MIN_LAT` | Min Latitude des Melde-Gebiets (Standard 51.0) |
-| `PORTAL_MAX_LAT` | Max Latitude (Standard 51.5) |
-| `PORTAL_MIN_LNG` | Min Longitude (Standard 7.0) |
-| `PORTAL_MAX_LNG` | Max Longitude (Standard 7.5) |
 | `PORTAL_TIMEZONE` | Zeitzone der Anlage, IANA-Name (Standard `Europe/Berlin`). Serientermine wiederholen sich zur gleichen Ortszeit (auch im iCal-Feed); Mails zeigen Zeiten darin. Ungültiger Wert → Start bricht ab. |
 
 SMTP/S3: **nicht** per Umgebung, sondern in `/_/` (2.7). Superuser:

@@ -18,6 +18,8 @@ interface MyIssue {
     created: string;
     decided_at: string;
     resolved_at: string;
+    // the reporter always sees where they reported (null: no location)
+    location: { area_name: string; floor: string; has_pin: boolean } | null;
 }
 
 interface MySuggestion {
@@ -94,6 +96,15 @@ export default function MySubmissions() {
                                                     <span className="meta-item">
                                                         <i className="ri-time-line" aria-hidden="true" />
                                                         {t("mySubmissions.submittedOn", { date: date(issue.created) })}
+                                                    </span>
+                                                )}
+                                                {issue.location && (
+                                                    <span className="meta-item">
+                                                        <i className="ri-map-pin-line" aria-hidden="true" />
+                                                        {[issue.location.area_name, issue.location.floor]
+                                                            .filter((part) => part !== "")
+                                                            .join(" · ")}
+                                                        {issue.location.has_pin && ` · ${t("mySubmissions.pin")}`}
                                                     </span>
                                                 )}
                                                 {issue.visibility === "private" && (

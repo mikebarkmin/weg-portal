@@ -25,7 +25,8 @@
         "beirat": "Beirat",
         "mySubmissions": "My submissions",
         "legal": "Legal texts",
-        "admin": "Admin"
+        "admin": "Admin",
+        "areas": "Areas & plans"
     },
     "calendar": {
         "heading": "Community calendar",
@@ -98,12 +99,11 @@
         "invalidEmail": "Please enter a valid email address.",
         "dateEndBeforeStart": "The end is before the start.",
         "submitFailed": "The data could not be submitted.",
-        "locationRequired": "Please mark the location on the map.",
-        "locationOutside": "The marked location is outside the community area.",
         "maxPhotos": "At most 5 photos can be attached.",
         "consentRequired": "Please confirm the photo upload consent.",
         "passwordTooShort": "The password must be at least 8 characters long.",
-        "passwordMismatch": "The passwords do not match."
+        "passwordMismatch": "The passwords do not match.",
+        "locationInvalid": "The location is incomplete. Please choose the area and, if needed, the pin again."
     },
     "suggestion": {
         "heading": "Suggest an event",
@@ -190,7 +190,8 @@
             "community": "Visible to the community",
             "private": "Internal only (private)",
             "hint": "When accepting, you must choose whether the report is visible to the community.",
-            "choose": "Please choose …"
+            "choose": "Please choose …",
+            "locationHint": "The location (floor or pin) can point to single flats or people – so “Private” is preselected. Please check the title, text and photos for that as well."
         },
         "submitted": "Submitted on",
         "intro": "New suggestions and reports only become visible after your decision. Submitters receive the result by email.",
@@ -198,7 +199,13 @@
         "edit": "Edit",
         "targetCalendar": "Which calendar?",
         "acceptTopic": "Include",
-        "agendaNoteHint": "Sent to the owner together with the decision."
+        "agendaNoteHint": "Sent to the owner together with the decision.",
+        "shareLocation": {
+            "label": "Share the location with caretaker and property management",
+            "hint": "Without sharing, only the Beirat and the reporter see the location. This can be changed later."
+        },
+        "editHint": "Before accepting, please remove names, flat numbers and other hints to people from the title and text.",
+        "removePhoto": "Remove photo {{index}}"
     },
     "users": {
         "heading": "Users",
@@ -272,14 +279,16 @@
         "category": "Category",
         "location": {
             "label": "Location (optional)",
-            "clear": "Remove marker",
-            "hint": "Tap the map, drag the marker or use “Use my location” to mark where the problem is.",
-            "useMyLocation": "Use my location",
-            "searching": "Detecting location …",
-            "denied": "Location access was denied. Please tap the location on the map instead.",
-            "unsupported": "Your browser does not support geolocation. Please tap the location on the map instead.",
-            "outside": "Your location is outside the community area. Please tap the location on the map instead.",
-            "generic": "Your location could not be determined. Please tap the location on the map instead."
+            "area": "Area",
+            "none": "Not specified",
+            "floor": "Floor",
+            "floorNone": "Not specified",
+            "clear": "Remove pin",
+            "pinHint": "Tap the plan to mark the spot. The pin can be dragged.",
+            "planLabel": "Plan of {{area}}",
+            "planOwnersOnly": "The plan of this area is only available to logged-in, approved owners.",
+            "privacy": "Only you and the Beirat see the location. The Beirat can share it with the caretaker and the property management so the report can be handled. Other owners do not see it.",
+            "unavailable": "No areas are available at the moment. Please describe the location in the text."
         },
         "photos": {
             "label": "Photos (optional)",
@@ -308,7 +317,8 @@
             "text": "Your report has been received by the advisory board moderation. You will get an email as soon as a decision has been made.",
             "another": "Report another issue",
             "back": "Back to the calendar"
-        }
+        },
+        "descriptionHint": "Please do not mention names or flat numbers – accepted reports can be visible to all owners."
     },
     "signup": {
         "heading": "Create account",
@@ -425,15 +435,12 @@
     },
     "board": {
         "heading": "Issues",
-        "intro": "Accepted community issues with their location on the map. For owners, positions are rounded to about 100 m.",
+        "intro": "Accepted reports from the community property. Locations are not public: you only see them on your own reports.",
         "loading": "Loading issues …",
         "error": "The issues could not be loaded. Please try again later.",
         "retry": "Try again",
         "empty": "No issues visible.",
         "count": "{{count}} issue(s)",
-        "map": {
-            "label": "Map of issues"
-        },
         "filters": {
             "all": "All",
             "status": "Status",
@@ -443,7 +450,11 @@
             "search": "Search",
             "searchPlaceholder": "Title, category or description …"
         },
-        "photoCount": "{{count}} photo(s)"
+        "photoCount": "{{count}} photo(s)",
+        "plan": {
+            "label": "Plans with pinned reports",
+            "hint": "Locations are only visible to the Beirat, the reporter and – once shared – the caretaker and the property management."
+        }
     },
     "issueStatus": {
         "pending": "New",
@@ -455,7 +466,7 @@
     "issueVisibility": {
         "community": {
             "label": "Community",
-            "hint": "All approved owners see the report on the board; the location is rounded to about 100 m."
+            "hint": "All approved owners see the report on the board – without its location."
         },
         "private": {
             "label": "Private",
@@ -471,7 +482,7 @@
         "loadError": "The issue could not be loaded. Please try again later.",
         "retry": "Try again",
         "category": "Category",
-        "location": "Location (rounded)",
+        "location": "Location",
         "decided": "Decided on",
         "resolved": "Resolved on",
         "photos": "Photos",
@@ -489,14 +500,16 @@
             "visibilityRequired": "Please choose the visibility before accepting."
         },
         "created": "Submitted on",
-        "locationExact": "Location (exact)",
         "noLocation": "No location given.",
-        "roundedHint": "rounded to about 100 m",
-        "mapLabel": "Map with the location of the report",
         "reporter": "Reported by",
         "reporterUnavailable": "Contact details unavailable",
         "status": "Status",
-        "noDescription": "No description given."
+        "noDescription": "No description given.",
+        "noLocationShared": "No location has been shared for this report.",
+        "unknownArea": "Unknown area",
+        "planLabel": "Plan of {{area}}",
+        "locationRestricted": "Not public: visible to the Beirat, the reporter and – once shared – the caretaker and the property management.",
+        "locationOwn": "Only you and the Beirat see this location (possibly also the caretaker and the property management)."
     },
     "legal": {
         "footer": {
@@ -730,7 +743,8 @@
             "pending": "Under review",
             "accepted": "Accepted",
             "rejected": "Rejected"
-        }
+        },
+        "pin": "pinned on the plan"
     },
     "history": {
         "heading": "History and notes",
@@ -795,5 +809,36 @@
             "password": "The password could not be set.",
             "delete": "The user could not be deleted."
         }
+    },
+    "areaPlan": {
+        "failed": "The plan could not be loaded."
+    },
+    "areas": {
+        "heading": "Areas & plans",
+        "intro": "Areas a report can be located in. A house gets its floors; a shared area (e.g. basement, outside area) gets a plan on which owners mark the spot. Plans can only be loaded by approved accounts.",
+        "loading": "Loading areas …",
+        "loadError": "The areas could not be loaded.",
+        "empty": "No areas yet.",
+        "add": "Add area",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirm": "Really delete the area “{{name}}”?",
+        "deleteInUse": "“{{name}}” is used by reports and cannot be deleted. Set the area inactive instead.",
+        "inactive": "Inactive",
+        "hasPlan": "With plan",
+        "noPlan": "Without plan",
+        "name": "Name",
+        "nameHint": "For example “Haus 79”, “Keller” or “Außenanlage”.",
+        "sort": "Order",
+        "floors": "Floors",
+        "floorsHint": "One floor per line, e.g. EG, 1. OG, 2. OG. Leave empty for areas without floors.",
+        "plan": "Plan (image)",
+        "planHint": "PNG, JPEG or WebP, at most 10 MB. Please upload simplified plans only, without flat layouts, technical rooms or entrances. A new image with the same framing keeps existing pins.",
+        "planInvalid": "The plan must be a PNG, JPEG or WebP image of at most 10 MB.",
+        "removePlan": "Remove plan",
+        "removePlanHint": "Existing pins stay stored but are not shown without a plan.",
+        "active": "Active",
+        "activeHint": "Inactive areas are no longer offered in the report form; existing reports keep their location.",
+        "saveError": "The area could not be saved."
     }
 }

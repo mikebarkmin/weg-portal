@@ -9,7 +9,7 @@ into the binary. Deployment: own VPS, single binary under systemd behind Caddy. 
 
 1. Public calendar, usable by any resident without an account.
 2. Form for suggesting calendar entries; accepted or rejected by a Beirat member.
-3. Form for reporting community issues, with map location and photo attachments.
+3. Form for reporting community issues, with a location inside the property (area, floor, pin on a plan) and photo attachments.
 4. Every form collects an email so accept/reject can be reported back.
 5. Issue board for the Beirat; read-only view of accepted issues for community members (account required).
 6. Internal notes area for the Beirat.
@@ -17,7 +17,10 @@ into the binary. Deployment: own VPS, single binary under systemd behind Caddy. 
 Additional decisions made during planning:
 
 - UI bilingual (German default, English later via react-i18next).
-- Map: Leaflet + OpenStreetMap (no API key, no data to Google).
+- Location: not a geographic map — the Beirat defines areas of the property
+  (houses with floors, shared areas with an uploaded plan image); Leaflet
+  renders the plans via ImageOverlay. No API key, no data to Google, no
+  external tile server.
 - Issues pass through a Beirat moderation step (`pending` → accepted) before becoming visible.
 - Issues are tagged `community` or `private` (visibility decided by the Beirat on acceptance).
 - Roles: `resident`, `beirat`, `hausmeister`, `hausverwaltung`, `admin`.
@@ -81,8 +84,10 @@ Helper expressions used below:
 | `users` (auth) | role (select), approved (bool), notify_new_issues (bool), name | public; hook forces `role=resident`, `approved=false` | own record, or `B` | see below | superuser |
 | `events` | title, description, date_start, date_end, all_day, location, category, rrule (text, RFC 5545, optional) | `B` | `""` | `B` | `B` |
 | `suggestions` | title, description, date_start, date_end, all_day, location, category, **email**, status, decision_note, decided_at | `""` via rule forcing `status='pending'` | `B` | `B` | `null` (retention cron) |
-| `issues` | title, description, category, lat, lng (rounded, 3 decimals), **lat_exact, lng_exact (schema-hidden)**, photos[] (protected), status, visibility, decided_at, resolved_at | via custom route only (`null` on the collection) | see "Issue read rule" | `B`, or `STAFF` limited to status (see below) | `null` (retention cron) |
+| `issues` | title, description, category, photos[] (protected), status, visibility, decided_at, resolved_at | via custom route only (`null` on the collection) | see "Issue read rule" | `B`, or `STAFF` limited to status (see below) | `null` (retention cron) |
 | `issue_metas` | issue (relation, unique, cascade delete), **email**, name (optional) | via custom route only (`null`) | `B` | `null` | cascade |
+| `issue_areas` | name, floors (JSON list of labels, houses only), plan (protected file, png/jpeg/webp, raster only — no SVG), sort, active | `B` | `B`, or `APPROVED` | `B` | `B` |
+| `issue_locations` | issue (relation, unique, cascade; same id as the issue), area, floor?, has_pin, x/y (pin on the plan, 0..1), shared — all fields schema-hidden, written by server routes only | `null` (submission route) | `B`; reporter (via issue_metas): own; `STAFF`: only `shared` on accepted issues | `null` (Beirat share route flips `shared`) | cascade |
 | `notes` | title, body, author (relation users), pinned | `B && @request.body.author = @request.auth.id` | `B` | `B` | `B` |
 | `portal_settings` | retention day fields (see "Retention") — single record | `null` | `null` | `null` | `null` |
 
@@ -134,13 +139,19 @@ B
     && (visibility = 'community' || STAFF))
 ```
 
-Exact coordinates: `lat_exact`/`lng_exact` are marked `hidden` in the schema
-(never returned or filterable for non-superusers). An `OnRecordEnrich("issues")`
-hook calls `e.Record.Unhide("lat_exact","lng_exact")` for beirat/hausmeister/
-hausverwaltung. Enrich also runs for realtime events, so the same rule
-covers subscriptions. **This must be proven by tests** (see M2): residents
-get no exact fields in list, view, expand, and realtime responses, and
-`?filter=lat_exact>0` must not narrow results for a resident.
+Locations: an `issue_locations` record (area, optional floor, optional pin
+on the area's plan as x/y normalized to 0..1, `shared` flag) has the **same
+id** as its issue, so a client reads it with a plain view request. Every
+`issue_locations` field is marked `hidden` in the schema and unhidden by an
+`OnRecordEnrich("issue_locations")` hook for authenticated `users` — but
+only after the list/view rule has passed (Beirat/admins always; the reporter
+their own; Hausmeister/Hausverwaltung only `shared` ones on accepted
+issues). `hidden` is also what blocks filtering/sorting through relations:
+PocketBase does **not** apply a related collection's rules to filters, so
+without hiding, a resident could probe locations via
+`?filter=issue_locations_via_issue.floor='2. OG'`. **This must be proven by
+tests** (see api_issue_locations_test.go): residents get no fields in list,
+view, expand, and realtime responses, and probing filters must be rejected.
 
 ### Issue update rule
 
@@ -151,8 +162,6 @@ B
     && (@request.body.status = 'in_progress' || @request.body.status = 'resolved')
     && @request.body.title:isset = false && @request.body.description:isset = false
     && @request.body.category:isset = false && @request.body.visibility:isset = false
-    && @request.body.lat:isset = false && @request.body.lng:isset = false
-    && @request.body.lat_exact:isset = false && @request.body.lng_exact:isset = false
     && @request.body.photos:isset = false)
 ```
 
@@ -183,7 +192,7 @@ transaction as the suggestion update.
 |---|---|---|---|---|---|
 | Public calendar | read | read + write | read | read | read + write (all three calendars) |
 | Suggestion queue | – | full | – | – | full |
-| Issue board + map | accepted, community, rounded coords | all incl. pending/rejected/private, exact coords | accepted incl. private, exact coords | accepted incl. private, exact coords | all incl. pending/rejected/private, exact coords |
+| Issue board + location plan | accepted, community — no location (only their own in "Meine Einreichungen") | all incl. pending/rejected/private, with location | accepted incl. private, location only when `shared` | accepted incl. private, location only when `shared` | all incl. pending/rejected/private, with location |
 | Change issue status (`open`→`in_progress`→`resolved`) | – | yes | yes | no | yes |
 | Accept/reject, set `visibility` | – | yes | – | – | yes |
 | Approve resident accounts | – | yes | – | – | yes (+ deny/delete in /admin) |
@@ -202,18 +211,26 @@ last-active-admin guard (hooks/adminUsers.go).
 
 ### Public submission routes
 
-Collections `issues` and `issue_metas` have `createRule = null`. Submission goes
-through one custom route so the issue, its exact location and the submitter
-email are written atomically:
+Collections `issues`, `issue_metas` and `issue_locations` have `createRule = null`.
+Submission goes through one custom route so the issue, its location and the
+submitter email are written atomically:
 
 - `POST /api/portal/issues` (multipart): fields title, description, category,
-  lat, lng, email, name?, photo_consent, honeypot, form_started_at, photos[].
-  - validates input (lengths, lat/lng within a configured bounding box around
-    the property, max 5 photos, jpeg/png/webp, ≤ 5 MB each);
+  area, floor?, pin? (x/y on the area's plan), email, name?, photo_consent,
+  honeypot, form_started_at, photos[].
+  - validates input (lengths, the area exists and is active, the floor is one
+    of the area's floors, a pin needs an approved account with a plan on the
+    area, max 5 photos, jpeg/png/webp, ≤ 5 MB each);
   - honeypot must be empty, `now - form_started_at ≥ 3 s`;
-  - in `app.RunInTransaction`: create `issues` (status `pending`, rounded +
-    exact coords) and `issue_metas`;
+  - in `app.RunInTransaction`: create `issues` (status `pending`),
+    `issue_locations` and `issue_metas`;
   - returns `{ "ok": true }` only — never the record.
+- `GET /api/portal/issue-areas` (public, also for guests): the area list
+  for the report form — names and floor labels only, plus the plan file
+  name for approved accounts (guests cannot resolve protected files).
+- `POST /api/portal/issues/{id}/location-share` (Beirat/admin only): flips
+  the location's `shared` flag to share it with Hausmeister/Hausverwaltung
+  (or revoke).
 - Suggestions use the normal collection create endpoint
   (`createRule: @request.body.status = 'pending' && @request.body.decision_note:isset = false && @request.body.decided_at:isset = false`)
   plus a `OnRecordCreateRequest("suggestions")` hook enforcing honeypot/time-trap.
@@ -292,12 +309,13 @@ second record and deleting the existing one).
 | Upload abuse | mime whitelist, size/count limits, client-side downscaling, rate limit |
 | Form spam / mail relay | PocketBase rate limiter, honeypot + time-trap, no user text in submitter mails, optional Turnstile later |
 | Transport | HTTPS + HSTS by Caddy; CSP + cache headers set by the SPA handler (BugStage pattern) |
-| Data at rest / GDPR | Impressum + Datenschutzerklärung; photo-consent checkbox; OSM tile server named in privacy policy; encrypted offsite backups; retention cron (above) |
+| Data at rest / GDPR | Impressum + Datenschutzerklärung; photo-consent checkbox; issue locations never appear in mails; encrypted offsite backups; retention cron (above) |
 | Admin exposure | `/_/` IP-allowlisted or basic-auth'd in Caddy; superuser MFA (password + email OTP, PocketBase built-in); two superusers minimum |
 
 ## Frontend
 
-Vite + React + TypeScript, PocketBase JS SDK, react-leaflet (OSM tiles),
+Vite + React + TypeScript, PocketBase JS SDK, react-leaflet
+(ImageOverlay over the uploaded plan images — no external tiles),
 react-i18next (de default + en), react-hook-form + zod, rrule (recurrence
 expansion). Role is read from `pb.authStore.record.role` (not from the JWT, which
 carries no custom claims); the server rules are authoritative. No component
@@ -307,9 +325,10 @@ library — hand-rolled CSS with custom properties modeled on BugStage's tokens.
 ui/src/
 ├── pages/      PublicCalendar, EventDetail, NewSuggestion, NewIssue,
 │               ModerationQueue (beirat), IssueBoard, IssueDetail, Notes (beirat),
-│               UserApproval (beirat), Login, Signup, ProfileSettings,
-│               Impressum, Datenschutz
-├── components/ MapPicker, PhotoInput, StatusBadge, LangSwitch, VisibilityChip
+│               IssueAreas (beirat: "Bereiche & Lagepläne"), UserApproval (beirat),
+│               Login, Signup, ProfileSettings, Impressum, Datenschutz
+├── components/ LocationPicker, AreaPlan, IssueLocationView, PhotoInput,
+│               StatusBadge, LangSwitch, VisibilityChip
 ├── lib/        pbClient, i18n, validation, recurrence, exifStrip
 └── locales/    de.json, en.json
 ```
@@ -377,10 +396,10 @@ tests `api_owner_portal_test.go`.
 7. iCal export: `GET /api/portal/calendar.ics` rendering `events`.
 8. Two superusers + 2-page German operations manual for the Beirat
    (approve accounts, accept/reject, set visibility).
-9. Mobile-first: forms and map designed and tested primarily on phones.
+9. Mobile-first: forms and the plan picker designed and tested primarily on phones.
 
-Explicitly out of scope: issue comment threads (use chat), self-hosted tile
-server, uptime monitoring (ops decision), Turnstile (only if spam appears).
+Explicitly out of scope: issue comment threads (use chat), uptime
+monitoring (ops decision), Turnstile (only if spam appears).
 
 ## Alternatives considered
 
@@ -406,6 +425,6 @@ See [`milestones.md`](milestones.md) for the detailed, reviewable milestones.
 1. Go scaffold, migrations, rules, fixture DB, role-matrix API tests.
 2. Custom routes + hooks: submission, workflows, enrich, mails, retention, iCal.
 3. React scaffold, i18n, tokens; public calendar, suggestion form, moderation queue.
-4. Issue reporting (map picker, photos, EXIF strip), issue board + realtime, accounts + approval.
+4. Issue reporting (area/floor/pin picker on plans, photos, EXIF strip), issue board + realtime, accounts + approval.
 5. Beirat notes.
 6. Hardening and ops: rate limits, backups, systemd/Caddy, legal pages, operations manual.

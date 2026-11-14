@@ -15,9 +15,9 @@ func TestLegalDefaultsContent(t *testing.T) {
 
 	for _, want := range []string{
 		// third parties
-		"tile.openstreetmap.org", "OpenStreetMap Foundation", "SMTP-Dienstleister", "Backups",
+		"Hausmeister und Hausverwaltung:", "SMTP-Dienstleister", "Backups",
 		// processed data
-		"E-Mail-Adresse", "Fotos", "genaue Position", "gerundete Koordinaten", "Rolle",
+		"E-Mail-Adresse", "Fotos", "Ortsangabe", "Lageplan", "Rolle",
 		"Freigabestatus", "Interne Notizen", "Umfragen", "Eigentümerversammlung",
 		// retention: placeholders, never hard-coded periods
 		"{{retention_suggestions_rejected_days}}", "{{retention_suggestions_accepted_days}}",
@@ -27,6 +27,11 @@ func TestLegalDefaultsContent(t *testing.T) {
 		if !strings.Contains(legalDatenschutzDefault, want) {
 			t.Errorf("Datenschutz draft is missing %q", want)
 		}
+	}
+
+	// the portal no longer loads third-party map tiles
+	if strings.Contains(legalDatenschutzDefault, "openstreetmap") {
+		t.Error("the Datenschutz draft must not mention OpenStreetMap any more")
 	}
 
 	if strings.Contains(legalDatenschutzDefault, "365 Tage") {

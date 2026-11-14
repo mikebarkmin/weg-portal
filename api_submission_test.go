@@ -71,8 +71,8 @@ func validIssueFields() map[string]string {
 		"title":           "Meldefall test",
 		"description":     "Ein neuer Meldefall des Tests.",
 		"category":        "test",
-		"lat":             "51.412337",
-		"lng":             "7.211895",
+		"area":            "areahouse790000",
+		"floor":           "2. OG",
 		"email":           "newsubmitter@example.com",
 		"photo_consent":   "true",
 		"honeypot":        "",
@@ -120,7 +120,7 @@ func TestSubmitIssueValidation(t *testing.T) {
 	sc.Name = "valid with photos and consent"
 	scenarios = append(scenarios, sc)
 
-	sc = build(func(f map[string]string) { delete(f, "lat"); delete(f, "lng") }, nil, "")
+	sc = build(func(f map[string]string) { delete(f, "area"); delete(f, "floor") }, nil, "")
 	sc.Name = "valid without a location"
 	scenarios = append(scenarios, sc)
 
@@ -140,14 +140,20 @@ func TestSubmitIssueValidation(t *testing.T) {
 		{"description too long", func(f map[string]string) { f["description"] = strings.Repeat("x", 5001) }, nil},
 		{"category too long", func(f map[string]string) { f["category"] = strings.Repeat("x", 101) }, nil},
 		{"name too long", func(f map[string]string) { f["name"] = strings.Repeat("x", 201) }, nil},
-		{"lat not a number", func(f map[string]string) { f["lat"] = "abc" }, nil},
-		{"lat NaN", func(f map[string]string) { f["lat"] = "NaN" }, nil},
-		{"lat infinite", func(f map[string]string) { f["lat"] = "Inf" }, nil},
-		{"lat out of bounds", func(f map[string]string) { f["lat"] = "55.0" }, nil},
-		{"lng out of bounds", func(f map[string]string) { f["lng"] = "90.0" }, nil},
+		{"unknown area", func(f map[string]string) { f["area"] = "areamissing0000" }, nil},
+		{"inactive area", func(f map[string]string) { f["area"] = "areainactive000"; delete(f, "floor") }, nil},
+		{"unknown floor", func(f map[string]string) { f["floor"] = "9. OG" }, nil},
+		{"floor in an area without floors", func(f map[string]string) { f["area"] = "areakeller00000" }, nil},
+		{"floor without an area", func(f map[string]string) { delete(f, "area") }, nil},
+		{"pin without an area", func(f map[string]string) { delete(f, "area"); delete(f, "floor"); f["x"] = "0.5"; f["y"] = "0.5" }, nil},
+		{"pin from a guest", func(f map[string]string) {
+			f["area"] = "areakeller00000"
+			delete(f, "floor")
+			f["x"] = "0.5"
+			f["y"] = "0.5"
+		}, nil},
 		{"email invalid", func(f map[string]string) { f["email"] = "not-an-email" }, nil},
 		{"email missing for guests", func(f map[string]string) { delete(f, "email") }, nil},
-		{"only lat without lng", func(f map[string]string) { delete(f, "lng") }, nil},
 		{"honeypot filled", func(f map[string]string) { f["honeypot"] = "spam" }, nil},
 		{"form_started_at missing", func(f map[string]string) { delete(f, "form_started_at") }, nil},
 		{"form_started_at too recent", func(f map[string]string) { f["form_started_at"] = fmt.Sprint(time.Now().UnixMilli()) }, nil},
@@ -265,21 +271,25 @@ func TestSubmitIssuePersistence(t *testing.T) {
 
 	issue := issues[0]
 
-	// status/visibility are server-controlled, coords rounded + exact kept
+	// status/visibility are server-controlled, the location is its own record
 	if issue.GetString("status") != "pending" {
 		t.Fatalf("expected status pending, got %q", issue.GetString("status"))
 	}
 	if issue.GetString("visibility") != "" {
 		t.Fatalf("expected empty visibility, got %q", issue.GetString("visibility"))
 	}
-	if issue.GetFloat("lat") != 51.412 {
-		t.Fatalf("expected rounded lat 51.412, got %v", issue.GetFloat("lat"))
+	location, err := app.FindFirstRecordByData("issue_locations", "issue", issue.Id)
+	if err != nil {
+		t.Fatalf("expected a location record: %v", err)
 	}
-	if issue.GetFloat("lng") != 7.212 {
-		t.Fatalf("expected rounded lng 7.212, got %v", issue.GetFloat("lng"))
+	if location.GetString("area") != "areahouse790000" || location.GetString("floor") != "2. OG" {
+		t.Fatalf("unexpected location: %v", location.PublicExport())
 	}
-	if issue.GetFloat("lat_exact") != 51.412337 {
-		t.Fatalf("expected exact lat 51.412337, got %v", issue.GetFloat("lat_exact"))
+	if location.Id != issue.Id {
+		t.Fatalf("the location must share the id of its issue, got %q", location.Id)
+	}
+	if location.GetBool("has_pin") || location.GetBool("shared") {
+		t.Fatal("a new location has no pin here and is never shared with staff")
 	}
 	if len(issue.GetStringSlice("photos")) != 1 {
 		t.Fatalf("expected 1 stored photo, got %v", issue.GetStringSlice("photos"))
@@ -300,15 +310,12 @@ func TestSubmitIssuePersistence(t *testing.T) {
 		t.Fatalf("expected submitter name in meta, got %q", metas[0].GetString("name"))
 	}
 
-	// 2. spoofing attempt: client-supplied status/visibility/coords must be ignored
+	// 2. spoofing attempt: client-supplied status/visibility/sharing must be ignored
 	fields = validIssueFields()
 	fields["title"] = "Spoof Versuch"
-	fields["lat"] = "51.4"
-	fields["lng"] = "7.2"
 	fields["status"] = "open"
 	fields["visibility"] = "community"
-	fields["lat_exact"] = "1.0"
-	fields["lng_exact"] = "1.0"
+	fields["shared"] = "true"
 	fields["id"] = "usercustom00001"
 	rec = doIssueSubmission(t, mux, fields, nil)
 	if rec.Code != 200 {
@@ -325,8 +332,8 @@ func TestSubmitIssuePersistence(t *testing.T) {
 	if spoofed[0].GetString("visibility") != "" {
 		t.Fatalf("spoofed visibility must stay empty, got %q", spoofed[0].GetString("visibility"))
 	}
-	if spoofed[0].GetFloat("lat_exact") != 51.4 {
-		t.Fatalf("spoofed lat_exact must be the parsed location, got %v", spoofed[0].GetFloat("lat_exact"))
+	if spoofedLocation, err := app.FindFirstRecordByData("issue_locations", "issue", spoofed[0].Id); err != nil || spoofedLocation.GetBool("shared") {
+		t.Fatalf("a client must not be able to share the location itself (%v)", err)
 	}
 	if spoofed[0].Id == "usercustom00001" {
 		t.Fatal("client-supplied id must not be used")

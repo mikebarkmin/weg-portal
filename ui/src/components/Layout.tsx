@@ -115,6 +115,7 @@ export default function Layout() {
               { to: "/moderation", icon: "ri-inbox-2-line", label: t("nav.moderation") },
               { to: "/events/new", icon: "ri-calendar-2-line", label: t("nav.newEvent") },
               { to: "/users", icon: "ri-group-line", label: t("nav.users") },
+              { to: "/bereiche", icon: "ri-map-2-line", label: t("nav.areas") },
               { to: "/notes", icon: "ri-sticky-note-line", label: t("nav.notes") },
               { to: "/rechtstexte", icon: "ri-scales-3-line", label: t("nav.legal") },
           ]

@@ -185,77 +185,19 @@ export function buildUserApprovalPatch(approved: boolean) {
 // Public issue report (M8) - the form for POST /api/portal/issues.
 //
 // The upload itself is multipart/form-data (custom PocketBase route,
-// hooks/submitIssue.go). Both lat and lng travel as plain strings - the
-// server parses and validates them (NaN/Inf + bounding box) itself.
-
-// Bounding box the location picker and the zod schema enforce. The
-// values below are only the fallback (same defaults as the backend's
-// hooks/submitIssue.go issueBounds): at startup lib/portalConfig.ts loads
-// the deployment's real box (PORTAL_MIN/MAX_LAT/LNG env vars) from
-// GET /api/portal/config and applies it with applyIssueBounds(), so the
-// client and the server always validate against the same area.
-export interface IssueBounds {
-    minLat: number;
-    maxLat: number;
-    minLng: number;
-    maxLng: number;
-}
-
-export const ISSUE_BOUNDS: IssueBounds = {
-    minLat: 51.0,
-    maxLat: 51.5,
-    minLng: 7.0,
-    maxLng: 7.5,
-};
-
-// Replaces the bounding box (ignored unless it is a well-formed box).
-export function applyIssueBounds(bounds: Partial<IssueBounds> | null | undefined): boolean {
-    if (!bounds) return false;
-    const { minLat, maxLat, minLng, maxLng } = bounds;
-    const values = [minLat, maxLat, minLng, maxLng];
-    if (!values.every((v) => typeof v === "number" && Number.isFinite(v))) {
-        return false;
-    }
-    if (!(minLat! < maxLat! && minLng! < maxLng!)) {
-        return false;
-    }
-    Object.assign(ISSUE_BOUNDS, { minLat, maxLat, minLng, maxLng });
-    return true;
-}
-
-export function isWithinIssueBounds(lat: number, lng: number): boolean {
-    return (
-        Number.isFinite(lat) &&
-        Number.isFinite(lng) &&
-        lat >= ISSUE_BOUNDS.minLat &&
-        lat <= ISSUE_BOUNDS.maxLat &&
-        lng >= ISSUE_BOUNDS.minLng &&
-        lng <= ISSUE_BOUNDS.maxLng
-    );
-}
+// hooks/submitIssue.go). The optional location travels as plain strings:
+// the area id, the floor label and the pin (x/y, 0..1 on the area's
+// plan) - the server validates all of them again (hooks/issueAreas.go).
 
 // The maximum number of photos the server accepts (submitIssue.go).
 export const MAX_PHOTOS = 5;
 
-// parseable coordinate string within the bounding box; "" = no location
-// (the map point is optional, but lat and lng come as a pair)
-function coordinateSchema(axis: "lat" | "lng") {
-    return z.string().superRefine((value, ctx) => {
-            if (value === "") return;
-            const parsed = Number(value);
-            if (!Number.isFinite(parsed)) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.locationRequired" });
-                return;
-            }
-            const inBounds = isWithinIssueBounds(
-                axis === "lat" ? parsed : ISSUE_BOUNDS.minLat,
-                axis === "lng" ? parsed : ISSUE_BOUNDS.minLng,
-            );
-            if (!inBounds) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.locationOutside" });
-            }
-        });
-}
+// one pin coordinate: "" (no pin) or a number within 0..1
+const pinCoordinateSchema = z.string().refine((value) => {
+    if (value === "") return true;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1;
+}, "validation.locationInvalid");
 
 export function makeIssueSchema(loggedIn: boolean) {
     return z
@@ -267,8 +209,11 @@ export function makeIssueSchema(loggedIn: boolean) {
             .max(FIELD_LIMITS.title, "validation.tooLong"),
         description: z.string().trim().max(FIELD_LIMITS.description, "validation.tooLong"),
         category: z.string().trim().max(FIELD_LIMITS.category, "validation.tooLong"),
-        lat: coordinateSchema("lat"),
-        lng: coordinateSchema("lng"),
+        // optional location: area id, floor label, pin on the plan
+        area: z.string().trim().max(50, "validation.locationInvalid"),
+        floor: z.string().trim().max(50, "validation.locationInvalid"),
+        x: pinCoordinateSchema,
+        y: pinCoordinateSchema,
         // guests only: the decision is reported back by mail
         email: submitterEmailSchema(loggedIn),
         // optional, matched to the issue_metas.name schema limit
@@ -287,11 +232,19 @@ export function makeIssueSchema(loggedIn: boolean) {
                 message: "validation.consentRequired",
             });
         }
-        if ((values.lat === "") !== (values.lng === "")) {
+        // the pin is a pair, and floor/pin belong to an area
+        if ((values.x === "") !== (values.y === "")) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: [values.lat === "" ? "lat" : "lng"],
-                message: "validation.locationRequired",
+                path: ["x"],
+                message: "validation.locationInvalid",
+            });
+        }
+        if (values.area === "" && (values.floor !== "" || values.x !== "" || values.y !== "")) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["area"],
+                message: "validation.locationInvalid",
             });
         }
     });
@@ -304,7 +257,7 @@ export type IssueFormValues = z.infer<typeof issueSchema>;
 
 // Payload for POST /api/portal/issues: multipart/form-data with exactly
 // the fields of the custom route contract (hooks/submitIssue.go). No
-// status/visibility/coords-beyond-the-form are ever sent - the server
+// status/visibility/sharing flags are ever sent - the server
 // owns them. photos[] is appended from the re-encoded blobs only
 // (lib/exifStrip: the original files never leave the browser).
 export function buildIssueFormData(
@@ -316,9 +269,15 @@ export function buildIssueFormData(
     data.set("title", values.title);
     data.set("description", values.description);
     data.set("category", values.category);
-    if (values.lat !== "" && values.lng !== "") {
-        data.set("lat", values.lat);
-        data.set("lng", values.lng);
+    if (values.area !== "") {
+        data.set("area", values.area);
+        if (values.floor !== "") {
+            data.set("floor", values.floor);
+        }
+        if (values.x !== "" && values.y !== "") {
+            data.set("x", values.x);
+            data.set("y", values.y);
+        }
     }
     if (values.email) {
         data.set("email", values.email);

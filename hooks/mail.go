@@ -82,8 +82,6 @@ func Mail(app core.App) {
 		title := e.Record.GetString("title")
 		description := e.Record.GetString("description")
 		category := e.Record.GetString("category")
-		lat := e.Record.GetFloat("lat")
-		lng := e.Record.GetFloat("lng")
 
 		notifyAsync(app, func() {
 			data := mailBeiratIssueData{
@@ -92,8 +90,6 @@ func Mail(app core.App) {
 				Title:       title,
 				Description: description,
 				Category:    category,
-				Lat:         lat,
-				Lng:         lng,
 			}
 
 			recipients, err := findRoleEmails(app, beiratRecipientsFilter)
@@ -183,8 +179,6 @@ func Mail(app core.App) {
 		visibility := e.Record.GetString("visibility")
 		title := e.Record.GetString("title")
 		category := e.Record.GetString("category")
-		lat := e.Record.GetFloat("lat")
-		lng := e.Record.GetFloat("lng")
 
 		subject := issueSubmitterSubject(newStatus)
 
@@ -228,8 +222,6 @@ func Mail(app core.App) {
 				Title:      title,
 				Category:   category,
 				Visibility: visibility,
-				Lat:        lat,
-				Lng:        lng,
 			}
 
 			if err := sendMail(app, "staff_new_issue.html", "Angenommene Meldung: "+title, data, recipients); err != nil {
@@ -460,15 +452,15 @@ type mailBeiratSuggestionData struct {
 	Email       string
 }
 
-// mailBeiratIssueData is the data for the new-issue beirat mail.
+// mailBeiratIssueData is the data for the new-issue beirat mail. Mails
+// never carry the location of an issue (it identifies flats and people,
+// and mails outlive the portal's retention) - only the link.
 type mailBeiratIssueData struct {
 	AppName     string
 	Link        string
 	Title       string
 	Description string
 	Category    string
-	Lat         float64
-	Lng         float64
 }
 
 // mailStaffIssueData is the data for the accepted-issue staff mail
@@ -479,6 +471,4 @@ type mailStaffIssueData struct {
 	Title      string
 	Category   string
 	Visibility string
-	Lat        float64
-	Lng        float64
 }

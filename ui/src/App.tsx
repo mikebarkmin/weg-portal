@@ -29,6 +29,7 @@ import Notes from "./pages/Notes";
 import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
 import LegalEditor from "./pages/LegalEditor";
+import IssueAreas from "./pages/IssueAreas";
 
 export default function App() {
     return (
@@ -132,6 +133,14 @@ export default function App() {
                     element={
                         <RequireBeirat>
                             <LegalEditor />
+                        </RequireBeirat>
+                    }
+                />
+                <Route
+                    path="bereiche"
+                    element={
+                        <RequireBeirat>
+                            <IssueAreas />
                         </RequireBeirat>
                     }
                 />

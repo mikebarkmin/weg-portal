@@ -23,7 +23,8 @@ import (
 //   - issuejcom000001: rejected + community   (beirat + staff)
 //   - issuejprv000001: rejected + private
 //
-// community issues have lat_exact > 50, private/pending ones < 50.
+// The location of an issue is a separate record (issue_locations), see
+// api_issue_locations_test.go - an issue itself carries no position.
 
 func TestIssuesList(t *testing.T) {
 	t.Parallel()
@@ -45,45 +46,45 @@ func TestIssuesList(t *testing.T) {
 			TestAppFactory:     setupTestApp,
 			ExpectedStatus:     200,
 			ExpectedContent:    []string{`"totalItems":0`},
-			NotExpectedContent: []string{`"Kaputte Gartenbank"`, `lat_exact`},
+			NotExpectedContent: []string{`"Kaputte Gartenbank"`},
 		},
 		{
-			Name:               "resident sees accepted community issues only, no exact coords",
+			Name:               "resident sees accepted community issues only, no location",
 			Method:             http.MethodGet,
 			URL:                "/api/collections/issues/records",
 			Headers:            authHeader(t, emailResident),
 			TestAppFactory:     setupTestApp,
 			ExpectedStatus:     200,
-			ExpectedContent:    []string{`"totalItems":3`, `"issueocom000001"`, `"issueicom000001"`, `"issuercom000001"`, `"lat":51.123`},
-			NotExpectedContent: []string{`lat_exact`, `lng_exact`, `"issuepcom000001"`, `"issuepprv000001"`, `"issueoprv000001"`, `"issueiprv000001"`, `"issuerprv000001"`, `"issuejcom000001"`, `"issuejprv000001"`, `submitter@example.com`},
+			ExpectedContent:    []string{`"totalItems":3`, `"issueocom000001"`, `"issueicom000001"`, `"issuercom000001"`},
+			NotExpectedContent: []string{`areahouse790000`, `"floor"`, `"lat"`, `"issuepcom000001"`, `"issuepprv000001"`, `"issueoprv000001"`, `"issueiprv000001"`, `"issuerprv000001"`, `"issuejcom000001"`, `"issuejprv000001"`, `submitter@example.com`},
 		},
 		{
-			Name:            "beirat sees all issues incl. exact coords",
+			Name:            "beirat sees all issues",
 			Method:          http.MethodGet,
 			URL:             "/api/collections/issues/records",
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":10`, `"lat_exact"`, `"issuepcom000001"`, `"issuejprv000001"`},
+			ExpectedContent: []string{`"totalItems":10`, `"issuepcom000001"`, `"issuejprv000001"`},
 		},
 		{
-			Name:               "hausmeister sees accepted issues incl. private with exact coords",
+			Name:               "hausmeister sees accepted issues incl. private",
 			Method:             http.MethodGet,
 			URL:                "/api/collections/issues/records",
 			Headers:            authHeader(t, emailHausmeister),
 			TestAppFactory:     setupTestApp,
 			ExpectedStatus:     200,
-			ExpectedContent:    []string{`"totalItems":6`, `"lat_exact"`, `"issueoprv000001"`},
+			ExpectedContent:    []string{`"totalItems":6`, `"issueoprv000001"`},
 			NotExpectedContent: []string{`"issuepcom000001"`, `"issuejcom000001"`},
 		},
 		{
-			Name:               "hausverwaltung sees accepted issues incl. private with exact coords",
+			Name:               "hausverwaltung sees accepted issues incl. private",
 			Method:             http.MethodGet,
 			URL:                "/api/collections/issues/records",
 			Headers:            authHeader(t, emailHausverwaltung),
 			TestAppFactory:     setupTestApp,
 			ExpectedStatus:     200,
-			ExpectedContent:    []string{`"totalItems":6`, `"lat_exact"`, `"issueoprv000001"`},
+			ExpectedContent:    []string{`"totalItems":6`, `"issueoprv000001"`},
 			NotExpectedContent: []string{`"issuepcom000001"`},
 		},
 	}
@@ -130,7 +131,7 @@ func TestIssuesViewPending(t *testing.T) {
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"Defekte Laterne"`, `"lat_exact":51`},
+			ExpectedContent: []string{`"Defekte Laterne"`},
 		},
 	}
 
@@ -167,8 +168,8 @@ func TestIssuesViewOpenCommunity(t *testing.T) {
 			Headers:            authHeader(t, emailResident),
 			TestAppFactory:     setupTestApp,
 			ExpectedStatus:     200,
-			ExpectedContent:    []string{`"Kaputte Gartenbank"`, `"lat":51.123`, `"lng":7.456`},
-			NotExpectedContent: []string{`lat_exact`, `lng_exact`, `submitter@example.com`, `Max Mustermann`},
+			ExpectedContent:    []string{`"Kaputte Gartenbank"`},
+			NotExpectedContent: []string{`areahouse790000`, `"floor"`, `submitter@example.com`, `Max Mustermann`},
 		},
 		{
 			Name:            "beirat: exact coords",
@@ -177,7 +178,7 @@ func TestIssuesViewOpenCommunity(t *testing.T) {
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"Kaputte Gartenbank"`, `"lat_exact":53`},
+			ExpectedContent: []string{`"Kaputte Gartenbank"`},
 		},
 		{
 			Name:            "hausmeister: exact coords",
@@ -186,7 +187,7 @@ func TestIssuesViewOpenCommunity(t *testing.T) {
 			Headers:         authHeader(t, emailHausmeister),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"lat_exact":53`},
+			ExpectedContent: []string{`"Kaputte Gartenbank"`},
 		},
 		{
 			Name:            "hausverwaltung: exact coords",
@@ -195,7 +196,7 @@ func TestIssuesViewOpenCommunity(t *testing.T) {
 			Headers:         authHeader(t, emailHausverwaltung),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"lat_exact":53`},
+			ExpectedContent: []string{`"Kaputte Gartenbank"`},
 		},
 	}
 
@@ -232,7 +233,7 @@ func TestIssuesViewOpenPrivate(t *testing.T) {
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"Privater Parkplatz belegt"`, `"lat_exact":13`},
+			ExpectedContent: []string{`"Privater Parkplatz belegt"`},
 		},
 		{
 			Name:            "hausmeister sees private issues",
@@ -241,7 +242,7 @@ func TestIssuesViewOpenPrivate(t *testing.T) {
 			Headers:         authHeader(t, emailHausmeister),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"lat_exact":13`},
+			ExpectedContent: []string{`"Privater Parkplatz belegt"`},
 		},
 		{
 			Name:            "hausverwaltung sees private issues",
@@ -250,7 +251,7 @@ func TestIssuesViewOpenPrivate(t *testing.T) {
 			Headers:         authHeader(t, emailHausverwaltung),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"lat_exact":13`},
+			ExpectedContent: []string{`"Privater Parkplatz belegt"`},
 		},
 	}
 
@@ -263,7 +264,7 @@ func TestIssuesCreate(t *testing.T) {
 	t.Parallel()
 
 	// issues are created only via the custom /api/portal/issues route (M3)
-	body := `{"title":"Direkt","description":"Test","lat":51.1,"lng":7.4,"status":"pending","category":"test"}`
+	body := `{"title":"Direkt","description":"Test","status":"pending","category":"test"}`
 
 	scenarios := []tests.ApiScenario{
 		{
@@ -406,10 +407,10 @@ func TestIssuesUpdate(t *testing.T) {
 			ExpectedContent: []string{`"status":404`},
 		},
 		{
-			Name:            "hausmeister cannot touch photos/coords",
+			Name:            "hausmeister cannot touch photos",
 			Method:          http.MethodPatch,
 			URL:             "/api/collections/issues/records/issueocom000001",
-			Body:            strings.NewReader(`{"lat":51.999,"lng":7.999,"lat_exact":51.999}`),
+			Body:            strings.NewReader(`{"photos":[]}`),
 			Headers:         authHeader(t, emailHausmeister),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  404,

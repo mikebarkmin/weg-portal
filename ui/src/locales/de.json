@@ -25,7 +25,8 @@
         "beirat": "Beirat",
         "mySubmissions": "Meine Einreichungen",
         "legal": "Rechtstexte",
-        "admin": "Verwaltung"
+        "admin": "Verwaltung",
+        "areas": "Bereiche & Lagepläne"
     },
     "calendar": {
         "heading": "Terminkalender",
@@ -98,12 +99,11 @@
         "invalidEmail": "Bitte eine gültige E-Mail-Adresse eingeben.",
         "dateEndBeforeStart": "Das Ende liegt vor dem Anfang.",
         "submitFailed": "Die Eingaben konnten nicht gesendet werden.",
-        "locationRequired": "Bitte markieren Sie den Ort auf der Karte.",
-        "locationOutside": "Der markierte Ort liegt außerhalb des Gemeinschaftsbereichs.",
         "maxPhotos": "Es können maximal 5 Fotos angehängt werden.",
         "consentRequired": "Bitte bestätigen Sie die Einwilligung zum Hochladen der Fotos.",
         "passwordTooShort": "Das Passwort muss mindestens 8 Zeichen lang sein.",
-        "passwordMismatch": "Die Passwörter stimmen nicht überein."
+        "passwordMismatch": "Die Passwörter stimmen nicht überein.",
+        "locationInvalid": "Die Ortsangabe ist unvollständig. Bitte Bereich und ggf. Markierung erneut wählen."
     },
     "suggestion": {
         "heading": "Termin vorschlagen",
@@ -190,7 +190,8 @@
             "community": "Für die Gemeinschaft sichtbar",
             "private": "Nur intern (privat)",
             "hint": "Beim Annehmen muss gewählt werden, ob die Meldung für die Gemeinschaft sichtbar ist.",
-            "choose": "Bitte wählen …"
+            "choose": "Bitte wählen …",
+            "locationHint": "Die Ortsangabe (Etage oder Markierung) kann auf einzelne Wohnungen oder Personen schließen lassen – daher ist „Privat“ vorausgewählt. Bitte auch Titel, Text und Fotos darauf prüfen."
         },
         "submitted": "Eingereicht am",
         "intro": "Neue Vorschläge und Meldungen werden erst nach Ihrer Entscheidung sichtbar. Die Absender erhalten das Ergebnis per E-Mail.",
@@ -198,7 +199,13 @@
         "edit": "Bearbeiten",
         "targetCalendar": "In welchen Kalender?",
         "acceptTopic": "Aufnehmen",
-        "agendaNoteHint": "Wird dem Eigentümer mit der Entscheidung geschickt."
+        "agendaNoteHint": "Wird dem Eigentümer mit der Entscheidung geschickt.",
+        "shareLocation": {
+            "label": "Ortsangabe für Hausmeister und Hausverwaltung freigeben",
+            "hint": "Ohne Freigabe sehen nur der Beirat und die meldende Person den Ort. Die Freigabe kann später geändert werden."
+        },
+        "editHint": "Vor dem Annehmen bitte Namen, Wohnungsnummern und andere Hinweise auf Personen aus Titel und Text entfernen.",
+        "removePhoto": "Foto {{index}} entfernen"
     },
     "users": {
         "heading": "Benutzer",
@@ -272,14 +279,16 @@
         "category": "Kategorie",
         "location": {
             "label": "Ort (optional)",
+            "area": "Bereich",
+            "none": "Keine Angabe",
+            "floor": "Etage",
+            "floorNone": "Keine Angabe",
             "clear": "Markierung entfernen",
-            "hint": "Auf die Karte tippen, den Marker verschieben oder „Meinen Standort verwenden“, um den Ort des Problems zu markieren.",
-            "useMyLocation": "Meinen Standort verwenden",
-            "searching": "Standort wird ermittelt …",
-            "denied": "Der Standortzugriff wurde abgelehnt. Bitte tippen Sie den Ort auf der Karte an.",
-            "unsupported": "Ihr Browser unterstützt keine Standortermittlung. Bitte tippen Sie den Ort auf der Karte an.",
-            "outside": "Ihr Standort liegt außerhalb des Gemeinschaftsbereichs. Bitte tippen Sie den Ort auf der Karte an.",
-            "generic": "Der Standort konnte nicht ermittelt werden. Bitte tippen Sie den Ort auf der Karte an."
+            "pinHint": "Auf den Lageplan tippen, um die Stelle zu markieren. Die Markierung lässt sich verschieben.",
+            "planLabel": "Lageplan {{area}}",
+            "planOwnersOnly": "Der Lageplan für diesen Bereich steht nur angemeldeten, freigegebenen Eigentümern zur Verfügung.",
+            "privacy": "Die Ortsangabe sehen nur Sie und der Beirat. Der Beirat kann sie für Hausmeister und Hausverwaltung freigeben, damit die Meldung bearbeitet werden kann. Andere Eigentümer sehen sie nicht.",
+            "unavailable": "Derzeit sind keine Bereiche zur Auswahl hinterlegt. Bitte beschreiben Sie den Ort im Text."
         },
         "photos": {
             "label": "Fotos (optional)",
@@ -308,7 +317,8 @@
             "text": "Ihre Meldung ist bei der Beiratsmoderation eingegangen. Sie erhalten eine E-Mail, sobald darüber entschieden wurde.",
             "another": "Weitere Meldung",
             "back": "Zum Kalender"
-        }
+        },
+        "descriptionHint": "Bitte nennen Sie keine Namen und keine Wohnungsnummern – angenommene Meldungen können für alle Eigentümer sichtbar sein."
     },
     "signup": {
         "heading": "Konto erstellen",
@@ -425,15 +435,12 @@
     },
     "board": {
         "heading": "Pinnwand",
-        "intro": "Angenommene Meldungen aus der Gemeinschaftsanlage mit Lage auf der Karte. Für Eigentümer sind die Positionen auf ca. 100 m gerundet.",
+        "intro": "Angenommene Meldungen aus der Gemeinschaftsanlage. Ortsangaben sind nicht öffentlich: Sie sehen sie nur bei Ihren eigenen Meldungen.",
         "loading": "Meldungen werden geladen …",
         "error": "Meldungen konnten nicht geladen werden. Bitte später erneut versuchen.",
         "retry": "Erneut versuchen",
         "empty": "Keine Meldungen sichtbar.",
         "count": "{{count}} Meldung(en)",
-        "map": {
-            "label": "Karte der Meldungen"
-        },
         "filters": {
             "all": "Alle",
             "status": "Status",
@@ -443,7 +450,11 @@
             "search": "Suchen",
             "searchPlaceholder": "Titel, Kategorie oder Beschreibung …"
         },
-        "photoCount": "{{count}} Foto(s)"
+        "photoCount": "{{count}} Foto(s)",
+        "plan": {
+            "label": "Lagepläne mit markierten Meldungen",
+            "hint": "Ortsangaben sind nur für Beirat, Meldende und – nach Freigabe – Hausmeister und Hausverwaltung sichtbar."
+        }
     },
     "issueStatus": {
         "pending": "Neu",
@@ -455,7 +466,7 @@
     "issueVisibility": {
         "community": {
             "label": "Gemeinschaft",
-            "hint": "Alle freigegebenen Eigentümer sehen die Meldung auf der Pinnwand, der Ort ist auf ca. 100 m gerundet."
+            "hint": "Alle freigegebenen Eigentümer sehen die Meldung auf der Pinnwand – ohne Ortsangabe."
         },
         "private": {
             "label": "Privat",
@@ -471,7 +482,7 @@
         "loadError": "Die Meldung konnte nicht geladen werden. Bitte später erneut versuchen.",
         "retry": "Erneut versuchen",
         "category": "Kategorie",
-        "location": "Ort (gerundet)",
+        "location": "Ort",
         "decided": "Entschieden am",
         "resolved": "Erledigt am",
         "photos": "Fotos",
@@ -489,14 +500,16 @@
             "visibilityRequired": "Bitte die Sichtbarkeit wählen, bevor Sie annehmen."
         },
         "created": "Eingereicht am",
-        "locationExact": "Ort (genau)",
         "noLocation": "Kein Ort angegeben.",
-        "roundedHint": "auf ca. 100 m gerundet",
-        "mapLabel": "Karte mit dem Ort der Meldung",
         "reporter": "Gemeldet von",
         "reporterUnavailable": "Kontaktdaten nicht verfügbar",
         "status": "Status",
-        "noDescription": "Keine Beschreibung angegeben."
+        "noDescription": "Keine Beschreibung angegeben.",
+        "noLocationShared": "Für diese Meldung ist keine Ortsangabe freigegeben.",
+        "unknownArea": "Unbekannter Bereich",
+        "planLabel": "Lageplan {{area}}",
+        "locationRestricted": "Nicht öffentlich: sichtbar für Beirat, Meldende und – nach Freigabe – Hausmeister und Hausverwaltung.",
+        "locationOwn": "Nur Sie und der Beirat sehen diese Ortsangabe (ggf. auch Hausmeister und Hausverwaltung)."
     },
     "legal": {
         "footer": {
@@ -730,7 +743,8 @@
             "pending": "Wird geprüft",
             "accepted": "Angenommen",
             "rejected": "Abgelehnt"
-        }
+        },
+        "pin": "im Lageplan markiert"
     },
     "history": {
         "heading": "Verlauf und Notizen",
@@ -795,5 +809,36 @@
             "password": "Das Passwort konnte nicht gesetzt werden.",
             "delete": "Der Benutzer konnte nicht gelöscht werden."
         }
+    },
+    "areaPlan": {
+        "failed": "Der Lageplan konnte nicht geladen werden."
+    },
+    "areas": {
+        "heading": "Bereiche & Lagepläne",
+        "intro": "Bereiche, in denen eine Meldung verortet werden kann. Ein Haus erhält seine Etagen; ein Gemeinschaftsbereich (z. B. Keller, Außenanlage) einen Lageplan, auf dem Eigentümer die Stelle markieren. Lagepläne sind nur für freigegebene Konten abrufbar.",
+        "loading": "Bereiche werden geladen …",
+        "loadError": "Die Bereiche konnten nicht geladen werden.",
+        "empty": "Noch keine Bereiche angelegt.",
+        "add": "Bereich anlegen",
+        "edit": "Bearbeiten",
+        "delete": "Löschen",
+        "deleteConfirm": "Bereich „{{name}}“ wirklich löschen?",
+        "deleteInUse": "„{{name}}“ wird von Meldungen verwendet und kann nicht gelöscht werden. Schalten Sie den Bereich stattdessen inaktiv.",
+        "inactive": "Inaktiv",
+        "hasPlan": "Mit Lageplan",
+        "noPlan": "Ohne Lageplan",
+        "name": "Name",
+        "nameHint": "Zum Beispiel „Haus 79“, „Keller“ oder „Außenanlage“.",
+        "sort": "Reihenfolge",
+        "floors": "Etagen",
+        "floorsHint": "Eine Etage pro Zeile, z. B. EG, 1. OG, 2. OG. Leer lassen für Bereiche ohne Etagen.",
+        "plan": "Lageplan (Bild)",
+        "planHint": "PNG, JPEG oder WebP, höchstens 10 MB. Bitte nur vereinfachte Pläne ohne Wohnungsgrundrisse, Technikräume oder Zugänge hochladen. Ein neues Bild im gleichen Zuschnitt behält vorhandene Markierungen.",
+        "planInvalid": "Der Lageplan muss ein PNG-, JPEG- oder WebP-Bild mit höchstens 10 MB sein.",
+        "removePlan": "Lageplan entfernen",
+        "removePlanHint": "Vorhandene Markierungen bleiben gespeichert, werden aber ohne Plan nicht angezeigt.",
+        "active": "Aktiv",
+        "activeHint": "Inaktive Bereiche werden im Meldeformular nicht mehr angeboten; bestehende Meldungen behalten ihren Ort.",
+        "saveError": "Der Bereich konnte nicht gespeichert werden."
     }
 }

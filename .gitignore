@@ -36,3 +36,7 @@ test_pb_data/data.db-shm
 
 # local backup downloads (personal data)
 /backups/
+
+# property plans and their source PDFs (site-specific, uploaded via the portal)
+/plans/
+/Lageplan*.pdf

@@ -3,12 +3,9 @@ package hooks
 import (
 	"fmt"
 	"html"
-	"math"
 	"mime/multipart"
 	"net/http"
 	"net/mail"
-	"os"
-	"strconv"
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -20,8 +17,8 @@ import (
 // SubmitIssue registers the public, account-less issue submission route
 // POST /api/portal/issues (multipart), see plan.md "Public submission routes".
 //
-// The route writes the issue (status pending, optional rounded + exact
-// coordinates) and its issue_metas record (submitter email - the account
+// The route writes the issue (status pending), its optional location
+// (issue_locations, see issueAreas.go) and its issue_metas record (submitter email - the account
 // address for logged-in users) in one transaction and
 // returns only {"ok": true} - never the created record.
 func SubmitIssue(app core.App) {
@@ -87,10 +84,10 @@ func SubmitIssue(app core.App) {
 				return e.BadRequestError("Email address is invalid.", nil)
 			}
 
-			// the map point is optional: both coordinates or none
-			lat, lng, hasLocation, err := parseIssueLocation(form.Get("lat"), form.Get("lng"))
-			if err != nil {
-				return e.BadRequestError(err.Error(), nil)
+			// the location (area, floor, pin on the plan) is optional
+			location, locationError := parseIssueLocation(e.App, form, authUser)
+			if locationError != "" {
+				return e.BadRequestError(locationError, nil)
 			}
 
 			// photos
@@ -128,7 +125,12 @@ func SubmitIssue(app core.App) {
 				return e.InternalServerError("Failed to load the issue_metas collection.", err)
 			}
 
-			// create the issue + meta atomically; only server-controlled
+			issueLocationsCollection, err := app.FindCachedCollectionByNameOrId("issue_locations")
+			if err != nil {
+				return e.InternalServerError("Failed to load the issue_locations collection.", err)
+			}
+
+			// create the issue + meta (+ location) atomically; only server-controlled
 			// values are set, so client-supplied status/visibility/coords
 			// of other fields cannot be trusted in any way
 			err = app.RunInTransaction(func(txApp core.App) error {
@@ -136,12 +138,6 @@ func SubmitIssue(app core.App) {
 				issue.Set("title", title)
 				issue.Set("description", description)
 				issue.Set("category", category)
-				if hasLocation {
-					issue.Set("lat", math.Round(lat*1000)/1000)
-					issue.Set("lng", math.Round(lng*1000)/1000)
-					issue.Set("lat_exact", lat)
-					issue.Set("lng_exact", lng)
-				}
 				issue.Set("status", "pending")
 				if len(photoFiles) > 0 {
 					issue.Set("photos", photoFiles)
@@ -163,7 +159,28 @@ func SubmitIssue(app core.App) {
 					meta.Set("name", name)
 				}
 
-				return txApp.Save(meta)
+				if err := txApp.Save(meta); err != nil {
+					return err
+				}
+
+				if location == nil {
+					return nil
+				}
+
+				// never shared with staff until the Beirat decides so
+				// the location shares the id of its issue: clients read it
+				// with a plain view request (the fields are not filterable)
+				record := core.NewRecord(issueLocationsCollection)
+				record.Set("id", issue.Id)
+				record.Set("issue", issue.Id)
+				record.Set("area", location.area)
+				record.Set("floor", location.floor)
+				record.Set("has_pin", location.hasPin)
+				record.Set("x", location.x)
+				record.Set("y", location.y)
+				record.Set("shared", false)
+
+				return txApp.Save(record)
 			})
 			if err != nil {
 				return e.BadRequestError("Failed to submit the report.", nil)
@@ -176,39 +193,6 @@ func SubmitIssue(app core.App) {
 	})
 }
 
-// parseIssueLocation validates the optional map point. Both values empty
-// means "no location" (ok, hasLocation=false); otherwise both must be
-// finite numbers inside the community box.
-func parseIssueLocation(rawLat, rawLng string) (lat, lng float64, hasLocation bool, err error) {
-	rawLat = strings.TrimSpace(rawLat)
-	rawLng = strings.TrimSpace(rawLng)
-	if rawLat == "" && rawLng == "" {
-		return 0, 0, false, nil
-	}
-
-	lat, err = strconv.ParseFloat(rawLat, 64)
-	// strconv.ParseFloat also accepts NaN/Inf (which would bypass the
-	// bounds comparison), so reject them explicitly
-	if err != nil || math.IsNaN(lat) || math.IsInf(lat, 0) {
-		return 0, 0, false, fmt.Errorf("Latitude must be a number.")
-	}
-	lng, err = strconv.ParseFloat(rawLng, 64)
-	if err != nil || math.IsNaN(lng) || math.IsInf(lng, 0) {
-		return 0, 0, false, fmt.Errorf("Longitude must be a number.")
-	}
-
-	bounds, err := issueBounds()
-	if err != nil || lat < bounds.minLat || lat > bounds.maxLat || lng < bounds.minLng || lng > bounds.maxLng {
-		return 0, 0, false, fmt.Errorf("The location must be inside the community area.")
-	}
-
-	return lat, lng, true, nil
-}
-
-type issueBoundsBox struct {
-	minLat, maxLat, minLng, maxLng float64
-}
-
 const (
 	maxPhotoCount = 5
 	maxPhotoSize  = 5 * 1024 * 1024
@@ -219,41 +203,6 @@ var photoMimes = map[string]struct{}{
 	"image/jpeg": {},
 	"image/png":  {},
 	"image/webp": {},
-}
-
-// issueBounds returns the reportable bounding box around the property.
-// Defaults cover the fixture area and can be overridden per deployment
-// via PORTAL_MIN_LAT, PORTAL_MIN_LNG, PORTAL_MAX_LAT, PORTAL_MAX_LNG.
-func issueBounds() (issueBoundsBox, error) {
-	b := issueBoundsBox{
-		minLat: 51.0,
-		maxLat: 51.5,
-		minLng: 7.0,
-		maxLng: 7.5,
-	}
-
-	for envName, target := range map[string]*float64{
-		"PORTAL_MIN_LAT": &b.minLat,
-		"PORTAL_MAX_LAT": &b.maxLat,
-		"PORTAL_MIN_LNG": &b.minLng,
-		"PORTAL_MAX_LNG": &b.maxLng,
-	} {
-		raw := strings.TrimSpace(os.Getenv(envName))
-		if raw == "" {
-			continue
-		}
-		v, err := strconv.ParseFloat(raw, 64)
-		if err != nil {
-			return b, fmt.Errorf("invalid %s value %q", envName, raw)
-		}
-		*target = v
-	}
-
-	if b.minLat >= b.maxLat || b.minLng >= b.maxLng {
-		return b, fmt.Errorf("invalid bounds: min must be smaller than max")
-	}
-
-	return b, nil
 }
 
 // checkPhotoMime sniffs the actual file content instead of trusting the

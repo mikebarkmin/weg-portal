@@ -48,18 +48,15 @@ export interface PortalSuggestion {
 }
 
 // Shared client-side view of the PocketBase `issues` records as shown on
-// the issue board and detail page (M9). Exact coordinates are only
-// unhidden for beirat/hausmeister/hausverwaltung (enrich hook, M2) -
-// residents' records have no lat_exact/lng_exact and the rounded
-// lat/lng are used instead. `photos` holds the protected file names
+// the issue board and detail page (M9). An issue carries no position:
+// its optional location is a separate, access-restricted record
+// (lib/issueAreas.ts). `photos` holds the protected file names
 // (viewable only with a file token, plan.md "Files").
 export interface PortalIssue {
     id: string;
     title: string;
     description: string;
     category: string;
-    lat: number;
-    lng: number;
     status: "pending" | "open" | "in_progress" | "resolved" | "rejected";
     visibility: IssueVisibilityValue;
     photos: string[];
@@ -68,8 +65,6 @@ export interface PortalIssue {
     // autodate, set by the server on create (migration 1795000104;
     // empty for records created before it)
     created?: string;
-    lat_exact?: number;
-    lng_exact?: number;
 }
 
 export type IssueVisibilityValue = "community" | "private" | "";

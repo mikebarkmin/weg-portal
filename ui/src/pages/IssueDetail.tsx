@@ -17,14 +17,19 @@ import {
 import type { PortalIssue } from "../types";
 import StatusBadge from "../components/StatusBadge";
 import { BackLink, Page, PageHeading, SidebarInfo, SidebarMenu, Wrapper } from "../components/Page";
-import FormField from "../components/FormField";
+import FormField, { SwitchField } from "../components/FormField";
 import Notice from "../components/Notice";
 import VisibilityChip from "../components/VisibilityChip";
 import ProtectedPhotos from "../components/ProtectedPhotos";
-import IssueLocationMap from "../components/IssueLocationMap";
+import IssueLocationView from "../components/IssueLocationView";
 import IssueReporter from "../components/IssueReporter";
 import IssueHistory from "../components/IssueHistory";
-import { exactPositionOf, hasLocation } from "../lib/issues";
+import {
+    isIdentifyingLocation,
+    shareIssueLocation,
+    useIssueAreas,
+    useIssueLocation,
+} from "../lib/issueAreas";
 
 // Issue detail (M9): the fields, photos and - for beirat/hausmeister -
 // the status change buttons for exactly the transitions the server
@@ -113,6 +118,22 @@ export default function IssueDetail() {
         [role, record],
     );
     const [visibility, setVisibility] = useState<IssueVisibility | "">("");
+
+    // ---- location: a separate record the server only hands to the
+    // Beirat, the reporter and (once shared) Hausmeister/Hausverwaltung ----
+    const areas = useIssueAreas();
+    const { location, reload: reloadLocation } = useIssueLocation(id, record?.status);
+    // decided together with the accept: share the location with staff?
+    const [shareOnAccept, setShareOnAccept] = useState(true);
+    const [shareBusy, setShareBusy] = useState(false);
+    const identifying = isIdentifyingLocation(location ?? null);
+    // a floor or a pin narrows down to single flats: suggest "private"
+    useEffect(() => {
+        if (identifying) {
+            setVisibility((current) => (current === "" ? "private" : current));
+        }
+    }, [identifying]);
+
     const [actionBusy, setActionBusy] = useState(false);
     const [actionError, setActionError] = useState<{ key: string; detail: string } | null>(null);
 
@@ -141,6 +162,10 @@ export default function IssueDetail() {
         setActionError(null);
         try {
             await pb.collection("issues").update(record.id, payload);
+            if (requiresVisibility && location) {
+                await shareIssueLocation(record.id, shareOnAccept);
+                reloadLocation();
+            }
             // re-read: the response carries the new hook-owned timestamps
             const fresh = await pb.collection<PortalIssue>("issues").getOne(record.id);
             setRecord(fresh);
@@ -153,6 +178,24 @@ export default function IssueDetail() {
             setActionError({ key, detail });
         } finally {
             setActionBusy(false);
+        }
+    };
+
+    // Beirat: share or revoke the location of an accepted issue
+    const toggleShare = async (shared: boolean) => {
+        if (!record) return;
+        setShareBusy(true);
+        setActionError(null);
+        try {
+            await shareIssueLocation(record.id, shared);
+            reloadLocation();
+        } catch (err) {
+            setActionError({
+                key: "issueDetail.error.generic",
+                detail: err instanceof ClientResponseError ? serverMessage(err) : "",
+            });
+        } finally {
+            setShareBusy(false);
         }
     };
 
@@ -207,7 +250,10 @@ export default function IssueDetail() {
     const created = parsePBDate(record.created);
     const decided = parsePBDate(record.decided_at);
     const resolved = parsePBDate(record.resolved_at);
-    const exact = exactPositionOf(record, role);
+    const isStaff = role === "hausmeister" || role === "hausverwaltung";
+    // other owners never learn whether an issue has a location at all
+    const showLocation = canShow(role) || isStaff || Boolean(location);
+    const isAccepted = record.status !== "pending" && record.status !== "rejected";
 
     return (
         <Page
@@ -257,22 +303,42 @@ export default function IssueDetail() {
                         <div className="txt-hint">{t("issueDetail.noDescription")}</div>
                     )}
 
-                    <hr />
-
-                    <div className="post-section">
-                        <h2 className="section-title">
-                            <i className="ri-map-pin-line" aria-hidden="true" />
-                            {exact ? t("issueDetail.locationExact") : t("issueDetail.location")}
-                        </h2>
-                        <IssueLocationMap issue={record} role={role} />
-                        {hasLocation(record) && (
-                            <p className="txt-hint txt-sm m-0">
-                                {exact
-                                    ? `${exact[0].toFixed(6)}, ${exact[1].toFixed(6)}`
-                                    : `${record.lat.toFixed(3)}, ${record.lng.toFixed(3)} · ${t("issueDetail.roundedHint")}`}
-                            </p>
-                        )}
-                    </div>
+                    {showLocation && (
+                        <>
+                            <hr />
+                            <div className="post-section">
+                                <h2 className="section-title">
+                                    <i className="ri-map-pin-line" aria-hidden="true" />
+                                    {t("issueDetail.location")}
+                                </h2>
+                                <IssueLocationView
+                                    location={location}
+                                    areas={areas}
+                                    emptyText={isStaff ? t("issueDetail.noLocationShared") : undefined}
+                                />
+                                {location && (
+                                    <p className="txt-hint txt-sm m-0">
+                                        <i className="ri-lock-line" aria-hidden="true" />{" "}
+                                        {canShow(role) || isStaff
+                                            ? t("issueDetail.locationRestricted")
+                                            : t("issueDetail.locationOwn")}
+                                    </p>
+                                )}
+                                {canShow(role) && location && isAccepted && (
+                                    <div className="grid sm">
+                                        <SwitchField
+                                            id="detail-location-shared"
+                                            label={t("moderation.shareLocation.label")}
+                                            hint={t("moderation.shareLocation.hint")}
+                                            checked={location.shared}
+                                            disabled={shareBusy}
+                                            onChange={(e) => void toggleShare(e.target.checked)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
 
                     {record.photos.length > 0 && (
                         <>
@@ -317,6 +383,20 @@ export default function IssueDetail() {
                                         <option value="private">{t("issueVisibility.private.label")}</option>
                                     </select>
                                 </FormField>
+                                {identifying && (
+                                    <div className="col-12">
+                                        <div className="field-help">{t("moderation.visibility.locationHint")}</div>
+                                    </div>
+                                )}
+                                {location && (
+                                    <SwitchField
+                                        id="detail-share-on-accept"
+                                        label={t("moderation.shareLocation.label")}
+                                        hint={t("moderation.shareLocation.hint")}
+                                        checked={shareOnAccept}
+                                        onChange={(e) => setShareOnAccept(e.target.checked)}
+                                    />
+                                )}
                             </div>
                         )}
                         {actionError && (

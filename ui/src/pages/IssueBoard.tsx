@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import L from "leaflet";
-import { CircleMarker, MapContainer, Tooltip, useMap } from "react-leaflet";
 
 import { pb } from "../lib/pbClient";
 import { canShow, useAuth } from "../lib/auth";
 import { ISSUE_STATUSES, type IssueStatus } from "../lib/validation";
-import { ACTIVE_ISSUE_STATUSES, positionOf, STATUS_ICONS } from "../lib/issues";
+import { ACTIVE_ISSUE_STATUSES, STATUS_ICONS } from "../lib/issues";
+import { locationLabel, useIssueAreas, type IssueLocation } from "../lib/issueAreas";
 import { formatShortDate } from "../lib/dates";
 import { parsePBDate } from "../lib/recurrence";
 import { cssColor } from "../lib/cssColor";
@@ -15,16 +14,19 @@ import type { PortalIssue } from "../types";
 import StatusBadge from "../components/StatusBadge";
 import VisibilityChip from "../components/VisibilityChip";
 import ProtectedPhotos from "../components/ProtectedPhotos";
-import { issueLatLngBounds } from "../lib/issueBounds";
+import AreaPlan, { type PlanMarker } from "../components/AreaPlan";
 import { MenuButton, Page, PageHeading, SidebarMenu } from "../components/Page";
-import OsmTileLayer from "../components/OsmTileLayer";
-import "leaflet/dist/leaflet.css";
 
-// The issue board (M9): list + map of EXACTLY the issues the server
-// returns for the caller - the API rules decide what is visible
-// (community-only + accepted for residents, everything incl. pending/
-// private + exact coords for the Beirat, accepted incl. private with
-// exact coords for hausmeister/hausverwaltung). Nothing is filtered out
+// The issue board (M9): list of EXACTLY the issues the server returns for
+// the caller - the API rules decide what is visible (community-only +
+// accepted for residents, everything incl. pending/private for the
+// Beirat, accepted incl. private for hausmeister/hausverwaltung).
+//
+// Locations are separate records (issue_locations) with their own rule:
+// the Beirat gets all of them, Hausmeister/Hausverwaltung the ones the
+// Beirat shared, owners only those of their own reports. Whatever arrives
+// is shown as a label on the row and - for pins - on the area plans;
+// other owners' issues simply have no location here. Nothing is filtered out
 // client-side beyond what arrives; the status/category filters below are
 // pure display filters (kept client-side so filter changes are instant
 // and the realtime subscription keeps ONE authoritative list).
@@ -38,22 +40,6 @@ const STATUS_COLOR_VARS: Record<IssueStatus, string> = {
 };
 
 type StatusFilter = IssueStatus | "all" | "active";
-
-// Fits the map to the visible markers whenever the filtered set changes
-// (falls back to the community box when there is nothing to show).
-function FitToMarkers({ positions }: { positions: [number, number][] }) {
-    const map = useMap();
-    const key = positions.map((p) => p.join(",")).join(";");
-    useEffect(() => {
-        if (positions.length === 0) {
-            map.fitBounds(issueLatLngBounds(), { padding: [16, 16] });
-        } else {
-            map.fitBounds(L.latLngBounds(positions), { padding: [32, 32], maxZoom: 17 });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the positions' content
-    }, [map, key]);
-    return null;
-}
 
 // Board order: pending issues first (they wait for a Beirat decision),
 // after that the most recent decision first. The collection has no
@@ -81,6 +67,23 @@ export default function IssueBoard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
+    // locations the server lets this viewer see, by issue id
+    const areas = useIssueAreas();
+    const [locations, setLocations] = useState<Map<string, IssueLocation>>(new Map());
+    const [planArea, setPlanArea] = useState("");
+
+    const loadLocations = useCallback(async () => {
+        try {
+            const list = await pb
+                .collection<IssueLocation>("issue_locations")
+                .getFullList({ requestKey: null });
+            setLocations(new Map(list.map((location) => [location.id, location])));
+        } catch {
+            // the board works without locations
+            setLocations(new Map());
+        }
+    }, []);
+
     // default: only what still needs attention (pending/open/in progress)
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
     const [categoryFilter, setCategoryFilter] = useState("");
@@ -94,12 +97,13 @@ export default function IssueBoard() {
             // only timestamp the collection carries)
             const list = await pb.collection<PortalIssue>("issues").getFullList();
             setItems(list.sort(byBoardOrder));
+            void loadLocations();
         } catch {
             setError(true);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [loadLocations]);
 
     useEffect(() => {
         void load();
@@ -141,13 +145,32 @@ export default function IssueBoard() {
                 // realtime is an enhancement - the page works without it
             });
 
+        // a location appears with a new report and changes when the Beirat
+        // shares or revokes it: just re-read the (small) list
+        let unsubscribeLocations: (() => Promise<void>) | null = null;
+        pb.collection("issue_locations")
+            .subscribe("*", () => {
+                if (active) void loadLocations();
+            })
+            .then((unsub) => {
+                if (active) {
+                    unsubscribeLocations = unsub;
+                } else {
+                    void unsub();
+                }
+            })
+            .catch(() => undefined);
+
         return () => {
             active = false;
             if (unsubscribe) {
                 void unsubscribe();
             }
+            if (unsubscribeLocations) {
+                void unsubscribeLocations();
+            }
         };
-    }, []);
+    }, [loadLocations]);
 
     // ---- display filters (see the page comment) ----
     const filtered = useMemo(() => {
@@ -182,16 +205,35 @@ export default function IssueBoard() {
         return result;
     }, [items]);
 
-    // issues without a map point are listed but not drawn
-    const located = useMemo(
-        () =>
-            filtered.flatMap((issue) => {
-                const position = positionOf(issue, auth.role);
-                return position ? [{ issue, position }] : [];
-            }),
-        [filtered, auth.role],
-    );
-    const positions = useMemo(() => located.map((entry) => entry.position), [located]);
+    // areas with a plan on which at least one visible issue has a pin
+    const planAreas = useMemo(() => {
+        const withPins = new Set<string>();
+        for (const issue of filtered) {
+            const location = locations.get(issue.id);
+            if (location?.has_pin) withPins.add(location.area);
+        }
+        return (areas ?? []).filter((area) => area.plan && withPins.has(area.id));
+    }, [areas, filtered, locations]);
+    const shownPlan = planAreas.find((area) => area.id === planArea) ?? planAreas[0];
+
+    const markers = useMemo<PlanMarker[]>(() => {
+        if (!shownPlan) return [];
+        return filtered.flatMap((issue) => {
+            const location = locations.get(issue.id);
+            if (!location || !location.has_pin || location.area !== shownPlan.id) return [];
+            return [
+                {
+                    id: issue.id,
+                    x: location.x,
+                    y: location.y,
+                    title: issue.title,
+                    subtitle: t(`issueStatus.${issue.status}`),
+                    color: cssColor(STATUS_COLOR_VARS[issue.status], "#888"),
+                    onClick: () => navigate(`/issues/${issue.id}`),
+                },
+            ];
+        });
+    }, [shownPlan, filtered, locations, navigate, t]);
 
     const filterOptions: { value: StatusFilter; icon: string; label: string }[] = [
         { value: "active", icon: "ri-inbox-line", label: t("board.filters.active") },
@@ -261,34 +303,36 @@ export default function IssueBoard() {
 
             {!loading && !error && (
                 <div className="flex-column gap-sm">
-                    <div className="board-map map-canvas" aria-label={t("board.map.label")}>
-                        <MapContainer bounds={issueLatLngBounds()} maxZoom={19} className="board-map-canvas">
-                            <FitToMarkers positions={positions} />
-                            <OsmTileLayer />
-                            {located.map(({ issue, position }) => (
-                                <CircleMarker
-                                    key={issue.id}
-                                    center={position}
-                                    radius={8}
-                                    pathOptions={{
-                                        color: "#fff",
-                                        weight: 2,
-                                        fillColor: cssColor(STATUS_COLOR_VARS[issue.status], "#888"),
-                                        fillOpacity: 0.9,
-                                    }}
-                                    eventHandlers={{
-                                        click: () => navigate(`/issues/${issue.id}`),
-                                    }}
-                                >
-                                    <Tooltip>
-                                        <strong>{issue.title}</strong>
-                                        <br />
-                                        {t(`issueStatus.${issue.status}`)}
-                                    </Tooltip>
-                                </CircleMarker>
-                            ))}
-                        </MapContainer>
-                    </div>
+                    {shownPlan && shownPlan.plan && (
+                        <section className="board-plans" aria-label={t("board.plan.label")}>
+                            {planAreas.length > 1 && (
+                                <div className="board-plan-tabs" role="tablist">
+                                    {planAreas.map((area) => (
+                                        <button
+                                            key={area.id}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={area.id === shownPlan.id}
+                                            className={`btn sm ${area.id === shownPlan.id ? "" : "secondary"}`}
+                                            onClick={() => setPlanArea(area.id)}
+                                        >
+                                            <span className="txt">{area.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            <AreaPlan
+                                areaId={shownPlan.id}
+                                plan={shownPlan.plan}
+                                markers={markers}
+                                label={t("issueDetail.planLabel", { area: shownPlan.name })}
+                                className="board-map"
+                            />
+                            <p className="txt-hint txt-sm m-0">
+                                <i className="ri-lock-line" aria-hidden="true" /> {t("board.plan.hint")}
+                            </p>
+                        </section>
+                    )}
 
                     <p className="txt-hint txt-sm m-0">{t("board.count", { count: filtered.length })}</p>
 
@@ -298,6 +342,8 @@ export default function IssueBoard() {
                         <div className="list board-list">
                             {filtered.map((issue) => {
                                 const created = parsePBDate(issue.created);
+                                const location = locations.get(issue.id);
+                                const place = location ? locationLabel(location, areas ?? []) : "";
                                 return (
                                     <Link key={issue.id} className="list-item next board-item" to={`/issues/${issue.id}`}>
                                         <span className={`status-icon status-${issue.status}`} aria-hidden="true">
@@ -312,6 +358,12 @@ export default function IssueBoard() {
                                                     <span className="meta-item">
                                                         <i className="ri-price-tag-3-line" aria-hidden="true" />
                                                         {issue.category}
+                                                    </span>
+                                                )}
+                                                {place && (
+                                                    <span className="meta-item">
+                                                        <i className="ri-map-pin-line" aria-hidden="true" />
+                                                        {place}
                                                     </span>
                                                 )}
                                                 {created && (

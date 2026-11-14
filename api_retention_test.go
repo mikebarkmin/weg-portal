@@ -78,10 +78,6 @@ func createTestIssue(t testing.TB, app *tests.TestApp, id, status string, decide
 	record.Set("title", "Retention test issue "+id)
 	record.Set("description", "Retention test issue description.")
 	record.Set("category", "test")
-	record.Set("lat", 51.123)
-	record.Set("lng", 7.456)
-	record.Set("lat_exact", 51.1234)
-	record.Set("lng_exact", 7.4567)
 	record.Set("status", status)
 	record.Set("visibility", "community")
 	if !decided.IsZero() {

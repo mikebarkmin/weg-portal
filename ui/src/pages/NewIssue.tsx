@@ -5,12 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
-import MapPicker from "../components/MapPicker";
+import LocationPicker, { type LocationValue } from "../components/LocationPicker";
 import { BackLink, Page, PageHeading, SidebarMenu, Wrapper } from "../components/Page";
 import FormField, { SwitchField } from "../components/FormField";
 import Notice from "../components/Notice";
 import PhotoInput, { type PreparedPhoto } from "../components/PhotoInput";
 import { useAuth } from "../lib/auth";
+import { useIssueAreas } from "../lib/issueAreas";
 import { pb } from "../lib/pbClient";
 import {
     buildIssueFormData,
@@ -76,8 +77,10 @@ export default function NewIssue() {
             title: "",
             description: "",
             category: "",
-            lat: "",
-            lng: "",
+            area: "",
+            floor: "",
+            x: "",
+            y: "",
             email: "",
             name: "",
             photos: [],
@@ -98,14 +101,21 @@ export default function NewIssue() {
         };
     }, []);
 
-    const lat = watch("lat");
-    const lng = watch("lng");
-
-    const pickLocation = (newLat: string, newLng: string) => {
-        setValue("lat", newLat, { shouldValidate: true });
-        setValue("lng", newLng, { shouldValidate: true });
+    // the areas depend on the login (plans are for approved accounts only)
+    const areas = useIssueAreas(isAuthenticated);
+    const location: LocationValue = {
+        area: watch("area"),
+        floor: watch("floor"),
+        x: watch("x"),
+        y: watch("y"),
     };
-    const clearLocation = () => pickLocation("", "");
+    const changeLocation = (next: LocationValue) => {
+        setValue("area", next.area, { shouldValidate: true });
+        setValue("floor", next.floor, { shouldValidate: true });
+        setValue("x", next.x, { shouldValidate: true });
+        setValue("y", next.y, { shouldValidate: true });
+    };
+    const locationError = errors.area?.message || errors.floor?.message || errors.x?.message || errors.y?.message;
 
     const changePhotos = (next: PreparedPhoto[]) => {
         // the zod schema audits the blob list (count + consent coupling)
@@ -209,7 +219,12 @@ export default function NewIssue() {
                         <input id="issue-title" type="text" maxLength={200} autoComplete="off" {...register("title")} />
                     </FormField>
 
-                    <FormField id="issue-description" label={t("issue.description")} error={err(errors.description?.message)}>
+                    <FormField
+                        id="issue-description"
+                        label={t("issue.description")}
+                        hint={t("issue.descriptionHint")}
+                        error={err(errors.description?.message)}
+                    >
                         <textarea id="issue-description" rows={4} maxLength={5000} {...register("description")} />
                     </FormField>
 
@@ -221,10 +236,10 @@ export default function NewIssue() {
                         <div className="field-group-label" id="issue-location-label">
                             {t("issue.location.label")}
                         </div>
-                        <MapPicker lat={lat} lng={lng} onPick={pickLocation} onClear={clearLocation} />
-                        {(errors.lat?.message || errors.lng?.message) && (
+                        <LocationPicker areas={areas} value={location} onChange={changeLocation} />
+                        {locationError && (
                             <div className="field-help error" role="alert">
-                                {err(errors.lat?.message || errors.lng?.message)}
+                                {err(locationError)}
                             </div>
                         )}
                     </div>

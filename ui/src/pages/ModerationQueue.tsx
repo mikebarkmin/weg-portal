@@ -7,9 +7,8 @@ import { pb } from "../lib/pbClient";
 import { errorStatus, serverMessage } from "../lib/pbErrors";
 import { dayKeyOf, formatLongDate, formatTime } from "../lib/dates";
 import { parseRule, displayDate, parsePBDate } from "../lib/recurrence";
-import { useAuth } from "../lib/auth";
 import ProtectedPhotos from "../components/ProtectedPhotos";
-import IssueLocationMap from "../components/IssueLocationMap";
+import IssueLocationView from "../components/IssueLocationView";
 import IssueReporter from "../components/IssueReporter";
 import { MenuButton, Page, PageHeading, SidebarMenu } from "../components/Page";
 import FormField, { SwitchField } from "../components/FormField";
@@ -22,6 +21,12 @@ import {
     type IssueVisibility,
     type SuggestionStatus,
 } from "../lib/validation";
+import {
+    isIdentifyingLocation,
+    shareIssueLocation,
+    useIssueAreas,
+    useIssueLocation,
+} from "../lib/issueAreas";
 import type { AgendaItem, CalendarId, PortalIssue, PortalSuggestion } from "../types";
 import { CALENDARS } from "../lib/calendars";
 import { toInputValue, buildRRule, parseEditableRule, validateRecurrence, type RecurrenceErrors, type RecurrenceValues } from "../lib/eventForm";
@@ -422,11 +427,23 @@ function IssueCard({
 }) {
     const { t, i18n } = useTranslation();
     const locale = i18n.language;
-    const auth = useAuth();
     const submitted = parsePBDate(issue.created);
     const [editing, setEditing] = useState(false);
 
     const [visibility, setVisibility] = useState<IssueVisibility | "">("");
+
+    // the location (Beirat sees every one) and whether to share it with
+    // Hausmeister/Hausverwaltung - decided together with the accept
+    const areas = useIssueAreas();
+    const { location } = useIssueLocation(issue.id);
+    const [shareLocation, setShareLocation] = useState(true);
+    const identifying = isIdentifyingLocation(location ?? null);
+    // a floor or a pin narrows down to single flats: suggest "private"
+    useEffect(() => {
+        if (identifying) {
+            setVisibility((current) => (current === "" ? "private" : current));
+        }
+    }, [identifying]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<{ key: string; detail: string } | null>(null);
 
@@ -443,6 +460,10 @@ function IssueCard({
             await pb
                 .collection("issues")
                 .update(issue.id, buildIssueAccept(visibility));
+            if (location) {
+                // a new location is never shared until the Beirat says so
+                await shareIssueLocation(issue.id, shareLocation);
+            }
             onDecided(issue.id);
         } catch (err) {
             setError(decisionErrorKey(err));
@@ -511,7 +532,7 @@ function IssueCard({
                     <IssueReporter issueId={issue.id} />
                 </li>
             </ul>
-            <IssueLocationMap issue={issue} role={auth.role} />
+            <IssueLocationView location={location} areas={areas} />
             {issue.photos.length > 0 && (
                 <ProtectedPhotos recordId={issue.id} photos={issue.photos} thumb="100x100" />
             )}
@@ -536,7 +557,19 @@ function IssueCard({
                         </label>
                     ))}
                 </div>
+                {identifying && <div className="field-help">{t("moderation.visibility.locationHint")}</div>}
             </fieldset>
+            {location && (
+                <div className="grid sm">
+                    <SwitchField
+                        id={`share-location-${issue.id}`}
+                        label={t("moderation.shareLocation.label")}
+                        hint={t("moderation.shareLocation.hint")}
+                        checked={shareLocation}
+                        onChange={(e) => setShareLocation(e.target.checked)}
+                    />
+                </div>
+            )}
             <DecisionError error={error} />
             <footer className="form-footer">
                 <button type="button" className="btn secondary" disabled={busy} onClick={reject}>
@@ -699,6 +732,9 @@ function IssueEditor({
     const [title, setTitle] = useState(issue.title);
     const [description, setDescription] = useState(issue.description);
     const [category, setCategory] = useState(issue.category);
+    // photos the Beirat removes before publishing (e.g. they show people,
+    // name plates or licence plates)
+    const [removedPhotos, setRemovedPhotos] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -715,6 +751,8 @@ function IssueEditor({
                 title: title.trim(),
                 description: description.trim(),
                 category: category.trim(),
+                // PocketBase "field-" modifier: delete these files
+                ...(removedPhotos.length > 0 ? { "photos-": removedPhotos } : {}),
             });
             onSaved(updated);
         } catch (err) {
@@ -736,6 +774,22 @@ function IssueEditor({
                 <FormField id={`edit-category-${issue.id}`} label={t("issue.category")}>
                     <input id={`edit-category-${issue.id}`} type="text" maxLength={100} value={category} onChange={(e) => setCategory(e.target.value)} />
                 </FormField>
+                <div className="col-12">
+                    <div className="field-help">{t("moderation.editHint")}</div>
+                </div>
+                {issue.photos.map((photo, index) => (
+                    <SwitchField
+                        key={photo}
+                        id={`edit-remove-photo-${issue.id}-${index}`}
+                        label={t("moderation.removePhoto", { index: index + 1 })}
+                        checked={removedPhotos.includes(photo)}
+                        onChange={(e) =>
+                            setRemovedPhotos((prev) =>
+                                e.target.checked ? [...prev, photo] : prev.filter((name) => name !== photo),
+                            )
+                        }
+                    />
+                ))}
                 {error && (
                     <div className="col-12">
                         <div className="alert danger">{error}</div>

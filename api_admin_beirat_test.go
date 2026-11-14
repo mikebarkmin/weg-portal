@@ -116,13 +116,13 @@ func TestAdminBeiratRights(t *testing.T) {
 			ExpectedContent: []string{`"status":"rejected"`},
 		},
 		{
-			Name:            "admin sees the exact issue coordinates",
+			Name:            "admin sees the location of every issue, even pending ones",
 			Method:          http.MethodGet,
-			URL:             "/api/collections/issues/records/issuepcom000001",
+			URL:             "/api/collections/issue_locations/records/issuepcom000001",
 			Headers:         authHeader(t, emailAdmin),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"lat_exact"`, `"lng_exact"`},
+			ExpectedContent: []string{`"area":"areahouse790000"`, `"floor":"1. OG"`},
 		},
 		// ---- notes -----------------------------------------------------
 		{

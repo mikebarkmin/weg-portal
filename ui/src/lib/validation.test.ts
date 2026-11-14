@@ -15,9 +15,6 @@ import {
     noteSchema,
     suggestionSchema,
     issueSchema,
-    isWithinIssueBounds,
-    applyIssueBounds,
-    ISSUE_BOUNDS,
     MAX_PHOTOS,
     type IssueFormValues,
     type SuggestionFormValues,
@@ -203,8 +200,10 @@ function validIssueValues(overrides: Partial<IssueFormValues> = {}): IssueFormVa
         title: "Kaputte Laterne",
         description: "Die Laterne am Hintereingang leuchtet nicht.",
         category: "Beleuchtung",
-        lat: "51.24812",
-        lng: "7.21222",
+        area: "areakeller00000",
+        floor: "",
+        x: "0.25",
+        y: "0.75",
         email: "bewohner@example.com",
         name: "Anna",
         photos: [],
@@ -249,24 +248,31 @@ describe("issueSchema", () => {
         ).toBe(false);
     });
 
-    it("makes the map point optional", () => {
-        expect(issueSchema.safeParse(validIssueValues({ lat: "", lng: "" })).success).toBe(true);
-        const data = buildIssueFormData(validIssueValues({ lat: "", lng: "" }), [], 1);
-        expect(data.has("lat")).toBe(false);
-        expect(data.has("lng")).toBe(false);
+    it("makes the location optional", () => {
+        const none = { area: "", floor: "", x: "", y: "" };
+        expect(issueSchema.safeParse(validIssueValues(none)).success).toBe(true);
+        const data = buildIssueFormData(validIssueValues(none), [], 1);
+        for (const field of ["area", "floor", "x", "y"]) {
+            expect(data.has(field)).toBe(false);
+        }
     });
 
-    it("requires a set location to be complete and within the bounding box", () => {
-        expect(issueSchema.safeParse(validIssueValues({ lat: "" })).success).toBe(false);
-        expect(issueSchema.safeParse(validIssueValues({ lat: "abc" })).success).toBe(false);
-        // outside the box on each axis
-        expect(issueSchema.safeParse(validIssueValues({ lat: "50.9" })).success).toBe(false);
-        expect(issueSchema.safeParse(validIssueValues({ lat: "51.6" })).success).toBe(false);
-        expect(issueSchema.safeParse(validIssueValues({ lng: "6.9" })).success).toBe(false);
-        expect(issueSchema.safeParse(validIssueValues({ lng: "7.6" })).success).toBe(false);
-        // boundary values themselves are valid
-        expect(issueSchema.safeParse(validIssueValues({ lat: "51.0", lng: "7.0" })).success).toBe(true);
-        expect(issueSchema.safeParse(validIssueValues({ lat: "51.5", lng: "7.5" })).success).toBe(true);
+    it("accepts an area alone, with a floor or with a pin", () => {
+        expect(issueSchema.safeParse(validIssueValues({ x: "", y: "" })).success).toBe(true);
+        expect(issueSchema.safeParse(validIssueValues({ floor: "2. OG", x: "", y: "" })).success).toBe(true);
+        // the plan's edges are valid pin positions
+        expect(issueSchema.safeParse(validIssueValues({ x: "0", y: "1" })).success).toBe(true);
+    });
+
+    it("requires a complete pin on the plan and an area for floor and pin", () => {
+        expect(issueSchema.safeParse(validIssueValues({ x: "" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ y: "" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ x: "abc" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ x: "1.01" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ y: "-0.1" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ x: "NaN" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ area: "" })).success).toBe(false);
+        expect(issueSchema.safeParse(validIssueValues({ area: "", x: "", y: "", floor: "EG" })).success).toBe(false);
     });
 
     it("allows at most the server's photo count", () => {
@@ -298,18 +304,6 @@ describe("issueSchema", () => {
     });
 });
 
-describe("isWithinIssueBounds", () => {
-    it("matches the backend defaults", () => {
-        expect(isWithinIssueBounds(51.25, 7.25)).toBe(true);
-        expect(isWithinIssueBounds(51.0, 7.0)).toBe(true);
-        expect(isWithinIssueBounds(51.5, 7.5)).toBe(true);
-        expect(isWithinIssueBounds(50.9999, 7.25)).toBe(false);
-        expect(isWithinIssueBounds(51.25, 7.5001)).toBe(false);
-        expect(isWithinIssueBounds(NaN, 7.25)).toBe(false);
-        expect(isWithinIssueBounds(51.25, Infinity)).toBe(false);
-    });
-});
-
 describe("buildIssueFormData", () => {
     it("sends exactly the multipart contract of hooks/submitIssue.go", () => {
         const blob = new Blob(["reencoded"], { type: "image/jpeg" });
@@ -318,8 +312,10 @@ describe("buildIssueFormData", () => {
         expect(data.get("title")).toBe("Kaputte Laterne");
         expect(data.get("description")).toBe("Die Laterne am Hintereingang leuchtet nicht.");
         expect(data.get("category")).toBe("Beleuchtung");
-        expect(data.get("lat")).toBe("51.24812");
-        expect(data.get("lng")).toBe("7.21222");
+        expect(data.get("area")).toBe("areakeller00000");
+        expect(data.get("floor")).toBeNull();
+        expect(data.get("x")).toBe("0.25");
+        expect(data.get("y")).toBe("0.75");
         expect(data.get("email")).toBe("bewohner@example.com");
         expect(data.get("name")).toBe("Anna");
         expect(data.get("photo_consent")).toBe("true");
@@ -346,8 +342,7 @@ describe("buildIssueFormData", () => {
         expect(photos.map((p) => p.name)).toEqual(["photo-1.jpg", "photo-2.jpg", "photo-3.jpg"]);
         expect(data.get("status")).toBeNull();
         expect(data.get("visibility")).toBeNull();
-        expect(data.get("lat_exact")).toBeNull();
-        expect(data.get("lng_exact")).toBeNull();
+        expect(data.get("shared")).toBeNull();
     });
 });
 
@@ -620,23 +615,5 @@ describe("noteSchema and note payloads", () => {
         const payload = buildNoteUpdate(values) as Record<string, unknown>;
         expect(payload).toEqual({ title: "Notiz", body: "Text" });
         expect("author" in payload).toBe(false);
-    });
-});
-
-describe("applyIssueBounds", () => {
-    it("replaces the box with the deployment config and rejects malformed boxes", () => {
-        const original = { ...ISSUE_BOUNDS };
-        try {
-            expect(applyIssueBounds({ minLat: 52.1, maxLat: 52.2, minLng: 13.3, maxLng: 13.4 })).toBe(true);
-            expect(isWithinIssueBounds(52.15, 13.35)).toBe(true);
-            expect(isWithinIssueBounds(51.25, 7.25)).toBe(false);
-
-            expect(applyIssueBounds({ minLat: 53, maxLat: 52, minLng: 13.3, maxLng: 13.4 })).toBe(false);
-            expect(applyIssueBounds({ minLat: 52 })).toBe(false);
-            expect(applyIssueBounds(null)).toBe(false);
-            expect(ISSUE_BOUNDS.minLat).toBe(52.1);
-        } finally {
-            applyIssueBounds(original);
-        }
     });
 });

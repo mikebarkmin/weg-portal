@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"ganigeorgiev.com/pocketbase/pocketbase/core"
 	_ "ganigeorgiev.com/pocketbase/pocketbase/migrations" // PB core migrations
@@ -28,10 +29,10 @@ const (
 	// passwords of all fixture users (documented in test_pb_data/README.md)
 	fixturePassword = "passwort123"
 
-	// exact and rounded fixture coordinates (issues)
-	latFixed = 51.123   // rounded 3 decimals
-	lngFixed = 7.456    // rounded 3 decimals
-	lngExact = 7.456789 // exact latitude values are set per issue
+	// issue areas (issue_areas)
+	areaHouse    = "areahouse790000" // house with floors, no plan
+	areaBasement = "areakeller00000" // shared area with a plan
+	areaInactive = "areainactive000" // retired area
 )
 
 // tiny 1x1 transparent PNG used as the fixture issue photo
@@ -51,8 +52,26 @@ func main() {
 }
 
 func run() error {
+	// the hand-written docs in the directory survive the reset
+	docs := map[string][]byte{}
+	if matches, err := filepath.Glob(filepath.Join(dataDir, "*.md")); err == nil {
+		for _, path := range matches {
+			if content, err := os.ReadFile(path); err == nil {
+				docs[path] = content
+			}
+		}
+	}
+
 	if err := os.RemoveAll(dataDir); err != nil {
 		return fmt.Errorf("failed to reset %s: %w", dataDir, err)
+	}
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		return err
+	}
+	for path, content := range docs {
+		if err := os.WriteFile(path, content, 0o644); err != nil {
+			return err
+		}
 	}
 
 	app := core.NewBaseApp(core.BaseAppConfig{
@@ -256,6 +275,43 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	issueAreas, err := app.FindCollectionByNameOrId("issue_areas")
+	if err != nil {
+		return err
+	}
+	issueLocations, err := app.FindCollectionByNameOrId("issue_locations")
+	if err != nil {
+		return err
+	}
+
+	for i, f := range []struct {
+		id     string
+		name   string
+		floors []string
+		plan   bool
+		active bool
+	}{
+		{areaHouse, "Haus 79", []string{"EG", "1. OG", "2. OG"}, false, true},
+		{areaBasement, "Keller", []string{}, true, true},
+		{areaInactive, "Alter Bereich", []string{}, false, false},
+	} {
+		area := core.NewRecord(issueAreas)
+		area.Set("id", f.id)
+		area.Set("name", f.name)
+		area.Set("floors", f.floors)
+		area.Set("sort", i+1)
+		area.Set("active", f.active)
+		if f.plan {
+			plan, err := filesystem.NewFileFromBytes(fixturePNG, "plan.png")
+			if err != nil {
+				return err
+			}
+			area.Set("plan", plan)
+		}
+		if err := app.Save(area); err != nil {
+			return err
+		}
+	}
 
 	// id suffix -> [status, visibility, title]
 	issueFixtures := []struct {
@@ -276,21 +332,12 @@ func run() error {
 		{"issuejprv000001", "rejected", "private", "Nachbarstreit"},
 	}
 
-	for i, f := range issueFixtures {
+	for _, f := range issueFixtures {
 		issue := core.NewRecord(issues)
 		issue.Set("id", f.id)
 		issue.Set("title", f.title)
 		issue.Set("description", "Fixture issue description for tests.")
 		issue.Set("category", "test")
-		latExactValue := 10.0 + float64(i)
-		if f.visibility == "community" {
-			latExactValue = 51.0 + float64(i)
-		}
-
-		issue.Set("lat", latFixed)
-		issue.Set("lng", lngFixed)
-		issue.Set("lat_exact", latExactValue)
-		issue.Set("lng_exact", lngExact)
 		issue.Set("status", f.status)
 		issue.Set("visibility", f.visibility)
 		switch f.status {
@@ -312,7 +359,34 @@ func run() error {
 		meta.Set("issue", f.id)
 		meta.Set("email", "submitter@example.com")
 		meta.Set("name", "Max Mustermann")
+		// one report was submitted by the resident account (the reporter
+		// sees their own location)
+		if f.id == "issueiprv000001" {
+			meta.Set("user", "userresident000")
+		}
 		if err := app.Save(meta); err != nil {
+			return err
+		}
+
+		// location: community issues in the house (floor, no pin), private
+		// ones in the basement with a pin. Shared with staff: the pending
+		// and the open issues (the pending ones must stay invisible to
+		// staff anyway), not the others.
+		location := core.NewRecord(issueLocations)
+		// same id as the issue (as the submission route does)
+		location.Set("id", f.id)
+		location.Set("issue", f.id)
+		if f.visibility == "community" {
+			location.Set("area", areaHouse)
+			location.Set("floor", "1. OG")
+		} else {
+			location.Set("area", areaBasement)
+			location.Set("has_pin", true)
+			location.Set("x", 0.25)
+			location.Set("y", 0.75)
+		}
+		location.Set("shared", f.status == "pending" || f.status == "open")
+		if err := app.Save(location); err != nil {
 			return err
 		}
 

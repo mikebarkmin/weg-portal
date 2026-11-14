@@ -34,7 +34,7 @@ func NewWithConfig(config pocketbase.Config) *pocketbase.PocketBase {
 	return app
 }
 
-const defaultCSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org data: blob:; connect-src 'self'; script-src 'self'; frame-ancestors 'none'"
+const defaultCSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; script-src 'self'; frame-ancestors 'none'"
 
 func bindAppHooks(app core.App) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
@@ -82,7 +82,7 @@ func bindAppHooks(app core.App) {
 
 	// ---------------------------------------------------------------
 
-	hooks.IssueEnrich(app)
+	hooks.IssueAreas(app)
 	hooks.SubmitIssue(app)
 	hooks.SuggestionCreate(app)
 	hooks.UsersCreate(app)

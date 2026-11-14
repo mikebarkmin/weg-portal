@@ -13,7 +13,7 @@ changing `migrations/` or `fixturegen/main.go`:
 go run ./fixturegen
 ```
 
-The script wipes and recreates the directory: it applies all migrations
+The script wipes and recreates the directory (the `*.md` files are kept): it applies all migrations
 (PocketBase core + app migrations) and seeds the deterministic records below.
 Commit the result when the fixture changes deliberately.
 
@@ -51,11 +51,16 @@ branches of the M4 staff notification are testable against the fixture.
 - issues: `issue<status><visibility>000001` for each status
   (p=pending, o=open, i=in_progress, r=resolved, j=rejected) x visibility
   (com=community, prv=private) - e.g. `issueocom000001` is open+community.
-  All have the rounded coords lat=51.123, lng=7.456, the exact
-  `lat_exact`/`lng_exact` (distinct per issue; community issues use values
-  >50, others <50, so filter-probing tests can detect a leak), one
-  protected photo `photo.png` (1x1 px PNG), and one `issue_metas` record
-  (`imeta...000001`) with the submitter email.
+  All have one protected photo `photo.png` (1x1 px PNG), one `issue_metas`
+  record (`imeta...000001`) with the submitter email and one
+  `issue_locations` record (same id as the issue): community issues are in
+  "Haus 79" on floor "1. OG" (no pin), private ones in "Keller" with a pin
+  at x=0.25, y=0.75. The location is `shared` with staff for the pending
+  and open issues only. `issueiprv000001` was reported by the resident
+  account (`issue_metas.user`).
+- issue_areas: `areahouse790000` ("Haus 79", floors EG / 1. OG / 2. OG, no
+  plan), `areakeller00000` ("Keller", protected plan `plan.png`),
+  `areainactive000` ("Alter Bereich", inactive)
 - notes: `notesnormal0001`, `notespinned0001` (author = beirat)
 - portal_settings: single record `portsettings000` (90/90/90/365)
 

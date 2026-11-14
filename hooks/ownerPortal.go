@@ -222,6 +222,8 @@ func OwnerPortal(app core.App) {
 					"created":     issue.GetString("created"),
 					"decided_at":  issue.GetString("decided_at"),
 					"resolved_at": issue.GetString("resolved_at"),
+					// the reporter always sees where they reported
+					"location": issueLocationView(e.App, issue.Id),
 				})
 			}
 

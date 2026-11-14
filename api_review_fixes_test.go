@@ -17,14 +17,9 @@ import (
 
 // Regression tests for the post-M12 review fixes.
 
-// GET /api/portal/config exposes the reportable bounding box (the same
-// values POST /api/portal/issues enforces) to everyone.
-func TestPortalConfigBounds(t *testing.T) {
-	t.Setenv("PORTAL_MIN_LAT", "52.1")
-	t.Setenv("PORTAL_MAX_LAT", "52.2")
-	t.Setenv("PORTAL_MIN_LNG", "13.3")
-	t.Setenv("PORTAL_MAX_LNG", "13.4")
-
+// GET /api/portal/config returns the app version and time zone - and no
+// longer a map bounding box (the OpenStreetMap location is gone).
+func TestPortalConfig(t *testing.T) {
 	app := setupTestApp(t)
 	defer app.Cleanup()
 
@@ -34,8 +29,8 @@ func TestPortalConfigBounds(t *testing.T) {
 	}
 
 	var body struct {
-		Bounds  map[string]float64 `json:"bounds"`
-		Version string             `json:"version"`
+		Version  string `json:"version"`
+		Timezone string `json:"timezone"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
@@ -44,12 +39,8 @@ func TestPortalConfigBounds(t *testing.T) {
 	if body.Version != "dev" {
 		t.Fatalf("expected version %q, got %q", "dev", body.Version)
 	}
-
-	want := map[string]float64{"minLat": 52.1, "maxLat": 52.2, "minLng": 13.3, "maxLng": 13.4}
-	for k, v := range want {
-		if body.Bounds[k] != v {
-			t.Fatalf("expected %s=%v, got %v (%s)", k, v, body.Bounds[k], rec.Body.String())
-		}
+	if body.Timezone == "" || strings.Contains(rec.Body.String(), "bounds") {
+		t.Fatalf("unexpected config: %s", rec.Body.String())
 	}
 }
 

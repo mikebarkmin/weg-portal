@@ -745,10 +745,43 @@ fieldset.visibility-choice {
     height: 240px;
 }
 
-.map-picker {
+/* area plans (Leaflet CRS.Simple over an uploaded image) */
+.plan-canvas {
+    height: 360px;
+    background: var(--surfaceAlt1Color, #f3f4f6);
+    @media (max-width: 600px) {
+        height: 300px;
+    }
+    .leaflet-container {
+        background: transparent;
+    }
+}
+.plan-canvas.issue-map {
+    height: 280px;
+}
+.plan-canvas.board-map {
+    height: 380px;
+}
+.plan-loading {
+    opacity: 0.6;
+}
+
+.location-picker,
+.issue-location,
+.board-plans {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+.issue-location-label {
+    font-weight: 600;
+}
+
+.board-plan-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 .map-toolbar {

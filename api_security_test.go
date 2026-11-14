@@ -7,56 +7,9 @@ import (
 	"ganigeorgiev.com/pocketbase/pocketbase/tests"
 )
 
-// Explicit security probes for the plan.md "Security" table.
-// Filter/expand probing against the schema-hidden exact coordinates and
-// the protected issue photos.
-func TestIssuesFilterProbingHiddenFields(t *testing.T) {
-	t.Parallel()
-
-	// community+accepted issues have lat_exact 53/55/57 (>50); private,
-	// pending and rejected ones have lat_exact 10-19 (<50). If filtering on
-	// the hidden lat_exact had any effect, this list count would change
-	// (or the request must fail); it must stay identical to the unfiltered
-	// resident list.
-	scenarios := []tests.ApiScenario{
-		{
-			// PocketBase rejects filter expressions on schema-hidden fields:
-			// filtering by the exact coordinates is not even possible.
-			Name:               "resident filter on lat_exact is rejected",
-			Method:             http.MethodGet,
-			URL:                "/api/collections/issues/records?filter=" + urlEncode(`(lat_exact<50)`),
-			Headers:            authHeader(t, emailResident),
-			TestAppFactory:     setupTestApp,
-			ExpectedStatus:     400,
-			ExpectedContent:    []string{`"status":400`},
-			NotExpectedContent: []string{"lat_exact", `"issueoprv000001`, `"issuepcom000001`},
-		},
-		{
-			Name:               "same for lng_exact",
-			Method:             http.MethodGet,
-			URL:                "/api/collections/issues/records?filter=" + urlEncode(`(lng_exact=7.456789)`),
-			Headers:            authHeader(t, emailResident),
-			TestAppFactory:     setupTestApp,
-			ExpectedStatus:     400,
-			ExpectedContent:    []string{`"status":400`},
-			NotExpectedContent: []string{"lng_exact", `"issueoprv000001`},
-		},
-		{
-			Name:            "unapproved resident cannot probe either",
-			Method:          http.MethodGet,
-			URL:             "/api/collections/issues/records?filter=" + urlEncode(`(lat_exact<50)`),
-			Headers:         authHeader(t, emailUnapproved),
-			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  400,
-			ExpectedContent: []string{`"status":400`},
-		},
-	}
-
-	for _, scenario := range scenarios {
-		scenario.Test(t)
-	}
-}
-
+// Explicit security probes for the plan.md "Security" table: expand
+// probing and the protected issue photos. The location probes live in
+// api_issue_locations_test.go.
 func TestIssuesExpandProbing(t *testing.T) {
 	t.Parallel()
 
