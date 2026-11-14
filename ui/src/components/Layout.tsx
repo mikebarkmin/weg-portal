@@ -25,7 +25,7 @@ function initialsOf(name: string, fallback: string): string {
 // App shell in BugStage's layout: the floating header bar (.project-header)
 // with icon navigation, the page body, and the footer with the theme and
 // language pickers. On narrow screens the navigation collapses into a
-// dropdown behind a menu button, exactly like BugStage's project menu.
+// slide-in sheet behind a menu button, with the sections as accordions.
 export default function Layout() {
     const { t } = useTranslation();
     const auth = useAuth();
@@ -192,16 +192,37 @@ export default function Layout() {
                                 <>
                                     <nav
                                         id={menuId}
-                                        className="project-menu dropdown"
+                                        className="project-menu dropdown sheet"
                                         popover="auto"
                                         aria-label={t("nav.menu")}
                                     >
+                                        <div className="sheet-head">
+                                            <span className="txt">{t("app.title")}</span>
+                                            <button
+                                                type="button"
+                                                className="header-btn secondary"
+                                                popoverTarget={menuId}
+                                                aria-label={t("nav.close")}
+                                            >
+                                                <i className="ri-close-line" aria-hidden="true" />
+                                            </button>
+                                        </div>
                                         {items.map(navLink)}
                                         {groupButtons.map((group) => (
-                                            <div key={group.id} className="menu-group">
-                                                <div className="dropdown-section-title">{group.label}</div>
-                                                {group.items.map(navLink)}
-                                            </div>
+                                            <details
+                                                key={group.id}
+                                                className="menu-group"
+                                                open={group.items.some((i) => location.pathname.startsWith(i.to))}
+                                            >
+                                                <summary>
+                                                    <i className={group.icon} aria-hidden="true" />
+                                                    <span className="txt">{group.label}</span>
+                                                    <i className="ri-arrow-drop-down-fill chevron" aria-hidden="true" />
+                                                </summary>
+                                                <div className="menu-group-items">
+                                                    {group.items.map(navLink)}
+                                                </div>
+                                            </details>
                                         ))}
                                     </nav>
                                     <button

@@ -64,18 +64,16 @@
 
 /* popovers anchored to their toggle (BugStage relies on implicit anchors) */
 .account-dropdown,
-.header-dropdown,
-.project-menu.dropdown {
+.header-dropdown {
     position-area: bottom span-left;
     position-try-fallbacks: flip-block;
 }
 
-/* the base .dropdown caps at 330px and then clips; the header popups
-   should show all their items (the Beirat menu holds a full group) and
-   only scroll when the viewport itself leaves no room */
+/* the base caps anchor-sized dropdowns at 330px and then clips; the header
+   popups should show all their items (the Beirat menu holds a full group)
+   and only scroll when the viewport itself leaves no room */
 .account-dropdown,
-.header-dropdown,
-.project-menu.dropdown {
+.header-dropdown {
     max-height: calc(100dvh - 2 * var(--smSpacing));
 }
 
@@ -110,18 +108,129 @@
 }
 
 
-.project-menu.dropdown .menu-group {
+/* ------------------------------------------------------------------ */
+/* collapsed navigation: slide-in sheet with accordion sections         */
+/* ------------------------------------------------------------------ */
+
+/* the collapsed menu opens as a full-height panel pinned to the left edge
+   instead of a small anchored dropdown: long lists get comfortable rows
+   and nothing can clip near the viewport bottom */
+.project-menu.sheet {
+    position: fixed;
+    inset: 0 auto 0 0;
+    position-area: none;
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    white-space: normal;
+    width: min(320px, calc(100vw - 72px));
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    overflow-y: auto;
+    border-radius: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+}
+
+/* slide in from the left instead of the base dropdown's downward shift */
+.project-menu.sheet[popover] {
+    transform: translateX(-16px);
+}
+.project-menu.sheet[popover]:popover-open {
+    transform: translateX(0);
+}
+@starting-style {
+    .project-menu.sheet:popover-open {
+        transform: translateX(-16px);
+    }
+}
+
+.project-menu.sheet .sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--xsSpacing);
+    padding: 5px 5px 10px;
+    margin-bottom: 10px;
+    border-bottom: var(--borderWidth) solid var(--accentAlt1Color);
+    font-weight: bold;
+}
+
+/* full-width rows with comfortable touch targets */
+.project-menu.sheet .header-btn {
+    justify-content: flex-start;
+    min-height: 44px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+/* the accordion card look of the bare <details> (bugstage/accordion.css)
+   is flattened back into menu rows; only the chevron shows the state */
+.project-menu.sheet details.menu-group {
+    display: block;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+    transition: none;
+}
+.project-menu.sheet details.menu-group summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 5px 10px;
+    padding-right: 15px;
+    background: none;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    color: var(--accentTxtColor);
+    border-radius: 30px;
+    transition: background var(--animationSpeed);
+    &::marker {
+        content: "";
+        display: none;
+    }
+    &::before {
+        content: "";
+        display: none;
+    }
+    &:hover,
+    &:focus-visible {
+        outline: 0;
+        background: var(--accentAlt3Color);
+    }
+    .chevron {
+        margin-left: auto;
+        color: var(--accentTxtHintColor);
+        transition: rotate var(--slideAnimationSpeed);
+    }
+}
+.project-menu.sheet details.menu-group[open] summary {
+    color: var(--accentTxtHintColor);
+    .chevron {
+        rotate: 180deg;
+    }
+}
+.project-menu.sheet details.menu-group::details-content {
+    height: auto;
+    padding: 0;
+    box-shadow: none;
+    overflow: visible;
+    transition: none;
+}
+.project-menu.sheet .menu-group-items {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding-top: 6px;
-    border-top: var(--borderWidth) solid var(--accentAlt1Color);
-    .dropdown-section-title {
-        padding: 0 var(--xsSpacing);
-        font-size: var(--smFontSize);
-        font-weight: bold;
-        color: var(--accentTxtHintColor);
-    }
+    gap: 2px;
+    padding-left: 10px;
 }
 
 .app-footer button.list-item {
