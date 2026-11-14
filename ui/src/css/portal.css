@@ -1383,7 +1383,11 @@ fieldset.visibility-choice {
         .ctrls {
             width: 100%;
             margin-left: 0;
-            justify-content: flex-end;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+        }
+        .admin-role-select {
+            flex: 1 1 100%;
         }
     }
 }
@@ -1826,4 +1830,14 @@ code.legal-placeholder {
 
 .post .tabs-header {
     margin-top: -4px;
+}
+
+/* keep a meta item's icon next to its text: with the base "wrap" a long
+   text (e.g. "eingereicht am …") drops below its icon on narrow screens,
+   leaving the icon alone on a line; the text now wraps within its own box */
+.meta .meta-item {
+    flex-wrap: nowrap;
+    > i {
+        flex-shrink: 0;
+    }
 }
