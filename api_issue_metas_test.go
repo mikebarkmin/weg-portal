@@ -38,7 +38,7 @@ func TestIssueMetasList(t *testing.T) {
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":10`, `submitter@example.com`},
+			ExpectedContent: []string{`"totalItems":11`, `submitter@example.com`},
 		},
 		{
 			Name:               "hausmeister",

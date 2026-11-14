@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"ganigeorgiev.com/pocketbase/pocketbase/core"
-	"ganigeorgiev.com/pocketbase/pocketbase/tools/mailer"
 	"ganigeorgiev.com/pocketbase/pocketbase/tests"
+	"ganigeorgiev.com/pocketbase/pocketbase/tools/mailer"
 )
 
 // M4: workflow transition + notification tests.
@@ -207,6 +207,50 @@ func TestIssueWorkflowTransitions(t *testing.T) {
 			ExpectedStatus:  400,
 			ExpectedContent: []string{`"status":400`},
 		},
+		// archive returns and bad archive sources
+		{
+			Name:            "beirat pending->archived",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issuepcom000001",
+			Body:            strings.NewReader(`{"status":"archived"}`),
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  400,
+			ExpectedContent: []string{`"status":400`},
+		},
+		{
+			Name:            "beirat rejected->archived",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issuejcom000001",
+			Body:            strings.NewReader(`{"status":"archived"}`),
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  400,
+			ExpectedContent: []string{`"status":400`},
+		},
+		// the return paths and the archive are beirat/admin-only: the
+		// hausmeister rule never matches such requests - PocketBase then
+		// answers 404 (the record "is not visible" under that rule)
+		{
+			Name:            "hausmeister resolved->open (rule rejects)",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issuercom000001",
+			Body:            strings.NewReader(`{"status":"open"}`),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "hausmeister open->archived (rule rejects)",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"status":"archived"}`),
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
 		{
 			Name:            "beirat resolved->pending",
 			Method:          http.MethodPatch,
@@ -218,30 +262,61 @@ func TestIssueWorkflowTransitions(t *testing.T) {
 			ExpectedContent: []string{`"status":400`},
 		},
 		{
-			Name:            "beirat resolved->open",
+			Name:               "beirat resolved->open (reopen)",
+			Method:             http.MethodPatch,
+			URL:                "/api/collections/issues/records/issuercom000001",
+			Body:               strings.NewReader(`{"status":"open"}`),
+			Headers:            authHeader(t, emailBeirat),
+			TestAppFactory:     setupTestApp,
+			ExpectedStatus:     200,
+			ExpectedContent:    []string{`"status":"open"`},
+			NotExpectedContent: []string{`"resolved_at":"2`},
+		},
+		{
+			Name:            "beirat in_progress->open backwards",
 			Method:          http.MethodPatch,
-			URL:             "/api/collections/issues/records/issuercom000001",
-			Body:            strings.NewReader(`{"status":"open","visibility":"community"}`),
+			URL:             "/api/collections/issues/records/issueicom000001",
+			Body:            strings.NewReader(`{"status":"open"}`),
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  400,
-			ExpectedContent: []string{`"status":400`},
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"status":"open"`},
+		},
+		{
+			Name:            "beirat open->archived",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueocom000001",
+			Body:            strings.NewReader(`{"status":"archived"}`),
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"status":"archived"`},
+		},
+		{
+			Name:            "beirat in_progress->archived",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issueicom000001",
+			Body:            strings.NewReader(`{"status":"archived"}`),
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"status":"archived"`},
+		},
+		{
+			Name:            "beirat resolved->archived (keeps resolved_at)",
+			Method:          http.MethodPatch,
+			URL:             "/api/collections/issues/records/issuercom000001",
+			Body:            strings.NewReader(`{"status":"archived"}`),
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"status":"archived"`, `"resolved_at":"2`},
 		},
 		{
 			Name:            "beirat rejected->pending",
 			Method:          http.MethodPatch,
 			URL:             "/api/collections/issues/records/issuejcom000001",
 			Body:            strings.NewReader(`{"status":"pending"}`),
-			Headers:         authHeader(t, emailBeirat),
-			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  400,
-			ExpectedContent: []string{`"status":400`},
-		},
-		{
-			Name:            "beirat in_progress->open backwards",
-			Method:          http.MethodPatch,
-			URL:             "/api/collections/issues/records/issueicom000001",
-			Body:            strings.NewReader(`{"status":"open","visibility":"community"}`),
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  400,
@@ -327,6 +402,97 @@ func TestIssueWorkflowTimestamps(t *testing.T) {
 }
 
 const forgedTimestamp = "2000-01-01 00:00:00.000Z"
+
+// ---------------------------------------------------------------------------
+// archive + reopen (beirat/admin)
+// ---------------------------------------------------------------------------
+
+// TestIssueArchiveLifecycle: the archived fixture issue is invisible to
+// members and staff but not to the Beirat/Admin; unarchiving returns it
+// to "open" and clears resolved_at; the reporter keeps their own entry
+// in "Meine Einreichungen" with the archived label.
+func TestIssueArchiveLifecycle(t *testing.T) {
+	t.Parallel()
+
+	// the board rules hide archived issues from members and staff, the
+	// Beirat (and the Admin) sees everything
+	scenarios := []tests.ApiScenario{
+		{
+			Name:            "resident cannot view an archived issue",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueacom000001",
+			Headers:         authHeader(t, emailResident),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "hausmeister cannot view an archived issue",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueacom000001",
+			Headers:         authHeader(t, emailHausmeister),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			Name:            "beirat views an archived issue",
+			Method:          http.MethodGet,
+			URL:             "/api/collections/issues/records/issueacom000001",
+			Headers:         authHeader(t, emailBeirat),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"status":"archived"`},
+		},
+		{
+			// the archived issue stays reachable for the reporter
+			Name:            "reporter sees the own archived entry",
+			Method:          http.MethodGet,
+			URL:             "/api/portal/my-submissions",
+			Headers:         authHeader(t, emailResident),
+			TestAppFactory:  setupTestApp,
+			ExpectedStatus:  200,
+			ExpectedContent: []string{`"status":"archived"`, `issueacom000001`},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		scenario.Test(t)
+	}
+
+	// chained: archived -> in_progress is rejected, archived -> open is the
+	// only way back (and clears resolved_at)
+	app := setupTestApp(t)
+	defer app.Cleanup()
+
+	mux := serveMux(t, app)
+
+	rec := doJSON(t, mux, http.MethodPatch, "/api/collections/issues/records/issueacom000001",
+		`{"status":"in_progress"}`, authHeader(t, emailBeirat))
+	if rec.Code != 400 {
+		t.Fatalf("expected 400 for archived->in_progress, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	rec = doJSON(t, mux, http.MethodPatch, "/api/collections/issues/records/issueacom000001",
+		`{"status":"open"}`, authHeader(t, emailBeirat))
+	if rec.Code != 200 {
+		t.Fatalf("expected 200 for archived->open, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	issue, err := app.FindRecordById("issues", "issueacom000001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if issue.GetString("status") != "open" {
+		t.Fatalf("expected status open, got %q", issue.GetString("status"))
+	}
+	if issue.GetString("resolved_at") != "" {
+		t.Fatal("expected resolved_at to be cleared on unarchive")
+	}
+	if issue.GetString("decided_at") == "" {
+		t.Fatal("expected decided_at to survive the archive cycle")
+	}
+}
 
 // TestWorkflowTimestampsOwnedByHook checks that decided_at/resolved_at are
 // written by the hook alone: client-submitted values are ignored on

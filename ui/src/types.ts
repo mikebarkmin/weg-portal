@@ -57,7 +57,7 @@ export interface PortalIssue {
     title: string;
     description: string;
     category: string;
-    status: "pending" | "open" | "in_progress" | "resolved" | "rejected";
+    status: "pending" | "open" | "in_progress" | "resolved" | "archived" | "rejected";
     visibility: IssueVisibilityValue;
     photos: string[];
     decided_at: string;

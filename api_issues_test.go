@@ -65,7 +65,7 @@ func TestIssuesList(t *testing.T) {
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":10`, `"issuepcom000001"`, `"issuejprv000001"`},
+			ExpectedContent: []string{`"totalItems":11`, `"issuepcom000001"`, `"issueacom000001"`},
 		},
 		{
 			Name:               "hausmeister sees accepted issues incl. private",
@@ -452,8 +452,8 @@ func TestIssuesDelete(t *testing.T) {
 			Method:          http.MethodDelete,
 			URL:             "/api/collections/issues/records/issueocom000001",
 			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  403,
-			ExpectedContent: []string{`"status":403`},
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
 		},
 		{
 			Name:            "resident",
@@ -461,8 +461,8 @@ func TestIssuesDelete(t *testing.T) {
 			URL:             "/api/collections/issues/records/issueocom000001",
 			Headers:         authHeader(t, emailResident),
 			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  403,
-			ExpectedContent: []string{`"status":403`},
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
 		},
 		{
 			Name:            "beirat (retention cron deletes server-side)",
@@ -470,8 +470,8 @@ func TestIssuesDelete(t *testing.T) {
 			URL:             "/api/collections/issues/records/issueocom000001",
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  403,
-			ExpectedContent: []string{`"status":403`},
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
 		},
 		{
 			Name:            "hausmeister",
@@ -479,12 +479,59 @@ func TestIssuesDelete(t *testing.T) {
 			URL:             "/api/collections/issues/records/issueocom000001",
 			Headers:         authHeader(t, emailHausmeister),
 			TestAppFactory:  setupTestApp,
-			ExpectedStatus:  403,
-			ExpectedContent: []string{`"status":403`},
+			ExpectedStatus:  404,
+			ExpectedContent: []string{`"status":404`},
+		},
+		{
+			// migration 1795000113: the admin role may delete issues
+			Name:           "admin",
+			Method:         http.MethodDelete,
+			URL:            "/api/collections/issues/records/issueocom000001",
+			Headers:        authHeader(t, emailAdmin),
+			TestAppFactory: setupTestApp,
+			ExpectedStatus: 204,
 		},
 	}
 
 	for _, scenario := range scenarios {
 		scenario.Test(t)
 	}
+}
+
+// TestIssuesAdminDeleteCascade: deleting an issue as admin removes its
+// meta, location and history records with it (all cascade on the issue
+// relation).
+func TestIssuesAdminDeleteCascade(t *testing.T) {
+	t.Parallel()
+
+	app := setupTestApp(t)
+	defer app.Cleanup()
+
+	mux := serveMux(t, app)
+
+	rec := doJSON(t, mux, http.MethodDelete, "/api/collections/issues/records/issuercom000001",
+		"", authHeader(t, emailAdmin))
+	if rec.Code != 204 {
+		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if _, err := app.FindRecordById("issues", "issuercom000001"); err == nil {
+		t.Fatal("expected the issue to be deleted")
+	}
+	if _, err := app.FindRecordById("issue_metas", "imetarcom000001"); err == nil {
+		t.Fatal("expected the issue_metas record to cascade")
+	}
+	if _, err := app.FindRecordById("issue_locations", "issuercom000001"); err == nil {
+		t.Fatal("expected the issue_locations record to cascade")
+	}
+	events, err := app.FindRecordsByFilter("issue_events", "issue = 'issuercom000001'", "", 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) > 0 {
+		t.Fatalf("expected the issue_events records to cascade, got %d", len(events))
+	}
+
+	// only the admin row of the role matrix can delete; the file storage
+	// cleanup of the deleted photo is PocketBase's own delete cascade
 }

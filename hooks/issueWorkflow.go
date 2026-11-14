@@ -11,6 +11,17 @@ import (
 //	pending --accept (beirat, must set visibility)--> open --> in_progress --> resolved
 //	   \--reject (beirat)--> rejected
 //
+// The Beirat/Admin may also move an issue back or take it off the board:
+//
+//	in_progress --> open (defer), resolved --> open (reopen, clears resolved_at)
+//	open/in_progress/resolved --> archived (off the members' board)
+//	archived --> open (unarchive, clears resolved_at)
+//
+// The Hausmeister collection rule only ever lets a request submit
+// in_progress/resolved from open/in_progress, so the return paths and the
+// archive are beirat/admin-only by construction (the rule is the first gate,
+// this hook the second one).
+//
 // Anything else (e.g. resolved -> pending or a direct open -> resolved jump)
 // is rejected with 400. Submitting the SAME status as the stored one is also
 // rejected (M4 review decision: a repeated accept is a client error, not a
@@ -23,8 +34,10 @@ import (
 //
 // OnRecordUpdateRequest fires before the save, so the record can still be
 // amended: the hook sets decided_at on accept/reject and resolved_at on
-// resolve. Updates that do not submit a status (beirat edits of accepted
-// issues) are not blocked.
+// resolve. Returning to "open" (defer/reopen/unarchive) clears resolved_at;
+// archiving keeps it - the issue WAS resolved, the archive only removes it
+// from the board. Updates that do not submit a status (beirat edits of
+// accepted issues) are not blocked.
 func IssueWorkflow(app core.App) {
 	app.OnRecordUpdateRequest("issues").BindFunc(func(e *core.RecordRequestEvent) error {
 		oldStatus := e.Record.Original().GetString("status")
@@ -70,8 +83,18 @@ func IssueWorkflow(app core.App) {
 			// resolve
 			e.Record.Set("resolved_at", types.NowDateTime())
 
+		// ---- backward transitions and archive: beirat/admin only (the
+		// hausmeister rule never submits these statuses) ----
+		case (oldStatus == "in_progress" || oldStatus == "resolved" || oldStatus == "archived") && newStatus == "open":
+			// defer / reopen / unarchive: the issue is no longer resolved
+			e.Record.Set("resolved_at", nil)
+
+		case (oldStatus == "open" || oldStatus == "in_progress" || oldStatus == "resolved") && newStatus == "archived":
+			// take the issue off the members' board; a resolved_at set on
+			// the way to "archived" stays - the issue was resolved
+
 		default:
-			return e.BadRequestError("Invalid status transition: \"" + oldStatus + "\" -> \"" + newStatus + "\".", nil)
+			return e.BadRequestError("Invalid status transition: \""+oldStatus+"\" -> \""+newStatus+"\".", nil)
 		}
 
 		return e.Next()

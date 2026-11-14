@@ -49,8 +49,11 @@ branches of the M4 staff notification are testable against the fixture.
 - suggestions: `suggpending0001`, `suggaccepted001`, `suggrejected001`
   (one per status), each with submitter email `submitter@example.com`
 - issues: `issue<status><visibility>000001` for each status
-  (p=pending, o=open, i=in_progress, r=resolved, j=rejected) x visibility
-  (com=community, prv=private) - e.g. `issueocom000001` is open+community.
+  (p=pending, o=open, i=in_progress, r=resolved, a=archived, j=rejected) x
+  visibility (com=community, prv=private) - e.g. `issueocom000001` is
+  open+community. `issueacom000001` (archived, community, resolved before
+  archiving) was reported by the resident account like `issueiprv000001`
+  (the reporter keeps their own archived entry in "Meine Einreichungen").
   All have one protected photo `photo.png` (1x1 px PNG), one `issue_metas`
   record (`imeta...000001`) with the submitter email and one
   `issue_locations` record (same id as the issue): community issues are in

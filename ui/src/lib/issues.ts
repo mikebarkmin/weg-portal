@@ -13,5 +13,6 @@ export const STATUS_ICONS: Record<PortalIssue["status"], string> = {
     open: "ri-checkbox-blank-circle-line",
     in_progress: "ri-tools-line",
     resolved: "ri-checkbox-circle-line",
+    archived: "ri-archive-line",
     rejected: "ri-close-circle-line",
 };

@@ -328,6 +328,7 @@ func run() error {
 		{"issueiprv000001", "in_progress", "private", "Ruempelnder Nachbar"},
 		{"issuercom000001", "resolved", "community", "Brunnen repariert"},
 		{"issuerprv000001", "resolved", "private", "Beschwerde zurueckgezogen"},
+		{"issueacom000001", "archived", "community", "Alte Meldung (archiviert)"},
 		{"issuejcom000001", "rejected", "community", "Zu viel Laub"},
 		{"issuejprv000001", "rejected", "private", "Nachbarstreit"},
 	}
@@ -341,12 +342,12 @@ func run() error {
 		issue.Set("status", f.status)
 		issue.Set("visibility", f.visibility)
 		switch f.status {
-		case "open", "in_progress", "resolved":
+		case "open", "in_progress", "resolved", "archived":
 			issue.Set("decided_at", "2026-11-01 10:00:00.000Z")
 		case "rejected":
 			issue.Set("decided_at", "2026-11-01 10:00:00.000Z")
 		}
-		if f.status == "resolved" {
+		if f.status == "resolved" || f.status == "archived" {
 			issue.Set("resolved_at", "2026-11-10 12:00:00.000Z")
 		}
 		if err := app.Save(issue); err != nil {
@@ -359,9 +360,10 @@ func run() error {
 		meta.Set("issue", f.id)
 		meta.Set("email", "submitter@example.com")
 		meta.Set("name", "Max Mustermann")
-		// one report was submitted by the resident account (the reporter
-		// sees their own location)
-		if f.id == "issueiprv000001" {
+		// two reports were submitted by the resident account (the reporter
+		// sees their own location — and their own archived entry in
+		// "Meine Einreichungen")
+		if f.id == "issueiprv000001" || f.id == "issueacom000001" {
 			meta.Set("user", "userresident000")
 		}
 		if err := app.Save(meta); err != nil {

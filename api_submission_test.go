@@ -363,7 +363,7 @@ func TestSubmitIssuePersistence(t *testing.T) {
 	}{
 		{"", `"totalItems":0`},
 		{getAuthToken(t, "users", emailResident), `"totalItems":3`},
-		{getAuthToken(t, "users", emailBeirat), `"totalItems":12`},
+		{getAuthToken(t, "users", emailBeirat), `"totalItems":13`},
 	} {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/api/collections/issues/records", nil)

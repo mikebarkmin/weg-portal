@@ -496,19 +496,20 @@ function allowed(role: string, status: IssueStatus): IssueStatus[] {
 describe("issueTransitionsFor", () => {
     it("beirat: accept/reject a pending issue, then progress along the chain", () => {
         expect(allowed("beirat", "pending")).toEqual(["open", "rejected"]);
-        expect(allowed("beirat", "open")).toEqual(["in_progress"]);
-        expect(allowed("beirat", "in_progress")).toEqual(["resolved"]);
+        expect(allowed("beirat", "open")).toEqual(["in_progress", "archived"]);
+        expect(allowed("beirat", "in_progress")).toEqual(["resolved", "open", "archived"]);
     });
 
-    it("beirat has no way out of rejected/resolved (hook answers 400)", () => {
-        expect(allowed("beirat", "resolved")).toEqual([]);
+    it("beirat steps back along the chain and archives", () => {
+        expect(allowed("beirat", "resolved")).toEqual(["open", "archived"]);
+        expect(allowed("beirat", "archived")).toEqual(["open"]);
         expect(allowed("beirat", "rejected")).toEqual([]);
     });
 
     it("admin has the same transitions as beirat", () => {
         expect(allowed("admin", "pending")).toEqual(["open", "rejected"]);
-        expect(allowed("admin", "open")).toEqual(["in_progress"]);
-        expect(allowed("admin", "in_progress")).toEqual(["resolved"]);
+        expect(allowed("admin", "open")).toEqual(["in_progress", "archived"]);
+        expect(allowed("admin", "in_progress")).toEqual(["resolved", "open", "archived"]);
     });
 
     it("hausmeister: only open -> in_progress -> resolved", () => {
@@ -516,9 +517,10 @@ describe("issueTransitionsFor", () => {
         expect(allowed("hausmeister", "in_progress")).toEqual(["resolved"]);
     });
 
-    it("hausmeister cannot touch pending or terminal statuses", () => {
+    it("hausmeister cannot touch pending, terminal or archived statuses", () => {
         expect(allowed("hausmeister", "pending")).toEqual([]);
         expect(allowed("hausmeister", "resolved")).toEqual([]);
+        expect(allowed("hausmeister", "archived")).toEqual([]);
         expect(allowed("hausmeister", "rejected")).toEqual([]);
     });
 
@@ -528,6 +530,13 @@ describe("issueTransitionsFor", () => {
             expect(allowed("resident", status)).toEqual([]);
             expect(allowed("", status)).toEqual([]);
         }
+    });
+
+    it("reaching open from an accepted status happens without visibility", () => {
+        expect(allowed("beirat", "resolved")).toContain("open");
+        expect(
+            issueTransitionsFor("beirat", "resolved").every((t) => !t.requiresVisibility),
+        ).toBe(true);
     });
 
     it("marks the accept transition as the only visibility-requiring one", () => {

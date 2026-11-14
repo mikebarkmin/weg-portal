@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
-import { canShow, useAuth } from "../lib/auth";
+import { canShow, canShowAdmin, useAuth } from "../lib/auth";
 import { errorStatus, serverMessage } from "../lib/pbErrors";
 import { formatLongDate } from "../lib/dates";
 import { parsePBDate } from "../lib/recurrence";
@@ -22,6 +22,7 @@ import Notice from "../components/Notice";
 import VisibilityChip from "../components/VisibilityChip";
 import ProtectedPhotos from "../components/ProtectedPhotos";
 import IssueLocationView from "../components/IssueLocationView";
+import IssueEditor from "../components/IssueEditor";
 import IssueReporter from "../components/IssueReporter";
 import IssueHistory from "../components/IssueHistory";
 import {
@@ -41,6 +42,7 @@ export default function IssueDetail() {
     const { t, i18n } = useTranslation();
     const locale = i18n.language;
     const auth = useAuth();
+    const navigate = useNavigate();
     const { id = "" } = useParams();
 
     const [record, setRecord] = useState<PortalIssue | null>(null);
@@ -136,6 +138,8 @@ export default function IssueDetail() {
 
     const [actionBusy, setActionBusy] = useState(false);
     const [actionError, setActionError] = useState<{ key: string; detail: string } | null>(null);
+    const [editing, setEditing] = useState(false);
+    const [deleteBusy, setDeleteBusy] = useState(false);
 
     const applyTransition = async (
         next: IssueStatus,
@@ -196,6 +200,24 @@ export default function IssueDetail() {
             });
         } finally {
             setShareBusy(false);
+        }
+    };
+
+    // Admin: delete the report with everything attached to it (the
+    // server cascades metas, locations and the history)
+    const remove = async () => {
+        if (!record) return;
+        if (!window.confirm(t("issueDetail.deleteConfirm", { title: record.title }))) return;
+        setDeleteBusy(true);
+        try {
+            await pb.collection("issues").delete(record.id);
+            navigate("/issues");
+        } catch (err) {
+            setDeleteBusy(false);
+            setActionError({
+                key: "issueDetail.error.generic",
+                detail: err instanceof ClientResponseError ? serverMessage(err) : "",
+            });
         }
     };
 
@@ -294,10 +316,32 @@ export default function IssueDetail() {
                 </>
             }
         >
-            <PageHeading title={record.title} />
+            <PageHeading title={record.title}>
+                {canShow(role) && !editing && (
+                    <button type="button" className="btn sm secondary" onClick={() => setEditing(true)}>
+                        <i className="ri-edit-line" aria-hidden="true" />
+                        <span className="txt">{t("moderation.edit")}</span>
+                    </button>
+                )}
+                {canShowAdmin(role) && (
+                    <button type="button" className="btn sm secondary transparent" disabled={deleteBusy} onClick={() => void remove()}>
+                        <i className="ri-delete-bin-line" aria-hidden="true" />
+                        <span className="txt">{t("issueDetail.delete")}</span>
+                    </button>
+                )}
+            </PageHeading>
             <div className="flex-column gap-sm">
                 <article className="post">
-                    {record.description ? (
+                    {editing ? (
+                        <IssueEditor
+                            issue={record}
+                            onSaved={(updated) => {
+                                setRecord(updated);
+                                setEditing(false);
+                            }}
+                            onCancel={() => setEditing(false)}
+                        />
+                    ) : record.description ? (
                         <div className="content prewrap">{record.description}</div>
                     ) : (
                         <div className="txt-hint">{t("issueDetail.noDescription")}</div>
@@ -418,9 +462,7 @@ export default function IssueDetail() {
                                     onClick={() => void applyTransition(transition.status, transition.requiresVisibility)}
                                 >
                                     <span className="txt">
-                                        {transition.status === "open"
-                                            ? t("moderation.accept")
-                                            : t(`issueDetail.action.${transition.status}`)}
+                                        {t(transition.labelKey)}
                                     </span>
                                 </button>
                                 ))}

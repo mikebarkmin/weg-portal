@@ -44,14 +44,14 @@ func TestIssueLocationsRead(t *testing.T) {
 			ExpectedContent: []string{`"totalItems":0`},
 		},
 		{
-			Name:               "resident: only the own report, with all fields",
+			Name:               "resident: only the own reports, with all fields",
 			Method:             http.MethodGet,
 			URL:                url,
 			Headers:            authHeader(t, emailResident),
 			TestAppFactory:     setupTestApp,
 			ExpectedStatus:     200,
-			ExpectedContent:    []string{`"totalItems":1`, `"issue":"issueiprv000001"`, `"area":"areakeller00000"`, `"has_pin":true`, `"x":0.25`, `"y":0.75`},
-			NotExpectedContent: []string{`issueocom000001`, `areahouse790000`},
+			ExpectedContent:    []string{`"totalItems":2`, `"issue":"issueiprv000001"`, `"area":"areakeller00000"`, `"has_pin":true`, `"x":0.25`, `"y":0.75`, `issueacom000001`},
+			NotExpectedContent: []string{`issueocom000001`, `issueoprv000001`},
 		},
 		{
 			Name:            "beirat: every location",
@@ -60,7 +60,7 @@ func TestIssueLocationsRead(t *testing.T) {
 			Headers:         authHeader(t, emailBeirat),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":10`, `"issue":"issuepcom000001"`, `"floor":"1. OG"`, `"shared":true`},
+			ExpectedContent: []string{`"totalItems":11`, `"issue":"issuepcom000001"`, `"floor":"1. OG"`, `"shared":true`},
 		},
 		{
 			Name:            "admin: every location",
@@ -69,7 +69,7 @@ func TestIssueLocationsRead(t *testing.T) {
 			Headers:         authHeader(t, emailAdmin),
 			TestAppFactory:  setupTestApp,
 			ExpectedStatus:  200,
-			ExpectedContent: []string{`"totalItems":10`},
+			ExpectedContent: []string{`"totalItems":11`},
 		},
 		{
 			// shared: both pending and both open issues - but pending

@@ -11,6 +11,7 @@
         "login": "Log in",
         "logout": "Log out",
         "newIssue": "Report issue",
+        "newEvent": "New event",
         "board": "Issues",
         "profile": "Profile",
         "signup": "Sign up",
@@ -461,6 +462,7 @@
         "open": "Accepted",
         "in_progress": "In progress",
         "resolved": "Resolved",
+        "archived": "Archived",
         "rejected": "Rejected"
     },
     "issueVisibility": {
@@ -489,9 +491,14 @@
         "photoAlt": "Photo {{index}}",
         "photoFailed": "At least one photo could not be loaded.",
         "actions": "Change status",
+        "delete": "Delete",
+        "deleteConfirm": "Permanently delete \"{{title}}\"? Location, photos and history will be deleted with it and cannot be restored.",
         "action": {
             "in_progress": "Start working",
             "resolved": "Mark as resolved",
+            "back": "Defer",
+            "reopen": "Reopen",
+            "archived": "Archive",
             "rejected": "Reject"
         },
         "error": {

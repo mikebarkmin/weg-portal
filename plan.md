@@ -84,7 +84,7 @@ Helper expressions used below:
 | `users` (auth) | role (select), approved (bool), notify_new_issues (bool), name | public; hook forces `role=resident`, `approved=false` | own record, or `B` | see below | superuser |
 | `events` | title, description, date_start, date_end, all_day, location, category, rrule (text, RFC 5545, optional) | `B` | `""` | `B` | `B` |
 | `suggestions` | title, description, date_start, date_end, all_day, location, category, **email**, status, decision_note, decided_at | `""` via rule forcing `status='pending'` | `B` | `B` | `null` (retention cron) |
-| `issues` | title, description, category, photos[] (protected), status, visibility, decided_at, resolved_at | via custom route only (`null` on the collection) | see "Issue read rule" | `B`, or `STAFF` limited to status (see below) | `null` (retention cron) |
+| `issues` | title, description, category, photos[] (protected), status (pending/open/in_progress/resolved/archived/rejected), visibility, decided_at, resolved_at | via custom route only (`null` on the collection) | see "Issue read rule" | `B`, or `STAFF` limited to status (see below) | `admin` (cascades metas/locations/events) |
 | `issue_metas` | issue (relation, unique, cascade delete), **email**, name (optional) | via custom route only (`null`) | `B` | `null` | cascade |
 | `issue_areas` | name, floors (JSON list of labels, houses only), plan (protected file, png/jpeg/webp, raster only — no SVG), sort, active | `B` | `B`, or `APPROVED` | `B` | `B` |
 | `issue_locations` | issue (relation, unique, cascade; same id as the issue), area, floor?, has_pin, x/y (pin on the plan, 0..1), shared — all fields schema-hidden, written by server routes only | `null` (submission route) | `B`; reporter (via issue_metas): own; `STAFF`: only `shared` on accepted issues | `null` (Beirat share route flips `shared`) | cascade |
@@ -171,16 +171,30 @@ transition server-side, regardless of role:
 ```
 pending ──accept (beirat, must set visibility)──► open ──► in_progress ──► resolved
    └──reject (beirat)──► rejected
+
+beirat/admin return paths:
+  in_progress ──defer──► open        resolved ──reopen──► open   (clears resolved_at)
+  open/in_progress/resolved ──archive──► archived  (keeps resolved_at)
+  archived ──unarchive──► open       (clears resolved_at)
 ```
 
 Disallowed transitions return 400 — for beirat/superusers too. Submitting the
 **same** status as the stored one is rejected as well (M4 review decision: a
 repeated accept is a client error, not a no-op; `status` must only be sent
 when it actually changes), while updates that do not send `status` at all
-(beirat content edits) remain allowed. The hook sets `decided_at` /
+(beirat content edits — before AND after the decision, on the moderation
+queue and the detail page) remain allowed. The hook sets `decided_at` /
 `resolved_at` and they are **hook-owned**: the stored values are restored on
 every update before the transition is applied, so a client can never forge
-them (the beirat update rule is otherwise unrestricted). The same moderation
+them (the beirat update rule is otherwise unrestricted).
+
+Archived issues disappear from the member/staff board (the list/view rule
+excludes the status for non-beirat); the reporter keeps seeing their own
+entry with the label "Archiviert" in "Meine Einreichungen". Archived issues
+are not cleaned by the retention cron — the admin deletes them when needed
+(`issues.deleteRule = admin`, metas/locations/events cascade).
+
+The same moderation
 semantics apply to suggestions via `hooks/suggestionWorkflow.go`
 (`pending → accepted|rejected` only, same-status rejection, hook-owned
 `decided_at`); on accept the `events` record is created in the same
@@ -195,6 +209,8 @@ transaction as the suggestion update.
 | Issue board + location plan | accepted, community — no location (only their own in "Meine Einreichungen") | all incl. pending/rejected/private, with location | accepted incl. private, location only when `shared` | accepted incl. private, location only when `shared` | all incl. pending/rejected/private, with location |
 | Change issue status (`open`→`in_progress`→`resolved`) | – | yes | yes | no | yes |
 | Accept/reject, set `visibility` | – | yes | – | – | yes |
+| Reopen/defer, archive/unarchive | – | yes | – | – | yes |
+| Delete reports | – | – | – | – | yes (issue + cascades) |
 | Approve resident accounts | – | yes | – | – | yes (+ deny/delete in /admin) |
 | Account management: create/remove users, change roles, reset passwords | – | – | – | – | yes (/admin, custom routes) |
 | Beirat notes | – | full | – | – | full |

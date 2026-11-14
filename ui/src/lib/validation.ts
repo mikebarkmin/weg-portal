@@ -419,6 +419,7 @@ export const ISSUE_STATUSES = [
     "open",
     "in_progress",
     "resolved",
+    "archived",
     "rejected",
 ] as const;
 
@@ -429,31 +430,56 @@ export interface IssueTransition {
     status: IssueStatus;
     // beirat accept: the visibility must be decided in the SAME request
     requiresVisibility: boolean;
+    // i18n key of the button for THIS transition (accept vs. reopen
+    // both end in "open", but need different labels)
+    labelKey: string;
 }
 
-const BEIRAT_NEXT: Record<IssueStatus, IssueStatus[]> = {
-    pending: ["open", "rejected"],
-    open: ["in_progress"],
-    in_progress: ["resolved"],
-    resolved: [],
+// Mirrors hooks/issueWorkflow.go: the forward chain for the Beirat/Admin
+// plus the return paths (defer/reopen/unarchive) and the archive. The
+// assertion that the Hausmeister rule allows less is covered by the API
+// tests - the UI only offers what the server accepts.
+const BEIRAT_NEXT: Record<IssueStatus, { status: IssueStatus; labelKey: string }[]> = {
+    pending: [
+        { status: "open", labelKey: "moderation.accept" },
+        { status: "rejected", labelKey: "issueDetail.action.rejected" },
+    ],
+    open: [
+        { status: "in_progress", labelKey: "issueDetail.action.in_progress" },
+        { status: "archived", labelKey: "issueDetail.action.archived" },
+    ],
+    in_progress: [
+        { status: "resolved", labelKey: "issueDetail.action.resolved" },
+        { status: "open", labelKey: "issueDetail.action.back" },
+        { status: "archived", labelKey: "issueDetail.action.archived" },
+    ],
+    resolved: [
+        { status: "open", labelKey: "issueDetail.action.reopen" },
+        { status: "archived", labelKey: "issueDetail.action.archived" },
+    ],
+    archived: [
+        { status: "open", labelKey: "issueDetail.action.reopen" },
+    ],
     rejected: [],
 };
 
 // The hausmeister rule whitelists status changes from open/in_progress only.
-const HAUSMEISTER_NEXT: Record<IssueStatus, IssueStatus[]> = {
+const HAUSMEISTER_NEXT: Record<IssueStatus, { status: IssueStatus; labelKey: string }[]> = {
     pending: [],
-    open: ["in_progress"],
-    in_progress: ["resolved"],
+    open: [{ status: "in_progress", labelKey: "issueDetail.action.in_progress" }],
+    in_progress: [{ status: "resolved", labelKey: "issueDetail.action.resolved" }],
     resolved: [],
+    archived: [],
     rejected: [],
 };
 
 // The hausverwaltung is read-only; residents never change statuses.
-const NO_NEXT: Record<IssueStatus, IssueStatus[]> = {
+const NO_NEXT: Record<IssueStatus, { status: IssueStatus; labelKey: string }[]> = {
     pending: [],
     open: [],
     in_progress: [],
     resolved: [],
+    archived: [],
     rejected: [],
 };
 
@@ -467,9 +493,10 @@ export function issueTransitionsFor(
             : role === "hausmeister"
               ? HAUSMEISTER_NEXT[status]
               : NO_NEXT[status];
-    return next.map((nextStatus) => ({
-        status: nextStatus,
-        requiresVisibility: status === "pending" && nextStatus === "open",
+    return next.map((transition) => ({
+        status: transition.status,
+        requiresVisibility: status === "pending" && transition.status === "open",
+        labelKey: transition.labelKey,
     }));
 }
 

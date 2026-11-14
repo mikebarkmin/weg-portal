@@ -3,12 +3,14 @@ import { useTranslation } from "react-i18next";
 import type { IssueStatus } from "../lib/validation";
 
 // BugStage label colors per status: new (neutral) -> accepted (info) ->
-// in progress (warning) -> resolved (success); rejected is danger.
+// in progress (warning) -> resolved (success); archived is muted neutral,
+// rejected is danger.
 const STATUS_LABEL_TONE: Record<IssueStatus, string> = {
     pending: "",
     open: "info",
     in_progress: "warning",
     resolved: "success",
+    archived: "",
     rejected: "danger",
 };
 

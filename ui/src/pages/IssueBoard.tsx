@@ -36,6 +36,7 @@ const STATUS_COLOR_VARS: Record<IssueStatus, string> = {
     open: "--infoColor",
     in_progress: "--warningColor",
     resolved: "--successColor",
+    archived: "--surfaceAlt5Color",
     rejected: "--dangerColor",
 };
 

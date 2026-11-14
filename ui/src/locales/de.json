@@ -10,7 +10,8 @@
         "notes": "Notizen",
         "login": "Anmelden",
         "logout": "Abmelden",
-        "newIssue": "Meldung",
+        "newIssue": "Melden",
+        "newEvent": "Neuer Termin",
         "board": "Pinnwand",
         "profile": "Profil",
         "signup": "Registrieren",
@@ -461,6 +462,7 @@
         "open": "Angenommen",
         "in_progress": "In Bearbeitung",
         "resolved": "Erledigt",
+        "archived": "Archiviert",
         "rejected": "Abgelehnt"
     },
     "issueVisibility": {
@@ -489,9 +491,14 @@
         "photoAlt": "Foto {{index}}",
         "photoFailed": "Mindestens ein Foto konnte nicht geladen werden.",
         "actions": "Status ändern",
+        "delete": "Löschen",
+        "deleteConfirm": "Die Meldung „{{title}}“ endgültig löschen? Ort, Fotos und Verlauf werden mitgelöscht und können nicht wiederhergestellt werden.",
         "action": {
             "in_progress": "Bearbeitung starten",
             "resolved": "Als erledigt markieren",
+            "back": "Zurückstellen",
+            "reopen": "Wieder öffnen",
+            "archived": "Archivieren",
             "rejected": "Ablehnen"
         },
         "error": {
