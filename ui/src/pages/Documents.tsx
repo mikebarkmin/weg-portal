@@ -51,6 +51,8 @@ export default function Documents() {
     const [error, setError] = useState(false);
     const [category, setCategory] = useState<DocumentCategory | "all">("all");
     const [uploading, setUploading] = useState(false);
+    // the document whose properties are being edited (null = none)
+    const [editing, setEditing] = useState<string | null>(null);
     const { token, onError } = useFileToken(auth.isAuthenticated);
 
     const load = useCallback(() => {
@@ -101,7 +103,7 @@ export default function Documents() {
             }
         >
             <PageHeading title={t("documents.heading")}>
-                {isBeirat && !uploading && (
+                {isBeirat && !uploading && !editing && (
                     <button type="button" className="btn sm" onClick={() => setUploading(true)}>
                         <i className="ri-upload-2-line" aria-hidden="true" />
                         <span className="txt">{t("documents.upload")}</span>
@@ -117,6 +119,16 @@ export default function Documents() {
                             load();
                         }}
                         onCancel={() => setUploading(false)}
+                    />
+                )}
+                {editing && items && (
+                    <DocumentForm
+                        doc={items.find((doc) => doc.id === editing) ?? null}
+                        onSaved={() => {
+                            setEditing(null);
+                            load();
+                        }}
+                        onCancel={() => setEditing(null)}
                     />
                 )}
                 {error && <div className="alert danger">{t("documents.loadError")}</div>}
@@ -156,6 +168,16 @@ export default function Documents() {
                                             <i className="ri-download-2-line" aria-hidden="true" />
                                             <span className="txt">{t("documents.open")}</span>
                                         </a>
+                                        {isBeirat && (
+                                            <button
+                                                type="button"
+                                                className="btn sm secondary transparent"
+                                                aria-label={t("documents.edit")}
+                                                onClick={() => setEditing(doc.id)}
+                                            >
+                                                <i className="ri-edit-line" aria-hidden="true" />
+                                            </button>
+                                        )}
                                         {isBeirat && <DeleteButton onConfirm={() => void remove(doc)} />}
                                     </span>
                                 </div>
@@ -187,20 +209,23 @@ function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
     );
 }
 
-function DocumentForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () => void }) {
+// The upload form doubles as the property editor: with `doc` it PATCHes
+// the given record instead of creating one, the file input turns optional
+// (no file = keep the stored one).
+function DocumentForm({ doc, onSaved, onCancel }: { doc?: PortalDocument | null; onSaved: () => void; onCancel: () => void }) {
     const { t } = useTranslation();
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [category, setCategory] = useState<DocumentCategory>("protokoll");
-    const [visibility, setVisibility] = useState<Visibility>("owners");
-    const [date, setDate] = useState("");
+    const [title, setTitle] = useState(doc?.title ?? "");
+    const [description, setDescription] = useState(doc?.description ?? "");
+    const [category, setCategory] = useState<DocumentCategory>(doc?.category ?? "protokoll");
+    const [visibility, setVisibility] = useState<Visibility>(doc?.visibility ?? "owners");
+    const [date, setDate] = useState(doc?.document_date?.slice(0, 10) ?? "");
     const [file, setFile] = useState<File | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const submit = async (e: { preventDefault(): void }) => {
         e.preventDefault();
-        if (!title.trim() || !file) {
+        if (!title.trim() || (!doc && !file)) {
             setError(t("documents.missing"));
             return;
         }
@@ -212,9 +237,13 @@ function DocumentForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
         data.set("category", category);
         data.set("visibility", visibility);
         if (date) data.set("document_date", `${date} 00:00:00.000Z`);
-        data.set("file", file);
+        if (file) data.set("file", file);
         try {
-            await pb.collection("documents").create(data);
+            if (doc) {
+                await pb.collection("documents").update(doc.id, data);
+            } else {
+                await pb.collection("documents").create(data);
+            }
             onSaved();
         } catch (err) {
             setError(t("documents.saveError") + (err instanceof ClientResponseError ? ` (${serverMessage(err)})` : ""));
@@ -225,7 +254,7 @@ function DocumentForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
 
     return (
         <form className="post" onSubmit={submit} noValidate>
-            <h2 className="post-title">{t("documents.upload")}</h2>
+            <h2 className="post-title">{doc ? t("documents.edit") : t("documents.upload")}</h2>
             <div className="grid sm">
                 <FormField id="doc-title" label={t("suggestion.title")} required>
                     <input id="doc-title" type="text" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
@@ -251,9 +280,11 @@ function DocumentForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
                 <FormField id="doc-date" className="col-12 col-md-6" label={t("documents.date")}>
                     <input id="doc-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                 </FormField>
-                <FormField id="doc-file" className="col-12 col-md-6" label={t("documents.file")} required hint={t("documents.fileHint")}>
-                    <input id="doc-file" type="file" accept={ACCEPT} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-                </FormField>
+                {!doc && (
+                    <FormField id="doc-file" className="col-12 col-md-6" label={t("documents.file")} required hint={t("documents.fileHint")}>
+                        <input id="doc-file" type="file" accept={ACCEPT} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                    </FormField>
+                )}
                 {error && (
                     <div className="col-12">
                         <div className="alert danger">{error}</div>
@@ -265,8 +296,8 @@ function DocumentForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
                             {t("eventEditor.cancel")}
                         </button>
                         <button type="submit" className={`btn ${busy ? "loading" : ""}`} disabled={busy}>
-                            <i className="ri-upload-2-line" aria-hidden="true" />
-                            <span className="txt">{t("documents.uploadSubmit")}</span>
+                            <i className={doc ? "ri-save-line" : "ri-upload-2-line"} aria-hidden="true" />
+                            <span className="txt">{doc ? t("documents.save") : t("documents.uploadSubmit")}</span>
                         </button>
                     </footer>
                 </div>

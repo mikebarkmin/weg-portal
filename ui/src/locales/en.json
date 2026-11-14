@@ -652,6 +652,8 @@
         "fileHint": "PDF, image or office document, max. 20 MB.",
         "upload": "Upload document",
         "uploadSubmit": "Upload",
+        "edit": "Edit document",
+        "save": "Save",
         "open": "Open",
         "missing": "Please enter a title and choose a file.",
         "empty": "There are no documents in this category.",

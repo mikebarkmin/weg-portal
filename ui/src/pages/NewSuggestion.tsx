@@ -17,6 +17,14 @@ import {
     makeSuggestionSchema,
     type SuggestionFormValues,
 } from "../lib/validation";
+import {
+    buildRRule,
+    parseEditableRule,
+    validateRecurrence,
+    type RecurrenceErrors,
+    type RecurrenceValues,
+} from "../lib/eventForm";
+import RecurrenceFields from "../components/RecurrenceFields";
 
 // Zod error messages are i18n keys; messages coming from the PocketBase
 // field validators are English server content and shown as-is.
@@ -42,6 +50,11 @@ export default function NewSuggestion() {
 
     // time-trap: the moment this page mounted
     const startedAt = useRef(Date.now());
+
+    // the optional repetition of the meeting (freq/interval/... up to the
+    // RFC 5545 rule built on submit; all_day is taken from the form)
+    const [recurrence, setRecurrence] = useState<RecurrenceValues>(() => ({ all_day: false, ...parseEditableRule("") }));
+    const [recErrors, setRecErrors] = useState<RecurrenceErrors>({});
 
     const [submitted, setSubmitted] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
@@ -73,10 +86,21 @@ export default function NewSuggestion() {
 
     const submit = handleSubmit(async (values) => {
         setServerError(null);
+        const found = validateRecurrence({ ...recurrence, all_day: values.all_day }, values.date_start);
+        setRecErrors(found);
+        if (Object.keys(found).length > 0) {
+            return;
+        }
         try {
             await pb
                 .collection("suggestions")
-                .create(buildSuggestionPayload(values, startedAt.current));
+                .create(
+                    buildSuggestionPayload(
+                        values,
+                        startedAt.current,
+                        buildRRule({ ...recurrence, all_day: values.all_day }),
+                    ),
+                );
             setSubmitted(true);
         } catch (error) {
             if (error instanceof ClientResponseError && errorStatus(error) === 429) {
@@ -104,6 +128,8 @@ export default function NewSuggestion() {
     const resetForm = () => {
         startedAt.current = Date.now(); // fresh time-trap window
         reset();
+        setRecurrence({ all_day: false, ...parseEditableRule("") });
+        setRecErrors({});
         setSubmitted(false);
         setServerError(null);
     };
@@ -194,6 +220,13 @@ export default function NewSuggestion() {
                     >
                         <input id="suggestion-category" type="text" maxLength={100} {...register("category")} />
                     </FormField>
+
+                    <RecurrenceFields
+                        idPrefix="suggestion"
+                        values={{ ...recurrence, all_day: allDay }}
+                        onChange={(patch) => setRecurrence((prev) => ({ ...prev, ...patch }))}
+                        errors={recErrors}
+                    />
 
                     {!isAuthenticated && (
                         <FormField

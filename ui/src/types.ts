@@ -43,6 +43,8 @@ export interface PortalSuggestion {
     decision_note: string;
     created?: string;
     calendar?: CalendarId | "";
+    // RFC 5545 recurrence rule, optional; copied to the event on accept
+    rrule?: string;
 }
 
 // Shared client-side view of the PocketBase `issues` records as shown on

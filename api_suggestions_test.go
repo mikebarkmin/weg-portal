@@ -139,6 +139,16 @@ func TestSuggestionsCreate(t *testing.T) {
 			NotExpectedContent: []string{`"decision_note":"selbst entschieden"`},
 		},
 		{
+			Name:               "guest submits a recurring meeting suggestion",
+			Method:             http.MethodPost,
+			URL:                "/api/collections/suggestions/records",
+			Body:               strings.NewReader(`{"title":"Gemeinschaftsgarten","description":"Jeden 14. Tag","date_start":"2027-04-05 09:00:00.000Z","rrule":"FREQ=WEEKLY;INTERVAL=2;BYDAY=MO","email":"newsubmitter@example.com","status":"pending","honeypot":"","form_started_at":1794567514781}`),
+			TestAppFactory:     setupTestApp,
+			ExpectedStatus:     200,
+			ExpectedContent:    []string{`"status":"pending"`, `"FREQ=WEEKLY;INTERVAL=2;BYDAY=MO"`},
+			NotExpectedContent: []string{`"decision_note":"selbst entschieden"`},
+		},
+		{
 			Name:            "unapproved resident",
 			Method:          http.MethodPost,
 			URL:             "/api/collections/suggestions/records",

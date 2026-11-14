@@ -515,13 +515,25 @@ func TestSuggestionWorkflowTransitions(t *testing.T) {
 }
 
 // TestSuggestionAcceptEvent checks that accepting creates the calendar
-// event with the copied fields and an empty rrule, and that the atomicity
-// holds: when the event insert fails, the suggestion update is rolled back.
+// event with the copied fields (including a recurrence rule) and that
+// the atomicity holds: when the event insert fails, the suggestion
+// update is rolled back.
 func TestSuggestionAcceptEvent(t *testing.T) {
 	app := setupTestApp(t)
 	defer app.Cleanup()
 
 	mux := serveMux(t, app)
+
+	// a recurring meeting suggestion carries an RFC 5545 rule
+	const recurring = "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO;COUNT=8"
+	suggestion, err := app.FindRecordById("suggestions", "suggpending0001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	suggestion.Set("rrule", recurring)
+	if err := app.Save(suggestion); err != nil {
+		t.Fatal(err)
+	}
 
 	eventsBefore := countRecords(t, app, "events")
 
@@ -538,7 +550,7 @@ func TestSuggestionAcceptEvent(t *testing.T) {
 	}
 
 	event := events[0]
-	suggestion, err := app.FindRecordById("suggestions", "suggpending0001")
+	suggestion, err = app.FindRecordById("suggestions", "suggpending0001")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -558,8 +570,8 @@ func TestSuggestionAcceptEvent(t *testing.T) {
 	if event.GetString("category") != suggestion.GetString("category") {
 		t.Fatalf("expected copied category, got %q", event.GetString("category"))
 	}
-	if event.GetString("rrule") != "" {
-		t.Fatalf("expected empty rrule, got %q", event.GetString("rrule"))
+	if event.GetString("rrule") != recurring {
+		t.Fatalf("expected the suggestion rrule %q copied to the event, got %q", recurring, event.GetString("rrule"))
 	}
 	if suggestion.GetString("decided_at") == "" {
 		t.Fatal("expected decided_at to be set on accept")

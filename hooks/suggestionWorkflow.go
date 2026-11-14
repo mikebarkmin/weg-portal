@@ -88,8 +88,8 @@ func SuggestionWorkflow(app core.App) {
 }
 
 // createEventFromSuggestion creates the calendar event for an accepted
-// suggestion: title, description, date_start, date_end, all_day, location
-// and category are copied, rrule stays empty (plain single events only).
+// suggestion: title, description, date_start, date_end, all_day, location,
+// category and the optional recurrence rule are copied.
 func createEventFromSuggestion(txApp core.App, suggestion *core.Record) error {
 	events, err := txApp.FindCachedCollectionByNameOrId("events")
 	if err != nil {
@@ -104,6 +104,9 @@ func createEventFromSuggestion(txApp core.App, suggestion *core.Record) error {
 	event.Set("all_day", suggestion.Get("all_day"))
 	event.Set("location", suggestion.GetString("location"))
 	event.Set("category", suggestion.GetString("category"))
+	// a suggestion may describe a recurring meeting: its rule travels
+	// to the event, so the calendar renders the series
+	event.Set("rrule", suggestion.GetString("rrule"))
 	calendar := suggestion.GetString("calendar")
 	if calendar == "" {
 		calendar = "public"

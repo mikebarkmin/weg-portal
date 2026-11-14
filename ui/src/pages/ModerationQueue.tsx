@@ -6,7 +6,7 @@ import { ClientResponseError } from "pocketbase";
 import { pb } from "../lib/pbClient";
 import { errorStatus, serverMessage } from "../lib/pbErrors";
 import { dayKeyOf, formatLongDate, formatTime } from "../lib/dates";
-import { displayDate, parsePBDate } from "../lib/recurrence";
+import { parseRule, displayDate, parsePBDate } from "../lib/recurrence";
 import { useAuth } from "../lib/auth";
 import ProtectedPhotos from "../components/ProtectedPhotos";
 import IssueLocationMap from "../components/IssueLocationMap";
@@ -24,7 +24,8 @@ import {
 } from "../lib/validation";
 import type { AgendaItem, CalendarId, PortalIssue, PortalSuggestion } from "../types";
 import { CALENDARS } from "../lib/calendars";
-import { toInputValue } from "../lib/eventForm";
+import { toInputValue, buildRRule, parseEditableRule, validateRecurrence, type RecurrenceErrors, type RecurrenceValues } from "../lib/eventForm";
+import RecurrenceFields from "../components/RecurrenceFields";
 
 type Tab = "suggestions" | "issues" | "agenda";
 
@@ -243,6 +244,23 @@ function SuggestionCard({
     const submitted = parsePBDate(suggestion.created);
     const endOnOtherDay = start && end && dayKeyOf(end) !== dayKeyOf(start);
 
+    // compact repetition label of a suggested series (like EventDetail)
+    const ruleSummary = parseRule(suggestion.rrule);
+    const repeatLabel = (() => {
+        if (!ruleSummary) return "";
+        const { freq, interval } = ruleSummary;
+        if (interval > 1) {
+            const intervalKeys: Record<string, string> = {
+                DAILY: "recurrence.intervalDays",
+                WEEKLY: "recurrence.intervalWeeks",
+                MONTHLY: "recurrence.intervalMonths",
+                YEARLY: "recurrence.intervalYears",
+            };
+            return t(intervalKeys[freq]!, { count: interval });
+        }
+        return t(`recurrence.${freq.toLowerCase()}`);
+    })();
+
     const dateLabel = (() => {
         if (!start) return "";
         if (suggestion.all_day) {
@@ -329,6 +347,12 @@ function SuggestionCard({
                     <li>
                         <i className="ri-price-tag-3-line" aria-hidden="true" />
                         <span>{suggestion.category}</span>
+                    </li>
+                )}
+                {repeatLabel && (
+                    <li>
+                        <i className="ri-repeat-line" aria-hidden="true" />
+                        <span>{repeatLabel}</span>
                     </li>
                 )}
                 <li>
@@ -568,6 +592,12 @@ function SuggestionEditor({
         location: suggestion.location,
         category: suggestion.category,
     });
+    // the repetition travels with the suggestion into the created event
+    const [recurrence, setRecurrence] = useState<RecurrenceValues>(() => ({
+        all_day: suggestion.all_day,
+        ...parseEditableRule(suggestion.rrule ?? ""),
+    }));
+    const [recErrors, setRecErrors] = useState<RecurrenceErrors>({});
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const id = (field: string) => `edit-${field}-${suggestion.id}`;
@@ -577,6 +607,11 @@ function SuggestionEditor({
         e.preventDefault();
         if (!values.title.trim() || !values.date_start) {
             setError(t("validation.required"));
+            return;
+        }
+        const found = validateRecurrence({ ...recurrence, all_day: values.all_day }, values.date_start);
+        setRecErrors(found);
+        if (Object.keys(found).length > 0) {
             return;
         }
         setBusy(true);
@@ -590,6 +625,7 @@ function SuggestionEditor({
                 date_end: values.date_end ? toPBDateTime(values.date_end, values.all_day) : "",
                 location: values.location.trim(),
                 category: values.category.trim(),
+                rrule: buildRRule({ ...recurrence, all_day: values.all_day }),
             });
             onSaved(updated);
         } catch (err) {
@@ -633,6 +669,12 @@ function SuggestionEditor({
                 <FormField id={id("category")} className="col-12 col-md-6" label={t("suggestion.category")}>
                     <input id={id("category")} type="text" maxLength={100} value={values.category} onChange={(e) => setValues({ ...values, category: e.target.value })} />
                 </FormField>
+                <RecurrenceFields
+                    idPrefix={id("recurrence")}
+                    values={{ ...recurrence, all_day: values.all_day }}
+                    onChange={(patch) => setRecurrence((prev) => ({ ...prev, ...patch }))}
+                    errors={recErrors}
+                />
                 {error && (
                     <div className="col-12">
                         <div className="alert danger">{error}</div>

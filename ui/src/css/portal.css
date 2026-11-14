@@ -70,6 +70,15 @@
     position-try-fallbacks: flip-block;
 }
 
+/* the base .dropdown caps at 330px and then clips; the header popups
+   should show all their items (the Beirat menu holds a full group) and
+   only scroll when the viewport itself leaves no room */
+.account-dropdown,
+.header-dropdown,
+.project-menu.dropdown {
+    max-height: calc(100dvh - 2 * var(--smSpacing));
+}
+
 /* BugStage sizes dropdowns to their anchor (anchor-size(width)), which is
    just the small avatar/menu button here: size these to their content */
 .account-dropdown,

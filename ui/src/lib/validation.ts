@@ -107,6 +107,8 @@ export interface SuggestionPayload {
     honeypot: string;
     // epoch ms, set when the form is mounted (time-trap)
     form_started_at: number;
+    //RFC 5545 rule, optional; only sent when the submitter chose a repetition
+    rrule?: string;
 }
 
 // Payload for the public suggestion create. The createRule forces
@@ -117,6 +119,7 @@ export interface SuggestionPayload {
 export function buildSuggestionPayload(
     values: SuggestionFormValues,
     formStartedAt: number,
+    rrule = "",
 ): SuggestionPayload {
     const payload: SuggestionPayload = {
         status: "pending",
@@ -134,6 +137,9 @@ export function buildSuggestionPayload(
     }
     if (values.date_end) {
         payload.date_end = toPBDateTime(values.date_end, values.all_day);
+    }
+    if (rrule) {
+        payload.rrule = rrule;
     }
     return payload;
 }

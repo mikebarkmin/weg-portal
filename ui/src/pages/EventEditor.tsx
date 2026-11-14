@@ -5,20 +5,18 @@ import { ClientResponseError } from "pocketbase";
 
 import { pb } from "../lib/pbClient";
 import { fieldErrors } from "../lib/pbErrors";
-import { weekdayLabel } from "../lib/dates";
 import {
     buildEventPayload,
     emptyEventForm,
     eventToForm,
     validateEventForm,
     type EventFormValues,
-    type Frequency,
-    type RepeatEnd,
 } from "../lib/eventForm";
 import type { PortalEvent } from "../types";
 import { CALENDARS } from "../lib/calendars";
 import { BackLink, Page, PageHeading, SidebarMenu } from "../components/Page";
 import FormField, { SwitchField } from "../components/FormField";
+import RecurrenceFields from "../components/RecurrenceFields";
 
 type Errors = Partial<Record<keyof EventFormValues, string>>;
 
@@ -29,8 +27,7 @@ export default function EventEditor() {
     const { id } = useParams();
     const isNew = !id;
     const navigate = useNavigate();
-    const { t, i18n } = useTranslation();
-    const locale = i18n.language;
+    const { t } = useTranslation();
 
     const [values, setValues] = useState<EventFormValues>(emptyEventForm);
     const [loading, setLoading] = useState(!isNew);
@@ -72,15 +69,6 @@ export default function EventEditor() {
                 !value ? "" : allDay ? value.slice(0, 10) : value.length === 10 ? `${value}T19:00` : value;
             return { ...prev, all_day: allDay, date_start: convert(prev.date_start), date_end: convert(prev.date_end) };
         });
-    };
-
-    const toggleWeekday = (day: number) => {
-        set(
-            "weekdays",
-            values.weekdays.includes(day)
-                ? values.weekdays.filter((d) => d !== day)
-                : [...values.weekdays, day].sort(),
-        );
     };
 
     const save = async (event: { preventDefault(): void }) => {
@@ -157,7 +145,6 @@ export default function EventEditor() {
     }
 
     const dateType = values.all_day ? "date" : "datetime-local";
-    const repeats = values.freq !== "none" || values.customRule !== "";
 
     return (
         <Page sidebar={sidebar}>
@@ -251,121 +238,12 @@ export default function EventEditor() {
                         />
                     </FormField>
 
-                    <div className="col-12">
-                        <hr className="m-0" />
-                    </div>
-                    <div className="col-12">
-                        <h2 className="section-title">
-                            <i className="ri-repeat-line" aria-hidden="true" />
-                            {t("event.recurrence")}
-                        </h2>
-                    </div>
-
-                    {values.customRule ? (
-                        <>
-                            <FormField
-                                id="event-custom-rule"
-                                label="RRULE"
-                                hint={t("eventEditor.customRuleHint")}
-                                error={error("customRule")}
-                            >
-                                <input
-                                    id="event-custom-rule"
-                                    type="text"
-                                    value={values.customRule}
-                                    onChange={(e) => set("customRule", e.target.value)}
-                                />
-                            </FormField>
-                            <div className="col-12">
-                                <button type="button" className="btn sm secondary" onClick={() => set("customRule", "")}>
-                                    {t("eventEditor.replaceCustomRule")}
-                                </button>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <FormField id="event-freq" className="col-12 col-md-6" label={t("eventEditor.repeat")}>
-                                <select id="event-freq" value={values.freq} onChange={(e) => set("freq", e.target.value as Frequency)}>
-                                    <option value="none">{t("recurrence.none")}</option>
-                                    <option value="DAILY">{t("recurrence.daily")}</option>
-                                    <option value="WEEKLY">{t("recurrence.weekly")}</option>
-                                    <option value="MONTHLY">{t("recurrence.monthly")}</option>
-                                    <option value="YEARLY">{t("recurrence.yearly")}</option>
-                                </select>
-                            </FormField>
-                            {repeats && (
-                                <FormField id="event-interval" className="col-12 col-md-6" label={t("eventEditor.interval")} error={error("interval")}>
-                                    <input
-                                        id="event-interval"
-                                        type="number"
-                                        inputMode="numeric"
-                                        min={1}
-                                        max={99}
-                                        value={values.interval}
-                                        onChange={(e) => set("interval", Number(e.target.value))}
-                                    />
-                                </FormField>
-                            )}
-
-                            {values.freq === "WEEKLY" && (
-                                <div className="col-12">
-                                    <div className="field-group-label">{t("eventEditor.weekdays")}</div>
-                                    <div className="weekday-picker">
-                                        {[0, 1, 2, 3, 4, 5, 6].map((day) => (
-                                            <label key={day} className={`weekday-option ${values.weekdays.includes(day) ? "active" : ""}`}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={values.weekdays.includes(day)}
-                                                    onChange={() => toggleWeekday(day)}
-                                                />
-                                                <span>{weekdayLabel(day, locale)}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                    <div className="field-help">{t("eventEditor.weekdaysHint")}</div>
-                                </div>
-                            )}
-
-                            {repeats && (
-                                <>
-                                    <FormField id="event-repeat-end" className="col-12 col-md-6" label={t("eventEditor.ends")}>
-                                        <select
-                                            id="event-repeat-end"
-                                            value={values.repeatEnd}
-                                            onChange={(e) => set("repeatEnd", e.target.value as RepeatEnd)}
-                                        >
-                                            <option value="never">{t("eventEditor.endsNever")}</option>
-                                            <option value="until">{t("eventEditor.endsUntil")}</option>
-                                            <option value="count">{t("eventEditor.endsCount")}</option>
-                                        </select>
-                                    </FormField>
-                                    {values.repeatEnd === "until" && (
-                                        <FormField id="event-until" className="col-12 col-md-6" label={t("eventEditor.untilDate")} required error={error("until")}>
-                                            <input
-                                                id="event-until"
-                                                type="date"
-                                                value={values.until}
-                                                onChange={(e) => set("until", e.target.value)}
-                                            />
-                                        </FormField>
-                                    )}
-                                    {values.repeatEnd === "count" && (
-                                        <FormField id="event-count" className="col-12 col-md-6" label={t("eventEditor.countLabel")} required error={error("count")}>
-                                            <input
-                                                id="event-count"
-                                                type="number"
-                                                inputMode="numeric"
-                                                min={1}
-                                                max={999}
-                                                value={values.count}
-                                                onChange={(e) => set("count", Number(e.target.value))}
-                                            />
-                                        </FormField>
-                                    )}
-                                </>
-                            )}
-                        </>
-                    )}
+                    <RecurrenceFields
+                        idPrefix="event"
+                        values={values}
+                        onChange={(patch) => setValues((prev) => ({ ...prev, ...patch }))}
+                        errors={errors}
+                    />
 
                     {serverError && (
                         <div className="col-12">

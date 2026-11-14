@@ -36,6 +36,16 @@ export interface EventFormValues {
     customRule: string;
 }
 
+// The recurrence part of the form, shared by the event editor and the
+// (meeting) suggestion forms (NewSuggestion + moderation editor).
+export type RecurrenceValues = Pick<
+    EventFormValues,
+    "freq" | "interval" | "weekdays" | "repeatEnd" | "until" | "count" | "customRule" | "all_day"
+>;
+
+// Error keys of the recurrence fields (i18n keys resolved with t()).
+export type RecurrenceErrors = Partial<Record<"interval" | "until" | "count" | "customRule", string>>;
+
 const RULE_KEYS_SUPPORTED = new Set(["freq", "interval", "byweekday", "until", "count"]);
 
 // Splits a stored rrule into the builder fields, or reports it as custom
@@ -106,7 +116,7 @@ export function parseEditableRule(
 // The RFC 5545 RRULE value for the builder fields ("" = no recurrence).
 // UNTIL is inclusive: the end of the chosen day (all-day series use a DATE
 // value, matching DTSTART;VALUE=DATE in the iCal export).
-export function buildRRule(values: EventFormValues): string {
+export function buildRRule(values: RecurrenceValues): string {
     if (values.customRule.trim()) {
         return values.customRule.trim();
     }
@@ -170,33 +180,20 @@ function inputTime(value: string, allDay: boolean): number {
     return new Date(normalized).getTime();
 }
 
-// Error messages are i18n keys (resolved with t() in the page).
-export function validateEventForm(values: EventFormValues): Partial<Record<keyof EventFormValues, string>> {
-    const errors: Partial<Record<keyof EventFormValues, string>> = {};
-    const title = values.title.trim();
-    if (!title) errors.title = "validation.required";
-    else if (title.length > FIELD_LIMITS.title) errors.title = "validation.tooLong";
-    if (values.description.length > FIELD_LIMITS.description) errors.description = "validation.tooLong";
-    if (values.location.length > FIELD_LIMITS.location) errors.location = "validation.tooLong";
-    if (values.category.length > FIELD_LIMITS.category) errors.category = "validation.tooLong";
-
-    const start = values.date_start ? inputTime(values.date_start, values.all_day) : NaN;
-    if (!values.date_start) errors.date_start = "validation.required";
-    else if (Number.isNaN(start)) errors.date_start = "validation.invalidDate";
-
-    if (values.date_end) {
-        const end = inputTime(values.date_end, values.all_day);
-        if (Number.isNaN(end)) errors.date_end = "validation.invalidDate";
-        else if (!Number.isNaN(start) && end < start) errors.date_end = "validation.dateEndBeforeStart";
-    }
-
+// Recurrence-field validation, shared by the event editor and the
+// suggestion forms. `dateStart` is the form's date/datetime-local start
+// value (an UNTIL before the start is rejected). Error messages are
+// i18n keys (resolved with t() in the page).
+export function validateRecurrence(values: RecurrenceValues, dateStart: string): RecurrenceErrors {
+    const errors: RecurrenceErrors = {};
+    const start = dateStart ? inputTime(dateStart, values.all_day) : NaN;
     if (!values.customRule && values.freq !== "none") {
         if (!Number.isInteger(values.interval) || values.interval < 1 || values.interval > 99) {
             errors.interval = "eventEditor.error.interval";
         }
         if (values.repeatEnd === "until") {
             if (!values.until) errors.until = "validation.required";
-            else if (!Number.isNaN(start) && inputTime(values.until, true) < inputTime(values.date_start.slice(0, 10), true)) {
+            else if (!Number.isNaN(start) && inputTime(values.until, true) < inputTime(dateStart.slice(0, 10), true)) {
                 errors.until = "eventEditor.error.untilBeforeStart";
             }
         }
@@ -217,6 +214,30 @@ export function validateEventForm(values: EventFormValues): Partial<Record<keyof
             errors.customRule = "eventEditor.error.customRule";
         }
     }
+    return errors;
+}
+
+// Error messages are i18n keys (resolved with t() in the page).
+export function validateEventForm(values: EventFormValues): Partial<Record<keyof EventFormValues, string>> {
+    const errors: Partial<Record<keyof EventFormValues, string>> = {};
+    const title = values.title.trim();
+    if (!title) errors.title = "validation.required";
+    else if (title.length > FIELD_LIMITS.title) errors.title = "validation.tooLong";
+    if (values.description.length > FIELD_LIMITS.description) errors.description = "validation.tooLong";
+    if (values.location.length > FIELD_LIMITS.location) errors.location = "validation.tooLong";
+    if (values.category.length > FIELD_LIMITS.category) errors.category = "validation.tooLong";
+
+    const start = values.date_start ? inputTime(values.date_start, values.all_day) : NaN;
+    if (!values.date_start) errors.date_start = "validation.required";
+    else if (Number.isNaN(start)) errors.date_start = "validation.invalidDate";
+
+    if (values.date_end) {
+        const end = inputTime(values.date_end, values.all_day);
+        if (Number.isNaN(end)) errors.date_end = "validation.invalidDate";
+        else if (!Number.isNaN(start) && end < start) errors.date_end = "validation.dateEndBeforeStart";
+    }
+
+    Object.assign(errors, validateRecurrence(values, values.date_start));
     return errors;
 }
 

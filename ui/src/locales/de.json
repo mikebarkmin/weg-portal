@@ -652,6 +652,8 @@
         "fileHint": "PDF, Bild oder Office-Dokument, max. 20 MB.",
         "upload": "Dokument hochladen",
         "uploadSubmit": "Hochladen",
+        "edit": "Dokument bearbeiten",
+        "save": "Speichern",
         "open": "Öffnen",
         "missing": "Bitte Titel und Datei angeben.",
         "empty": "In dieser Kategorie gibt es keine Dokumente.",
