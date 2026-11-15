@@ -14,7 +14,7 @@ PocketBase-Administration `/_/` — Superuser nur dort, wo unten genannt.
 - Eigentümer registrieren sich selbst; nach Bestätigung ihrer
   E-Mail-Adresse erscheinen sie unter „Warten auf Freigabe“.
 - Prüfen (Eigentümer der Anlage?), dann **Freigeben**. Erst freigegebene
-  Konten sehen Pinnwand, Inhalte „Nur Eigentümer“ und „Mitreden“.
+  Konten sehen Meldungen, Inhalte „Nur Eigentümer“ und „Mitreden“.
 - **Verkauf**: Freigabe **zurückziehen** — wirkt sofort. Eigentümer
   können ihr Konto im Profil auch selbst löschen.
 

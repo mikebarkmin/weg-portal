@@ -698,7 +698,8 @@
             "verwaltung": "Property management",
             "hausmeister": "Caretaker",
             "sonstiges": "Other contacts"
-        }
+        },
+        "actions": "Actions"
     },
     "documents": {
         "heading": "Documents",

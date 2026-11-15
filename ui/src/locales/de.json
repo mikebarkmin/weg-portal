@@ -12,7 +12,7 @@
         "logout": "Abmelden",
         "newIssue": "Melden",
         "newEvent": "Neuer Termin",
-        "board": "Pinnwand",
+        "board": "Meldungen",
         "profile": "Profil",
         "signup": "Registrieren",
         "menu": "Menü",
@@ -35,7 +35,7 @@
             "home": "Start",
             "news": "Aktuelles",
             "calendar": "Kalender",
-            "board": "Pinnwand",
+            "board": "Meldungen",
             "documents": "Dokumente",
             "beirat": "Beirat"
         },
@@ -251,7 +251,7 @@
         },
         "approve": "Freigeben",
         "revoke": "Freigabe zurückziehen",
-        "intro": "Eigentümer sehen die Pinnwand und Inhalte für Eigentümer erst nach Ihrer Freigabe. Nach einem Verkauf die Freigabe wieder entziehen."
+        "intro": "Eigentümer sehen die Meldungen und Inhalte für Eigentümer erst nach Ihrer Freigabe. Nach einem Verkauf die Freigabe wieder entziehen."
     },
     "notes": {
         "heading": "Interne Notizen",
@@ -368,7 +368,7 @@
             "stepEmail": "Schritt 1: Bestätigen Sie Ihre E-Mail-Adresse über den Link, der an Ihre Adresse geschickt wurde.",
             "stepEmailSent": "Die Bestätigungs-E-Mail wurde versendet.",
             "stepEmailMaybe": "Die Bestätigungs-E-Mail konnte nicht versendet werden (E-Mail-Versand evtl. nicht konfiguriert). Sie können sie im Profil erneut anfordern.",
-            "stepApproval": "Schritt 2: Sobald Ihre Adresse bestätigt ist, schaltet der Beirat Ihr Konto für die Pinnwand frei. Sie werden per E-Mail benachrichtigt, sobald Entscheidungen zu Ihren Meldungen fallen.",
+            "stepApproval": "Schritt 2: Sobald Ihre Adresse bestätigt ist, schaltet der Beirat Ihr Konto für die Meldungen frei. Sie werden per E-Mail benachrichtigt, sobald Entscheidungen zu Ihren Meldungen fallen.",
             "toLogin": "Zur Anmeldung",
             "back": "Zum Kalender"
         }
@@ -453,7 +453,7 @@
         },
         "waiting": {
             "title": "Warten auf Freigabe",
-            "text": "Ihr Konto wartet auf die Freigabe durch den Beirat. Sobald es freigegeben ist, sehen Sie hier die Pinnwand der Gemeinschaft. Bei Fragen wenden Sie sich an den Beirat.",
+            "text": "Ihr Konto wartet auf die Freigabe durch den Beirat. Sobald es freigegeben ist, sehen Sie hier die Meldungen der Gemeinschaft. Bei Fragen wenden Sie sich an den Beirat.",
             "profile": "Zum Profil"
         },
         "login": {
@@ -462,7 +462,7 @@
         }
     },
     "board": {
-        "heading": "Pinnwand",
+        "heading": "Meldungen",
         "intro": "Angenommene Meldungen aus der Gemeinschaftsanlage. Ortsangaben sind nicht öffentlich: Sie sehen sie nur bei Ihren eigenen Meldungen.",
         "loading": "Meldungen werden geladen …",
         "error": "Meldungen konnten nicht geladen werden. Bitte später erneut versuchen.",
@@ -495,7 +495,7 @@
     "issueVisibility": {
         "community": {
             "label": "Gemeinschaft",
-            "hint": "Alle freigegebenen Eigentümer sehen die Meldung auf der Pinnwand – ohne Ortsangabe."
+            "hint": "Alle freigegebenen Eigentümer sehen die Meldung unter „Meldungen“ – ohne Ortsangabe."
         },
         "private": {
             "label": "Privat",
@@ -504,7 +504,7 @@
     },
     "issueDetail": {
         "heading": "Meldung",
-        "back": "Zurück zur Pinnwand",
+        "back": "Zurück zu den Meldungen",
         "loading": "Meldung wird geladen …",
         "notFoundTitle": "Meldung nicht gefunden",
         "notFoundText": "Diese Meldung existiert nicht oder ist für Sie nicht sichtbar.",
@@ -617,7 +617,7 @@
     "home": {
         "heading": "Willkommen",
         "quickLinks": "Schnellzugriff",
-        "ownerHint": "Eigentümer sehen nach der Anmeldung zusätzlich Aushänge, Termine und Dokumente nur für Eigentümer, die Pinnwand und Umfragen.",
+        "ownerHint": "Eigentümer sehen nach der Anmeldung zusätzlich Aushänge, Termine und Dokumente nur für Eigentümer, die Meldungen und Umfragen.",
         "allAnnouncements": "Alle Aushänge",
         "upcoming": "Nächste Termine",
         "toCalendar": "Zum Kalender",
@@ -698,7 +698,8 @@
             "verwaltung": "Hausverwaltung",
             "hausmeister": "Hausmeister",
             "sonstiges": "Weitere Kontakte"
-        }
+        },
+        "actions": "Aktionen"
     },
     "documents": {
         "heading": "Dokumente",

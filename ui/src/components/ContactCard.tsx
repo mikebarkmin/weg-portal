@@ -5,6 +5,19 @@ import type { PortalContact } from "../types";
 import VisibilityLabel from "./VisibilityLabel";
 import { CONTACT_ICONS } from "../lib/contacts";
 
+// Let long addresses wrap after the "@" instead of at an arbitrary letter.
+function breakableEmail(email: string) {
+    const at = email.indexOf("@");
+    if (at < 0) return email;
+    return (
+        <>
+            {email.slice(0, at + 1)}
+            <wbr />
+            {email.slice(at + 1)}
+        </>
+    );
+}
+
 // One contact as a bordered card. Phone numbers and addresses are shown
 // as text too (tel:/mailto: links may not work everywhere).
 export default function ContactCard({
@@ -26,8 +39,8 @@ export default function ContactCard({
                 <span className="contact-name">
                     <strong>{contact.name}</strong>
                     {contact.function && <span className="txt-hint txt-sm">{contact.function}</span>}
+                    {showVisibility && contact.visibility === "owners" && <VisibilityLabel visibility="owners" />}
                 </span>
-                {showVisibility && contact.visibility === "owners" && <VisibilityLabel visibility="owners" />}
             </header>
             <ul className="fact-list">
                 {contact.phone && (
@@ -39,7 +52,7 @@ export default function ContactCard({
                 {contact.email && (
                     <li>
                         <i className="ri-mail-line" aria-hidden="true" />
-                        <a href={`mailto:${contact.email}`}>{contact.email}</a>
+                        <a href={`mailto:${contact.email}`}>{breakableEmail(contact.email)}</a>
                     </li>
                 )}
                 {contact.note && (
