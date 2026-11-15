@@ -1659,6 +1659,9 @@ a.post.announcement-teaser {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
     gap: var(--xsSpacing);
+    > .contact-form {
+        grid-column: 1 / -1;
+    }
 }
 
 .post.contact-card {
@@ -1700,114 +1703,6 @@ a.post.announcement-teaser {
     .fact-list li {
         word-break: normal;
         overflow-wrap: anywhere;
-    }
-}
-
-.hidden-visually {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-}
-
-.table-wrapper {
-    width: 100%;
-    max-width: 100%;
-}
-
-.contact-table {
-    td {
-        vertical-align: top;
-    }
-    .contact-name-cell {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 2px;
-        min-width: 160px;
-        .label {
-            margin-top: 4px;
-        }
-    }
-    .contact-fact {
-        display: inline-flex;
-        align-items: flex-start;
-        gap: 8px;
-        overflow-wrap: anywhere;
-        > i {
-            flex-shrink: 0;
-            color: var(--surfaceTxtHintColor);
-        }
-    }
-    .nowrap {
-        white-space: nowrap;
-    }
-    .contact-note {
-        color: var(--surfaceTxtHintColor);
-        overflow-wrap: anywhere;
-    }
-    .contact-actions {
-        display: flex;
-        gap: 2px;
-        justify-content: flex-end;
-        margin: -4px -6px;
-    }
-    .contact-edit-row td {
-        padding: var(--xsSpacing);
-        background: var(--surfaceColor);
-        > .post {
-            border: 0;
-            padding: 0;
-            box-shadow: none;
-        }
-    }
-    .contact-edit-row:hover td {
-        background: var(--surfaceColor);
-    }
-
-    /* phones: each contact becomes one stacked block */
-    @media (max-width: 720px) {
-        thead {
-            display: none;
-        }
-        tbody,
-        tr,
-        td {
-            display: block;
-        }
-        tr {
-            position: relative;
-            border: var(--borderWidth) solid var(--borderColor);
-            border-radius: var(--borderRadius);
-            background: var(--surfaceColor);
-            padding: 12px 14px;
-            & + tr {
-                margin-top: var(--xsSpacing);
-            }
-        }
-        tbody > tr > td,
-        tbody > tr:last-child > td {
-            border: 0 !important;
-            border-radius: 0 !important;
-            padding: 3px 0;
-            height: auto;
-            background: transparent !important;
-        }
-        td.contact-empty {
-            display: none;
-        }
-        td.min-width {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: auto !important;
-        }
-        .contact-name-cell {
-            padding-right: 72px !important;
-            padding-bottom: 6px !important;
-        }
     }
 }
 

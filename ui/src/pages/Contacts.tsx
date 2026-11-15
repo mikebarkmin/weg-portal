@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ClientResponseError } from "pocketbase";
 
@@ -9,7 +9,7 @@ import { CONTACT_ICONS } from "../lib/contacts";
 import type { ContactCategory, PortalContact, Visibility } from "../types";
 import { Page, PageHeading, SidebarMenu } from "../components/Page";
 import FormField from "../components/FormField";
-import VisibilityLabel from "../components/VisibilityLabel";
+import ContactCard from "../components/ContactCard";
 import ConfirmDeleteButton from "../components/ConfirmDeleteButton";
 
 const CATEGORIES: ContactCategory[] = ["notdienst", "beirat", "verwaltung", "hausmeister", "sonstiges"];
@@ -102,62 +102,37 @@ export default function Contacts() {
                         <header className="page-heading">
                             <h2 className="title">{t(`contacts.category.${g.category}`)}</h2>
                         </header>
-                        <div className="table-wrapper">
-                            <table className="contact-table">
-                                <thead>
-                                    <tr>
-                                        <th>{t("contacts.name")}</th>
-                                        <th>{t("contacts.phone")}</th>
-                                        <th>{t("contacts.email")}</th>
-                                        <th>{t("contacts.note")}</th>
-                                        {isBeirat && (
-                                            <th className="min-width">
-                                                <span className="hidden-visually">{t("contacts.actions")}</span>
-                                            </th>
-                                        )}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {g.contacts.map((c) =>
-                                        editing === c.id ? (
-                                            <tr key={c.id} className="contact-edit-row">
-                                                <td colSpan={isBeirat ? 5 : 4}>
-                                                    <ContactForm
-                                                        contact={c}
-                                                        onSaved={() => {
-                                                            setEditing(null);
-                                                            load();
-                                                        }}
-                                                        onCancel={() => setEditing(null)}
-                                                    />
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            <ContactRow
-                                                key={c.id}
-                                                contact={c}
-                                                showVisibility={auth.isAuthenticated}
-                                                actions={
-                                                    isBeirat && (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                className="btn sm secondary transparent circle"
-                                                                aria-label={t("notes.editAction")}
-                                                                title={t("notes.editAction")}
-                                                                onClick={() => setEditing(c.id)}
-                                                            >
-                                                                <i className="ri-edit-line" aria-hidden="true" />
-                                                            </button>
-                                                            <ConfirmDeleteButton iconOnly onConfirm={() => remove(c)} />
-                                                        </>
-                                                    )
-                                                }
-                                            />
-                                        ),
-                                    )}
-                                </tbody>
-                            </table>
+                        <div className="contact-grid">
+                            {g.contacts.map((c) =>
+                                editing === c.id ? (
+                                    <ContactForm
+                                        key={c.id}
+                                        contact={c}
+                                        onSaved={() => {
+                                            setEditing(null);
+                                            load();
+                                        }}
+                                        onCancel={() => setEditing(null)}
+                                    />
+                                ) : (
+                                    <ContactCard
+                                        key={c.id}
+                                        contact={c}
+                                        showVisibility={auth.isAuthenticated}
+                                        actions={
+                                            isBeirat && (
+                                                <>
+                                                    <button type="button" className="btn sm secondary transparent" onClick={() => setEditing(c.id)}>
+                                                        <i className="ri-edit-line" aria-hidden="true" />
+                                                        <span className="txt">{t("notes.editAction")}</span>
+                                                    </button>
+                                                    <ConfirmDeleteButton onConfirm={() => remove(c)} />
+                                                </>
+                                            )
+                                        }
+                                    />
+                                ),
+                            )}
                         </div>
                     </section>
                 ))}
@@ -166,64 +141,6 @@ export default function Contacts() {
     );
 }
 
-// Allow long addresses to wrap after the "@" instead of mid-word.
-function breakableEmail(email: string) {
-    const at = email.indexOf("@");
-    if (at < 0) return email;
-    return (
-        <>
-            {email.slice(0, at + 1)}
-            <wbr />
-            {email.slice(at + 1)}
-        </>
-    );
-}
-
-function ContactRow({
-    contact,
-    showVisibility,
-    actions,
-}: {
-    contact: PortalContact;
-    showVisibility: boolean;
-    actions?: ReactNode;
-}) {
-    return (
-        <tr>
-            <td className="contact-name-cell">
-                <strong>{contact.name}</strong>
-                {contact.function && <span className="txt-hint txt-sm">{contact.function}</span>}
-                {showVisibility && contact.visibility === "owners" && <VisibilityLabel visibility="owners" />}
-            </td>
-            <td className={contact.phone ? "" : "contact-empty"}>
-                {contact.phone && (
-                    <span className="contact-fact">
-                        <i className="ri-phone-line" aria-hidden="true" />
-                        <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} className="nowrap">
-                            {contact.phone}
-                        </a>
-                    </span>
-                )}
-            </td>
-            <td className={contact.email ? "" : "contact-empty"}>
-                {contact.email && (
-                    <span className="contact-fact">
-                        <i className="ri-mail-line" aria-hidden="true" />
-                        <a href={`mailto:${contact.email}`}>{breakableEmail(contact.email)}</a>
-                    </span>
-                )}
-            </td>
-            <td className={contact.note ? "contact-note" : "contact-empty"}>
-                {contact.note && <span className="prewrap txt-sm">{contact.note}</span>}
-            </td>
-            {actions && (
-                <td className="min-width">
-                    <div className="contact-actions">{actions}</div>
-                </td>
-            )}
-        </tr>
-    );
-}
 
 function ContactForm({
     contact,

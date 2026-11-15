@@ -698,8 +698,7 @@
             "verwaltung": "Hausverwaltung",
             "hausmeister": "Hausmeister",
             "sonstiges": "Weitere Kontakte"
-        },
-        "actions": "Aktionen"
+        }
     },
     "documents": {
         "heading": "Dokumente",
